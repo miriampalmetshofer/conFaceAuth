@@ -1,11 +1,14 @@
 # %%
+from enum import Enum
+
 from keras_facenet import FaceNet
 import cv2
 import numpy as np
 from mtcnn import MTCNN
-from src.utils import get_enrollment_embeddings, get_average_of_closest_10_percent
+from collections import deque
+from src.utils import get_enrollment_embeddings, get_average_of_closest_10_percent, calculate_trust_score
 
-enrollment_folder = 'data/enrollment_v2/processed/'
+enrollment_folder = '../data/enrollment_v2/processed/'
 
 detector = MTCNN()
 embedder = FaceNet()
@@ -13,17 +16,6 @@ embedder = FaceNet()
 # %%
 enrollment_embeddings = get_enrollment_embeddings(enrollment_folder)
 
-# %%
-# compute threshold based on enrollment data
-mean_embedding = np.mean(enrollment_embeddings, axis=0)
-
-distances = np.linalg.norm(enrollment_embeddings - mean_embedding, axis=1)
-
-mean_distance = np.mean(distances)
-std_distance = np.std(distances)
-threshold = mean_distance + 2 * std_distance
-
-print(f"Adaptive threshold set at: {threshold:.4f}")
 
 # %%
 def test_with_video(video_path, output_path='output_video.mp4'):
@@ -31,7 +23,7 @@ def test_with_video(video_path, output_path='output_video.mp4'):
 
     # Get video properties
     fps = cap.get(cv2.CAP_PROP_FPS)
-    width  = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+    width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
     height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
 
     out = cv2.VideoWriter(output_path, cv2.VideoWriter_fourcc(*'mp4v'), fps, (width, height))
@@ -39,6 +31,13 @@ def test_with_video(video_path, output_path='output_video.mp4'):
     frame_count = 0
     skip_frames = 30
     number_of_frames_unauthenticated = 0
+    window_size = 5
+    threshold_distance = 0.7
+    distance_window = deque(maxlen=window_size)
+    distance = 0
+    trust_score = 0
+    Color = Enum('Color', [('RED', (0, 0, 255)), ('GREEN', (0, 255, 0))])
+    color = Color.GREEN.value
 
     while cap.isOpened():
         ret, frame = cap.read()
@@ -47,31 +46,36 @@ def test_with_video(video_path, output_path='output_video.mp4'):
 
         try:
             if frame_count % skip_frames == 0:
-                    rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-                    results = detector.detect_faces(rgb_frame)
-                    if len(results) == 0:
-                        number_of_frames_unauthenticated += 1
-                        raise Exception("No faces detected")
-                    result = results[0]
-                    x, y, w, h = result['box']
-                    x, y = max(0, x), max(0, y)
-                    face = rgb_frame[y:y + h, x:x + w]
-                    embedding = embedder.embeddings([face])[0]
+                rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                results = detector.detect_faces(rgb_frame)
+                if len(results) == 0:
+                    number_of_frames_unauthenticated += 1
+                    raise Exception("No faces detected")
+                result = results[0]
+                x, y, w, h = result['box']
+                x, y = max(0, x), max(0, y)
+                face = rgb_frame[y:y + h, x:x + w]
+                embedding = embedder.embeddings([face])[0]
 
-                    distance = get_average_of_closest_10_percent(embedding, enrollment_embeddings)
+                distance = get_average_of_closest_10_percent(embedding, enrollment_embeddings)
 
-                    if distance < threshold:
-                        color = (0, 255, 0)
-                    else:
-                        number_of_frames_unauthenticated += 1
-                        color = (0, 0, 255)
+                distance_window.append(distance)
 
-                    cv2.rectangle(frame, (x, y), (x + w, y + h), color, 2)
-                    cv2.putText(frame, f"Distance: {distance:.4f}", (x, y - 10), cv2.FONT_HERSHEY_SIMPLEX, 1.2, color, 2)
+                trust_score = calculate_trust_score(distance_window, threshold_distance)
+
+                if trust_score >= 0.7:
+                    color = Color.GREEN.value
+                else:
+                    number_of_frames_unauthenticated += 1
+                    color = Color.RED.value
+
+                cv2.rectangle(frame, (x, y), (x + w, y + h), color, 2)
 
         except Exception as e:
             print(f"Error embedding face at frame {frame_count}: {e}")
 
+        cv2.putText(frame, f"Distance: {distance:.4f}, Trust: {trust_score:.2f}", (50, 50),
+                    cv2.FONT_HERSHEY_SIMPLEX, 3, color, 3)
         out.write(frame)
         frame_count += 1
 
@@ -85,7 +89,5 @@ def test_with_video(video_path, output_path='output_video.mp4'):
     out.release()
     cv2.destroyAllWindows()
 
-test_with_video('data/images/motion-illumination-change-test-2.mp4', 'data/images/output/output-video-3.mp4')
 
-
-
+test_with_video('../data/images/test_1.mp4', '../data/images/output/output-video-3.mp4')

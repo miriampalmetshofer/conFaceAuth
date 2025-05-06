@@ -1,3 +1,5 @@
+from collections import deque
+
 from keras_facenet import FaceNet
 import cv2
 import numpy as np
@@ -7,6 +9,11 @@ import os
 
 detector = MTCNN()
 embedder = FaceNet()
+
+trust_score = 0.5
+trust_score_min = 0.0
+trust_score_max = 1.0
+trust_score_decay = 0.05
 
 
 def load_image(image_path: str) -> np.ndarray:
@@ -135,6 +142,7 @@ def get_closest_match_distance(test_embedding, enrollment_embeddings):
 
     return closest_match_distance
 
+
 def get_average_of_closest_10_percent(test_embedding, enrollment_embeddings):
     distances = get_distances_between_enrollment_and_test(test_embedding, enrollment_embeddings)
     closest_10_percent_idx = int(len(distances) * 0.1)
@@ -153,3 +161,27 @@ def get_distances_between_enrollment_and_test(test_embedding, enrollment_embeddi
     distances.sort()
 
     return distances
+
+
+def calculate_trust_score(window, threshold):
+    if len(window) == 0:
+        return trust_score  # No change if no history is available
+
+    avg_distance = np.mean(window)
+
+    if avg_distance < threshold:
+        return min(trust_score + trust_score_decay, trust_score_max)
+    else:
+        return max(trust_score - trust_score_decay, trust_score_min)
+
+
+def calculate_adaptive_threshold(enrollment_embeddings):
+    mean_embedding = np.mean(enrollment_embeddings, axis=0)
+
+    distances = np.linalg.norm(enrollment_embeddings - mean_embedding, axis=1)
+
+    mean_distance = np.mean(distances)
+    std_distance = np.std(distances)
+    threshold = mean_distance + 2 * std_distance
+
+    print(f"Adaptive threshold set at: {threshold:.4f}")
