@@ -101,7 +101,7 @@ def cut_faces_in_enrollment():
 
 
 def process_video_and_get_embedding():
-    video_path = 'data/images/IMG_7109.mp4'
+    video_path = '../data/images/IMG_7109.mp4'
     cap = cv2.VideoCapture(video_path)
 
     embeddings = []
