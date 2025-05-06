@@ -124,16 +124,32 @@ def process_video_and_get_embedding():
 
     cap.release()
     cv2.destroyAllWindows()
+
     return embeddings
 
 
-def get_closest_match_distance(embedding, enrollment_embeddings):
+def get_closest_match_distance(test_embedding, enrollment_embeddings):
+    distances = get_distances_between_enrollment_and_test(test_embedding, enrollment_embeddings)
+    closest_match_idx = np.argmin(distances)
+    closest_match_distance = distances[closest_match_idx]
+
+    return closest_match_distance
+
+def get_average_of_closest_10_percent(test_embedding, enrollment_embeddings):
+    distances = get_distances_between_enrollment_and_test(test_embedding, enrollment_embeddings)
+    closest_10_percent_idx = int(len(distances) * 0.1)
+    closest_10_percent_distances = sorted(distances)[:closest_10_percent_idx]
+    average_distance = np.mean(closest_10_percent_distances)
+
+    return average_distance
+
+
+def get_distances_between_enrollment_and_test(test_embedding, enrollment_embeddings):
     distances = []
 
     for idx, enrollment_embedding in enumerate(enrollment_embeddings):
-        distance = np.linalg.norm(embedding - enrollment_embedding)
+        distance = np.linalg.norm(test_embedding - enrollment_embedding)
         distances.append(distance)
+    distances.sort()
 
-    closest_match_idx = np.argmin(distances)
-    closest_match_distance = distances[closest_match_idx]
-    return closest_match_distance
+    return distances
