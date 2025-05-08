@@ -193,19 +193,19 @@ def get_distances_between_enrollment_and_test(test_embedding: np.ndarray, enroll
     return distances
 
 
-def calculate_trust_score(window: deque, threshold: float) -> float:
+def update_trust_score(window: deque, current_trust_score: float) -> float:
     """
     Calculate the trust score based on the average distance within a window.
     """
     if len(window) == 0:
-        return trust_score  # No change if no history is available
+        return initial_trust_score  # No change if no history is available
 
     avg_distance = np.mean(window)
 
-    if avg_distance < threshold:
-        return min(trust_score + trust_score_decay, trust_score_max)
+    if avg_distance < THRESHOLD_DISTANCE:
+        return min(current_trust_score + trust_score_decay, trust_score_max)
     else:
-        return max(trust_score - trust_score_decay, trust_score_min)
+        return max(current_trust_score - trust_score_decay, trust_score_min)
 
 
 def calculate_adaptive_threshold(enrollment_embeddings: np.ndarray) -> float:
