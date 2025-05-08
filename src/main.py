@@ -3,9 +3,9 @@ import cv2
 from mtcnn import MTCNN
 from collections import deque
 from src.enums import Color
-from src.utils import get_enrollment_embeddings, get_average_of_closest_10_percent, update_trust_score, \
+from src.utils import get_enrollment_embeddings, get_weighted_average_distance_of_window, \
     get_face_coordinates_and_copped_image_for_frame, get_face_embedding_for_frame, calculate_distance_to_enrolment, \
-    annotate_frame, write_summary_frame, THICKNESS, FONT_SIZE, THRESHOLD_DISTANCE, SKIP_FRAMES, WINDOW_SIZE
+    annotate_frame, write_summary_frame, THICKNESS, FONT_SIZE, SKIP_FRAMES, WINDOW_SIZE
 
 ENROLLMENT_FOLDER = '../data/enrollment_v2/processed/'
 VIDEO_PATH = '../data/images/no_face_test_3.mp4'
@@ -31,7 +31,7 @@ def test_with_video(video_path, output_path=OUTPUT_PATH) -> None:
     unauthenticated_count = 0
     distance_window = deque(maxlen=WINDOW_SIZE)
     distance = 0
-    trust_score = 0.7
+    weighted_average_distance = 0.7
     color = Color.RED.value
 
     while cap.isOpened():
@@ -46,7 +46,7 @@ def test_with_video(video_path, output_path=OUTPUT_PATH) -> None:
                 if face_data is None:  # If no face detected, handle this case
                     cv2.putText(frame, "No face detected", (300, 300), cv2.FONT_HERSHEY_SIMPLEX, FONT_SIZE,
                                 Color.RED.value, THICKNESS)
-                    distance = 1.5
+                    distance = 1
                     distance_window.append(distance)
                 else:
                     x, y, w, h, face = face_data
@@ -56,9 +56,10 @@ def test_with_video(video_path, output_path=OUTPUT_PATH) -> None:
                     annotate_frame(frame, x, y, w, h, color)
 
                 print(distance_window)
-                trust_score = update_trust_score(distance_window, trust_score)
+                weighted_average_distance = get_weighted_average_distance_of_window(distance_window)
+                print(weighted_average_distance)
 
-                if trust_score >= 0.6:
+                if weighted_average_distance <= 0.8:
                     color = Color.GREEN.value
                 else:
                     unauthenticated_count += 1
@@ -68,7 +69,7 @@ def test_with_video(video_path, output_path=OUTPUT_PATH) -> None:
         except Exception as e:
             print(f"Error embedding face at frame {frame_count}: {e}")
 
-        cv2.putText(frame, f"Distance: {distance:.4f}, Trust: {trust_score:.5f}", (100, 100),
+        cv2.putText(frame, f"Distance: {distance:.4f}, Trust: {weighted_average_distance:.5f}", (100, 100),
                     cv2.FONT_HERSHEY_SIMPLEX, FONT_SIZE, color, THICKNESS)
         out.write(frame)
         frame_count += 1

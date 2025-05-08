@@ -24,6 +24,8 @@ THRESHOLD_DISTANCE = 0.7
 FONT_SIZE = 3
 THICKNESS = 3
 
+alpha = 1
+
 
 def load_image(image_path: str) -> np.ndarray:
     """
@@ -197,19 +199,18 @@ def get_distances_between_enrollment_and_test(test_embedding: np.ndarray, enroll
     return distances
 
 
-def update_trust_score(window: deque, current_trust_score: float) -> float:
+def get_weighted_average_distance_of_window(window: deque) -> float:
     """
     Calculate the trust score based on the average distance within a window.
     """
     if len(window) == 0:
-        return initial_trust_score  # No change if no history is available
+        return 0.7  # No change if no history is available
 
-    avg_distance = np.mean(window)
+        # Exponentially decay weights with a factor `alpha`
+    weights = np.exp(np.linspace(-alpha, 0, len(window)))
+    weighted_avg_distance = np.average(window, weights=weights)
 
-    if avg_distance < THRESHOLD_DISTANCE:
-        return min(current_trust_score + trust_score_decay, trust_score_max)
-    else:
-        return max(current_trust_score - trust_score_decay, trust_score_min)
+    return weighted_avg_distance
 
 
 def calculate_adaptive_threshold(enrollment_embeddings: np.ndarray) -> float:
