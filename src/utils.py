@@ -21,8 +21,6 @@ trust_score_decay = 0.05
 SKIP_FRAMES = 30
 WINDOW_SIZE = 5
 THRESHOLD_DISTANCE = 0.7
-FONT_SIZE = 3
-THICKNESS = 3
 
 alpha = 1
 
@@ -230,7 +228,7 @@ def calculate_adaptive_threshold(enrollment_embeddings: np.ndarray) -> float:
     return threshold
 
 
-def get_face_coordinates_and_copped_image_for_frame(frame: np.ndarray) -> tuple | None:
+def get_face_coordinates_and_cropped_image_for_frame(frame: np.ndarray) -> tuple | None:
     """
     Get the face coordinates and cropped image for the frame.
     """
@@ -280,5 +278,5 @@ def write_summary_frame(out, frame_count: int, unauthenticated_count: int, width
     """
     summary_frame = np.ones((height, width, 3), dtype=np.uint8) * 255
     text = f"Frames not authenticated: {unauthenticated_count} / {frame_count // SKIP_FRAMES}"
-    cv2.putText(summary_frame, text, (50, height // 2), cv2.FONT_HERSHEY_SIMPLEX, FONT_SIZE, (0, 0, 255), THICKNESS)
+    cv2.putText(summary_frame, text, (50, height // 2), cv2.FONT_HERSHEY_SIMPLEX, 3, (0, 0, 255), 3)
     out.write(summary_frame)

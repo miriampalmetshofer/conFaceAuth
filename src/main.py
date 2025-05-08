@@ -4,8 +4,9 @@ from mtcnn import MTCNN
 from collections import deque
 from src.enums import Color
 from src.utils import get_enrollment_embeddings, get_weighted_average_distance_of_window, \
-    get_face_coordinates_and_copped_image_for_frame, get_face_embedding_for_frame, calculate_distance_to_enrolment, \
-    annotate_frame, write_summary_frame, THICKNESS, FONT_SIZE, SKIP_FRAMES, WINDOW_SIZE
+    get_face_embedding_for_frame, calculate_distance_to_enrolment, \
+    annotate_frame, write_summary_frame, SKIP_FRAMES, WINDOW_SIZE, \
+    get_face_coordinates_and_cropped_image_for_frame
 
 ENROLLMENT_FOLDER = '../data/enrollment_v2/processed/'
 VIDEO_PATH = '../data/images/no_face_test_3.mp4'
@@ -41,11 +42,11 @@ def test_with_video(video_path, output_path=OUTPUT_PATH) -> None:
 
         try:
             if frame_count % SKIP_FRAMES == 0:
-                face_data = get_face_coordinates_and_copped_image_for_frame(frame)
+                face_data = get_face_coordinates_and_cropped_image_for_frame(frame)
 
                 if face_data is None:  # If no face detected, handle this case
-                    cv2.putText(frame, "No face detected", (300, 300), cv2.FONT_HERSHEY_SIMPLEX, FONT_SIZE,
-                                Color.RED.value, THICKNESS)
+                    cv2.putText(frame, "No face detected", (300, 300), cv2.FONT_HERSHEY_SIMPLEX, 3,
+                                Color.RED.value, 3)
                     distance = 1
                     distance_window.append(distance)
                 else:
@@ -70,7 +71,7 @@ def test_with_video(video_path, output_path=OUTPUT_PATH) -> None:
             print(f"Error embedding face at frame {frame_count}: {e}")
 
         cv2.putText(frame, f"Distance: {distance:.4f}, Trust: {weighted_average_distance:.5f}", (100, 100),
-                    cv2.FONT_HERSHEY_SIMPLEX, FONT_SIZE, color, THICKNESS)
+                    cv2.FONT_HERSHEY_SIMPLEX, 3, color, 3)
         out.write(frame)
         frame_count += 1
 
