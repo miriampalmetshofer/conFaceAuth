@@ -1,0 +1,11 @@
+{
+  "enrollment_folder": "../data/enrollment_v2/processed/",
+  "video_path": "../data/images/no_face_test_3.mp4",
+  "output_path": "../data/images/output/output-video-6.mp4",
+  "skip_frames": 30,
+  "window_size": 5,
+  "threshold": 0.8,
+  "embedder" : "FaceNet",
+  "detector" : "MTCNN",
+  "similarity_computation" : "closest_10_percent"
+}
