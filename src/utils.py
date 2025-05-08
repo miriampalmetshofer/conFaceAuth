@@ -1,4 +1,6 @@
 from collections import deque
+from typing import Any
+
 from keras_facenet import FaceNet
 import cv2
 import numpy as np
@@ -6,10 +8,12 @@ import matplotlib.pyplot as plt
 from mtcnn import MTCNN
 import os
 
+from numpy import floating
+
 detector = MTCNN()
 embedder = FaceNet()
 
-trust_score = 0.5
+initial_trust_score = 0.7
 trust_score_min = 0.0
 trust_score_max = 1.0
 trust_score_decay = 0.05
@@ -167,7 +171,7 @@ def get_closest_match_distance(test_embedding: np.ndarray, enrollment_embeddings
     return closest_match_distance
 
 
-def get_average_of_closest_10_percent(test_embedding: np.ndarray, enrollment_embeddings: list) -> float:
+def get_average_of_closest_10_percent(test_embedding: np.ndarray, enrollment_embeddings: list) -> floating[Any]:
     """
     Get the average distance of the closest 10% matches for a test embedding.
     """
@@ -225,7 +229,7 @@ def calculate_adaptive_threshold(enrollment_embeddings: np.ndarray) -> float:
     return threshold
 
 
-def get_face_coordinates_and_copped_image_for_frame(frame: np.ndarray) -> tuple:
+def get_face_coordinates_and_copped_image_for_frame(frame: np.ndarray) -> tuple | None:
     """
     Get the face coordinates and cropped image for the frame.
     """
@@ -233,7 +237,7 @@ def get_face_coordinates_and_copped_image_for_frame(frame: np.ndarray) -> tuple:
     results = detector.detect_faces(rgb_frame)
 
     if len(results) == 0:
-        raise ValueError("No faces detected")
+        return None
 
     result = results[0]
     x, y, w, h = result['box']
@@ -253,12 +257,11 @@ def get_face_embedding_for_frame(face: np.ndarray) -> np.ndarray:
 
 
 def calculate_distance_to_enrolment(embedding: np.ndarray, distance_window: deque,
-                                    enrollment_embeddings: list) -> float:
+                                    enrollment_embeddings: list) -> floating[Any]:
     """
     Calculate the distance to the enrollment embeddings and update the distance window.
     """
     distance = get_average_of_closest_10_percent(embedding, enrollment_embeddings)
-    distance_window.append(distance)
 
     return distance
 
