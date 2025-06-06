@@ -1,6 +1,7 @@
 {
   "enrollment_folder": "../data/enrollment_v2/processed/",
   "video_path": "../data/images/no_face_test_3.mp4",
+  "annotations_csv_path": "../data/annotation/no_face_annotations.csv",
   "output_path": "../data/images/output/output-video-6.mp4",
   "skip_frames": 30,
   "window_size": 5,

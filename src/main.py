@@ -34,9 +34,9 @@ processor = VideoProcessor(
     threshold=config.get("threshold"),
 )
 
-# Process video
 processor.process_video(
     video_path=config.get("video_path"),
+    annotations_csv_path=config.get("annotations_csv_path"),
     output_path=config.get("output_path"),
     skip_frames=config.get("skip_frames")
 )

@@ -1,27 +1,44 @@
 import cv2
+import pandas as pd
+import json
+import os
 
+from src.face_auth import Authenticator, EmbeddingManager, FaceDetector
 from src.helper.enums import Color
-from src.helper.utils import draw_detection_box, write_summary_frame
+from src.helper.utils import draw_detection_box
 
 class VideoProcessor:
-    def __init__(self, face_detector, embedding_manager, authenticator, threshold):
+    def __init__(self, face_detector: FaceDetector, embedding_manager: EmbeddingManager, authenticator: Authenticator, threshold):
         self.face_detector = face_detector
         self.embedding_manager = embedding_manager
         self.authenticator = authenticator
 
+    def load_ground_truth(self, annotations_csv_path, video_filename):
+        print(f"Annotations CSV path: {annotations_csv_path}")
+        df = pd.read_csv(annotations_csv_path)
+        base_filename = os.path.basename(video_filename)
+        row = df[df['video'] == base_filename]
+        if row.empty:
+            raise ValueError(f"No annotation found for {base_filename} in CSV.")
+        labels_json = row.iloc[0]['videoLabels']
+        return json.loads(labels_json)
 
-    def process_video(self, video_path, output_path, skip_frames):
+    def label_frame_from_ground_truth(self, ground_truth, frame_number):
+        """Return 'Unlocked' or 'Lock' based on frame number."""
+        for segment in ground_truth:
+            label = segment['timelinelabels'][0]
+            for range_dict in segment['ranges']:
+                if range_dict['start'] <= frame_number < range_dict['end']:
+                    return label
+        raise ValueError(f"No label for {frame_number} in {ground_truth}")
+
+    def process_video(self, video_path, output_path, skip_frames, annotations_csv_path):
         cap = cv2.VideoCapture(video_path)
-        fps = cap.get(cv2.CAP_PROP_FPS)
-        width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
-        height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
-        out = cv2.VideoWriter(output_path, cv2.VideoWriter_fourcc(*'mp4v'), fps, (width, height))
+        ground_truth = self.load_ground_truth(annotations_csv_path, video_path)
 
-        frame_count = 0
-        unauthenticated_count = 0
-        distance = 0
-        trust_score = 0
-        color = Color.GREEN.value
+        frame_count = 1
+        match_count = 0
+        total_compared = 0
 
         while cap.isOpened():
             ret, frame = cap.read()
@@ -32,38 +49,32 @@ class VideoProcessor:
                 if frame_count % skip_frames == 0:
                     result = self.face_detector.detect_and_crop(frame)
 
-                    if result is None:  # If no face detected, handle this case
-                        cv2.putText(frame, "No face detected", (300, 300), cv2.FONT_HERSHEY_SIMPLEX, 3,
-                                    Color.RED.value, 3)
+                    if result is None:
                         distance = 1
                     else:
-                        face, box_coordinates = result
-                        draw_detection_box(frame, box_coordinates)
+                        face, _ = result
                         embedding = self.embedding_manager.get_embedding(face)
                         distance = self.authenticator.compute_distance_between_embedding_and_enrolment(embedding)
 
-                    self.authenticator.append_distance_to_window(distance)
-                    trust_score = self.authenticator.trust_score
-
+                    self.authenticator.append_distance_to_window_and_update_trust_score(distance)
                     is_authenticated = self.authenticator.is_authenticated()
 
-                    if is_authenticated:
-                        color = Color.GREEN.value
-                    else:
-                        unauthenticated_count += 1
-                        color = Color.RED.value
+                    predicted_label = 'Unlocked' if is_authenticated else 'Lock'
+                    true_label = self.label_frame_from_ground_truth(ground_truth, frame_count)
+
+                    if true_label is not None:
+                        match = predicted_label == true_label
+                        print(f"Frame {frame_count}: Predicted={predicted_label}, Ground Truth={true_label}, Match={match}")
+                        total_compared += 1
+                        if match:
+                            match_count += 1
 
             except Exception as e:
                 print(f"Error embedding face at frame {frame_count}: {e}")
                 raise e
 
-            cv2.putText(frame, f"Distance: {distance:.4f}, Trust: {trust_score:.5f}", (100, 100),
-                        cv2.FONT_HERSHEY_SIMPLEX, 3, color, 3)
-            out.write(frame)
             frame_count += 1
 
-        write_summary_frame(out, frame_count / skip_frames, unauthenticated_count, width, height)
         cap.release()
-        out.release()
         cv2.destroyAllWindows()
 

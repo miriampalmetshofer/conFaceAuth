@@ -24,7 +24,7 @@ class Authenticator:
         return self.trust_score <= self.threshold
 
 
-    def append_distance_to_window(self, distance) -> None:
+    def append_distance_to_window_and_update_trust_score(self, distance) -> None:
         self.distance_window.append(distance)
         self._update_trust_score()
 
