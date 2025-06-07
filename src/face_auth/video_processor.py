@@ -10,11 +10,11 @@ from src.helper.utils import draw_detection_box
 
 class VideoProcessor:
     def __init__(self, face_detector: FaceDetector, embedding_manager: EmbeddingManager,
-                 authenticator: Authenticator, config=None):
+                 authenticator: Authenticator, config):
         self.face_detector = face_detector
         self.embedding_manager = embedding_manager
         self.authenticator = authenticator
-        self.config = config or {}
+        self.config = config
         self.results = []
 
     def load_ground_truth(self, annotations_csv_path, video_filename):
