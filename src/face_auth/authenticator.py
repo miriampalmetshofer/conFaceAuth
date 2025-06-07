@@ -10,13 +10,11 @@ class Authenticator:
         self.similarity_computation = similarity_computation
         self.trust_score = None
 
-
     def compute_distance_between_embedding_and_enrolment(self, embedding):
-        if self.similarity_computation == "closest_10_percent":
-            distance = self._get_average_of_closest_10_percent(embedding)
-        else :
+        if isinstance(self.similarity_computation, float) and 0 < self.similarity_computation <= 1.0:
+            distance = self._get_average_of_closest_percent(embedding, self.similarity_computation)
+        else:
             raise ValueError(f"Unsupported similarity config: {self.similarity_computation}")
-
         return distance
 
 
@@ -47,10 +45,9 @@ class Authenticator:
 
         return distances
 
-    def _get_average_of_closest_10_percent(self, embedding: np.ndarray):
+    def _get_average_of_closest_percent(self, embedding: np.ndarray, percent: float):
         distances = self._compute_distance_to_enrollment_images(embedding)
-        closest_10_percent_idx = int(len(distances) * 0.1)
-        closest_10_percent_distances = sorted(distances)[:closest_10_percent_idx]
-        average_distance = np.mean(closest_10_percent_distances)
-
+        num_to_select = max(1, int(len(distances) * percent))  # at least 1
+        closest_distances = sorted(distances)[:num_to_select]
+        average_distance = np.mean(closest_distances)
         return average_distance

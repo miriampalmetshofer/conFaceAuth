@@ -6,7 +6,7 @@
   "skip_frames": 30,
   "window_size": 5,
   "threshold": 0.8,
-  "embedder" : "FaceNet",
-  "detector" : "MTCNN",
-  "similarity_computation" : "closest_10_percent"
+  "embedder": "FaceNet",
+  "detector": "MTCNN",
+  "similarity_computation": 0.1
 }
