@@ -8,10 +8,12 @@ from src.helper.enums import Color
 from src.helper.utils import draw_detection_box
 
 class VideoProcessor:
-    def __init__(self, face_detector: FaceDetector, embedding_manager: EmbeddingManager, authenticator: Authenticator, threshold):
+    def __init__(self, face_detector: FaceDetector, embedding_manager: EmbeddingManager,
+                 authenticator: Authenticator, threshold, config=None):
         self.face_detector = face_detector
         self.embedding_manager = embedding_manager
         self.authenticator = authenticator
+        self.config = config or {}
 
     def load_ground_truth(self, annotations_csv_path, video_filename):
         print(f"Annotations CSV path: {annotations_csv_path}")
@@ -32,13 +34,15 @@ class VideoProcessor:
                     return label
         raise ValueError(f"No label for {frame_number} in {ground_truth}")
 
-    def process_video(self, video_path, output_path, skip_frames, annotations_csv_path):
+    def process_video(self, video_path, output_path, skip_frames, annotations_csv_path,
+                      results_csv_path=None):
         cap = cv2.VideoCapture(video_path)
         ground_truth = self.load_ground_truth(annotations_csv_path, video_path)
 
         frame_count = 1
         match_count = 0
         total_compared = 0
+        results = []
 
         while cap.isOpened():
             ret, frame = cap.read()
@@ -68,6 +72,14 @@ class VideoProcessor:
                         total_compared += 1
                         if match:
                             match_count += 1
+                        results.append({
+                            'frame': frame_count,
+                            'predicted_label': predicted_label,
+                            'true_label': true_label,
+                            'match': match,
+                            'distance': distance,
+                            'trust_score': self.authenticator.trust_score
+                        })
 
             except Exception as e:
                 print(f"Error embedding face at frame {frame_count}: {e}")
@@ -77,6 +89,17 @@ class VideoProcessor:
 
         cap.release()
         cv2.destroyAllWindows()
+
+        if results_csv_path:
+            df = pd.DataFrame(results)
+            if not df.empty:
+                for key, value in self.config.items():
+                    df[key] = value
+                df.to_csv(results_csv_path, index=False)
+
+        if total_compared:
+            accuracy = match_count / total_compared
+            print(f"Video accuracy: {accuracy:.4f}")
 
 
     def process_live_stream(self, skip_frames=30):
