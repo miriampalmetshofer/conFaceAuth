@@ -1,31 +1,30 @@
-import cv2
-import mediapipe as mp
-import numpy as np
-import sys
-sys.stdout.reconfigure(line_buffering=True)
+from face_auth import (
+    Authenticator,
+    EnrollmentManager,
+    EmbeddingManager,
+    FaceDetector,
+    ConfigManager,
+    VideoProcessor
+)
 
-mp_face_mesh = mp.solutions.face_mesh
-face_mesh = mp_face_mesh.FaceMesh(refine_landmarks=True)  # Includes iris landmarks!
-mp_drawing = mp.solutions.drawing_utils
+config = ConfigManager("config.json")
 
-cap = cv2.VideoCapture(0)
-print("Press 'q' to quit.")
+enrollment = EnrollmentManager(
+    enrollment_folder=config.get("enrollment_folder")
+)
 
-while cap.isOpened():
-    ret, frame = cap.read()
-    if not ret:
-        break
+face_detector = FaceDetector(
+    detector_name=config.get("detector")
+)
+embedding_manager = EmbeddingManager(
+    embedder_name=config.get("embedder")
+)
 
-    rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-    results = face_mesh.process(rgb)
-
-    if results.multi_face_landmarks:
-        for landmarks in results.multi_face_landmarks:
-            mp_drawing.draw_landmarks(frame, landmarks, mp_face_mesh.FACEMESH_CONTOURS)
-
-    cv2.imshow('Face Mesh', frame)
-    if cv2.waitKey(5) & 0xFF == ord('q'):
-        break
-
-cap.release()
-cv2.destroyAllWindows()
+authenticator = Authenticator(
+    enrollment.embeddings,
+    window_size=config.get("window_size"),
+    threshold=config.get("threshold"),
+    similarity_computation=config.get("similarity_computation"),
+)
+processor = VideoProcessor(face_detector, embedding_manager, authenticator, threshold=0.6)
+processor.process_live_stream(skip_frames=30)  # Adjust skip_frames for speed/performance

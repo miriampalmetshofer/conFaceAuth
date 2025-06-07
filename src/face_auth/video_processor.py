@@ -78,3 +78,60 @@ class VideoProcessor:
         cap.release()
         cv2.destroyAllWindows()
 
+
+    def process_live_stream(self, skip_frames=30):
+        cap = cv2.VideoCapture(0)  # MacBook webcam
+
+        if not cap.isOpened():
+            print("Cannot open webcam.")
+            return
+
+        cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
+        cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
+
+        frame_count = 0
+        distance = 0
+        trust_score = 0
+        color = Color.GREEN.value
+
+        while True:
+            ret, frame = cap.read()
+            if not ret:
+                break
+
+            try:
+                if frame_count % skip_frames == 0:
+                    result = self.face_detector.detect_and_crop(frame)
+
+                    if result is None:
+                        cv2.putText(frame, "No face detected", (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 1.5,
+                                    Color.RED.value, 2)
+                        distance = 1
+                    else:
+                        face, box_coordinates = result
+                        draw_detection_box(frame, box_coordinates)
+                        embedding = self.embedding_manager.get_embedding(face)
+                        distance = self.authenticator.compute_distance_between_embedding_and_enrolment(embedding)
+
+                    self.authenticator.append_distance_to_window_and_update_trust_score(distance)
+                    trust_score = self.authenticator.trust_score
+                    is_authenticated = self.authenticator.is_authenticated()
+
+                    color = Color.GREEN.value if is_authenticated else Color.RED.value
+
+            except Exception as e:
+                print(f"Error at frame {frame_count}: {e}")
+                continue
+
+            cv2.putText(frame, f"Distance: {distance:.4f}", (30, 100), cv2.FONT_HERSHEY_SIMPLEX, 1.0, color, 2)
+            cv2.putText(frame, f"Trust: {trust_score:.4f}", (30, 140), cv2.FONT_HERSHEY_SIMPLEX, 1.0, color, 2)
+
+            cv2.imshow('Live Face Authentication', frame)
+
+            frame_count += 1
+
+            if cv2.waitKey(1) & 0xFF == ord('q'):
+                break
+
+        cap.release()
+        cv2.destroyAllWindows()
