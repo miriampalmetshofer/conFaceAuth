@@ -7,15 +7,18 @@ from src.face_auth import Authenticator, EmbeddingManager, FaceDetector
 from src.helper.enums import Color
 from src.helper.utils import draw_detection_box
 
+
 class VideoProcessor:
     def __init__(self, face_detector: FaceDetector, embedding_manager: EmbeddingManager,
-                 authenticator: Authenticator, threshold, config=None):
+                 authenticator: Authenticator, config=None):
         self.face_detector = face_detector
         self.embedding_manager = embedding_manager
         self.authenticator = authenticator
         self.config = config or {}
+        self.results = []
 
     def load_ground_truth(self, annotations_csv_path, video_filename):
+        """Load ground truth labels from the annotations CSV."""
         print(f"Annotations CSV path: {annotations_csv_path}")
         df = pd.read_csv(annotations_csv_path)
         base_filename = os.path.basename(video_filename)
@@ -34,15 +37,29 @@ class VideoProcessor:
                     return label
         raise ValueError(f"No label for {frame_number} in {ground_truth}")
 
-    def process_video(self, video_path, output_path, skip_frames, annotations_csv_path,
-                      results_csv_path=None):
+    def write_results_to_csv(self, results_csv_path):
+        df = pd.DataFrame(self.results)
+        for key, value in self.config.items(): # Add config parameters to results
+            df[key] = value
+        timestamp = pd.Timestamp.now().strftime('%d_%m_%Y__%H_%M')
+        results_csv_path = results_csv_path.format(timestamp=timestamp)
+        df.to_csv(results_csv_path, index=False)
+
+    def append_frame_result(self, frame_count, predicted_label, true_label, match, distance):
+        self.results.append({
+            'frame': frame_count,
+            'predicted_label': predicted_label,
+            'true_label': true_label,
+            'match': match,
+            'distance': distance,
+            'trust_score': self.authenticator.trust_score
+        })
+
+    def process_video(self, video_path, skip_frames, annotations_csv_path, results_csv_path):
         cap = cv2.VideoCapture(video_path)
         ground_truth = self.load_ground_truth(annotations_csv_path, video_path)
 
         frame_count = 1
-        match_count = 0
-        total_compared = 0
-        results = []
 
         while cap.isOpened():
             ret, frame = cap.read()
@@ -63,23 +80,14 @@ class VideoProcessor:
                     self.authenticator.append_distance_to_window_and_update_trust_score(distance)
                     is_authenticated = self.authenticator.is_authenticated()
 
-                    predicted_label = 'Unlocked' if is_authenticated else 'Lock'
+                    predicted_label = 'Unlocked' if is_authenticated else 'Lock' # convert boolean to label
                     true_label = self.label_frame_from_ground_truth(ground_truth, frame_count)
 
                     if true_label is not None:
                         match = predicted_label == true_label
-                        print(f"Frame {frame_count}: Predicted={predicted_label}, Ground Truth={true_label}, Match={match}")
-                        total_compared += 1
-                        if match:
-                            match_count += 1
-                        results.append({
-                            'frame': frame_count,
-                            'predicted_label': predicted_label,
-                            'true_label': true_label,
-                            'match': match,
-                            'distance': distance,
-                            'trust_score': self.authenticator.trust_score
-                        })
+                        print(
+                            f"Frame {frame_count}: Predicted={predicted_label}, Ground Truth={true_label}, Match={match}")
+                        self.append_frame_result(frame_count, predicted_label, true_label, match, distance)
 
             except Exception as e:
                 print(f"Error embedding face at frame {frame_count}: {e}")
@@ -89,17 +97,8 @@ class VideoProcessor:
 
         cap.release()
         cv2.destroyAllWindows()
+        self.write_results_to_csv(results_csv_path)
 
-        if results_csv_path:
-            df = pd.DataFrame(results)
-            if not df.empty:
-                for key, value in self.config.items():
-                    df[key] = value
-                df.to_csv(results_csv_path, index=False)
-
-        if total_compared:
-            accuracy = match_count / total_compared
-            print(f"Video accuracy: {accuracy:.4f}")
 
 
     def process_live_stream(self, skip_frames=30):
