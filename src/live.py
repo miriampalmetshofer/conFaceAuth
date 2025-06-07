@@ -26,5 +26,11 @@ authenticator = Authenticator(
     threshold=config.get("threshold"),
     similarity_computation=config.get("similarity_computation"),
 )
-processor = VideoProcessor(face_detector, embedding_manager, authenticator, threshold=0.6)
+processor = VideoProcessor(
+    face_detector,
+    embedding_manager,
+    authenticator,
+    threshold=0.6,
+    config=config.config,
+)
 processor.process_live_stream(skip_frames=30)  # Adjust skip_frames for speed/performance
