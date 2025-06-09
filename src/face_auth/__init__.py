@@ -4,8 +4,9 @@ from .embedder import EmbeddingManager
 from .face_detector import FaceDetector
 from .video_processor import VideoProcessor
 from .config_manager import ConfigManager
+from .enrolment_video_processor import EnrolmentVideoProcessor
 
 __all__ = [
     "Authenticator", "EnrollmentManager", "EmbeddingManager",
-    "FaceDetector", "VideoProcessor", "ConfigManager"
+    "FaceDetector", "VideoProcessor", "ConfigManager", "EnrolmentVideoProcessor"
 ]

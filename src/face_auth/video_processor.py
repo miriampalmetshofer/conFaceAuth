@@ -5,7 +5,6 @@ import os
 
 from src.face_auth import Authenticator, EmbeddingManager, FaceDetector
 from src.helper.enums import Color
-from src.helper.utils import draw_detection_box
 
 
 class VideoProcessor:
