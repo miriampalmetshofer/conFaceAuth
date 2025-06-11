@@ -1,55 +1,79 @@
-import cv2
-import os
 from collections import defaultdict
+from pathlib import Path
+import cv2
+import numpy as np
 
-from src.helper.enums import HeadDirection
-from src.helper.utils import get_head_position
+from src.face_auth.face_direction_detector import FaceDirectionDetector
+
 
 class EnrolmentVideoProcessor:
-    def __init__(self, video_path, output_folder, frames_per_direction=3):
+    def __init__(self, video_path):
         self.video_path = video_path
-        self.output_folder = output_folder
-        os.makedirs(output_folder, exist_ok=True)
-        self.frames_per_direction = frames_per_direction
-        self.collected = defaultdict(list)
+        self.frames_by_direction = defaultdict(list)
 
-    def is_blurry(self, image, threshold=12):
-        return cv2.Laplacian(image, cv2.CV_64F).var() < threshold
+    def process_video(self, frame_interval=5):
+        """
+        Process video and store frames in memory categorized by head direction.
+        """
+        detector = FaceDirectionDetector()
+        cap = cv2.VideoCapture(str(self.video_path))
 
-    def process(self):
-        cap = cv2.VideoCapture(self.video_path)
-        frame_idx = 0
+        if not cap.isOpened():
+            print(f"Error: Could not open video {self.video_path}")
+            return
 
-        while cap.isOpened():
-            if all(len(self.collected[dir]) >= self.frames_per_direction for dir in HeadDirection):
-                print("Collected enough frames for all directions. Stopping early.")
-                break
-            frame_idx += 1
+        frame_count = 0
+        print(f"Processing video: {self.video_path}")
 
-            print(f"Processing frame {frame_idx}...")
+        while True:
             ret, frame = cap.read()
             if not ret:
-                print("End of video or cannot read the frame.")
                 break
 
-            if self.is_blurry(frame):
-                print(f"Frame {frame_idx} is blurry. Skipping.")
+            frame_count += 1
+            if frame_count % frame_interval != 0:
                 continue
 
-            direction = get_head_position(frame)
+            rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            results = detector.face_mesh.process(rgb_frame)
 
-            if direction is None:
-                print(f"Frame {frame_idx} does not match any direction. Skipping.")
-                continue
+            if results.multi_face_landmarks:
+                for face_landmarks in results.multi_face_landmarks:
+                    pitch, yaw, roll = detector.get_head_pose(face_landmarks, frame.shape)
+                    if pitch is not None and yaw is not None:
+                        direction = detector.classify_direction(pitch, yaw, roll)
+                        self.frames_by_direction[direction].append(frame)
 
-            if len(self.collected[direction]) > self.frames_per_direction:
-                print(f"Collected enough frames for {direction}. Skipping frame {frame_idx}.")
-                continue
-
-            img_name = f"{direction.value}_{frame_idx}.jpg"
-            out_path = os.path.join(self.output_folder, img_name)
-            cv2.imwrite(out_path, frame)
-            print(f"Collected frame for {direction.name}: {out_path}")
-            self.collected[direction].append(out_path)
+                        print(f"Frame {frame_count}: {direction} (pitch={pitch:.1f}°, yaw={yaw:.1f}°, roll={roll:.1f}°)")
 
         cap.release()
+        print("\nProcessing complete!")
+        for direction, frames in self.frames_by_direction.items():
+            print(f"  {direction}: {len(frames)} frames")
+
+
+    def get_enrolment_frames(self, frames_per_direction=3):
+        """
+        Sample 5 frames per direction from the middle of the array.
+        Returns a dict: {direction: [frames]}
+        """
+        sampled_frames = {}
+        for direction, frames in self.frames_by_direction.items():
+            count = len(frames)
+            if count == 0:
+                sampled_frames[direction] = []
+                continue
+
+            mean = count // 2
+            stddev = count / 4  # heuristic: ~99.7% within range for large sets
+            indices = np.clip(
+                np.random.normal(loc=mean, scale=stddev, size=frames_per_direction).astype(int),
+                0, count - 1
+            )
+            sampled_frames[direction] = [frames[i] for i in indices]
+
+        print("\nSampled frames by direction:")
+        for direction, frames in sampled_frames.items():
+            print(f"  {direction}: {len(frames)} frames")
+
+        return sampled_frames

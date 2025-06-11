@@ -1,8 +1,12 @@
 {
-  "enrollment_folder": "../data/enrollment_v2/processed/",
-  "video_path": "../data/images/no_face_test_3.mp4",
+  "enrolment": {
+    "enrolment_video_path": "../data/test/miriam _5_1749630872.121801.MP4",
+    "enrolment_folder": "../data/enrolment",
+    "enrolment_frames_per_direction": 5
+  },
+  "video_path": "../data/test/no_face_test_3.mp4",
   "annotations_csv_path": "../data/annotation/no_face_annotations.csv",
-  "results_csv_path": "../data/images/output/results_{timestamp}.csv",
+  "results_csv_path": "../data/test/output/results_{timestamp}.csv",
   "skip_frames": 30,
   "window_size": 5,
   "threshold": 0.8,
