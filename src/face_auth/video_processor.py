@@ -36,12 +36,13 @@ class VideoProcessor:
                     return label
         raise ValueError(f"No label for {frame_number} in {ground_truth}")
 
-    def write_results_to_csv(self, results_csv_path):
+    def write_results_to_csv(self, results_csv_path) -> None :
         df = pd.DataFrame(self.results)
-        for key, value in self.config.items(): # Add config parameters to results
+        for key, value in self.config.items():  # Add config parameters to results
             df[key] = value
         timestamp = pd.Timestamp.now().strftime('%d_%m_%Y__%H_%M')
         results_csv_path = results_csv_path.format(timestamp=timestamp)
+        print(f"Writing results to {results_csv_path}")
         df.to_csv(results_csv_path, index=False)
 
     def append_frame_result(self, frame_count, predicted_label, true_label, match, distance):
@@ -54,6 +55,7 @@ class VideoProcessor:
             'trust_score': self.authenticator.trust_score
         })
 
+
     def process_video(self, video_path, skip_frames, annotations_csv_path, results_csv_path):
         cap = cv2.VideoCapture(video_path)
         ground_truth = self.load_ground_truth(annotations_csv_path, video_path)
@@ -65,11 +67,16 @@ class VideoProcessor:
             if not ret:
                 break
 
+            if not 'desktop' in video_path.lower():
+                frame = cv2.rotate(frame, cv2.ROTATE_90_CLOCKWISE)
+
             try:
                 if frame_count % skip_frames == 0:
                     result = self.face_detector.detect_and_crop(frame)
 
                     if result is None:
+                        print(f"No face detected at frame {frame_count}.")
+                        cv2.imwrite(f"no_face/no_face_frame_{frame_count}.jpg", frame)
                         distance = 1
                     else:
                         face, _ = result
@@ -79,7 +86,7 @@ class VideoProcessor:
                     self.authenticator.append_distance_to_window_and_update_trust_score(distance)
                     is_authenticated = self.authenticator.is_authenticated()
 
-                    predicted_label = 'Unlocked' if is_authenticated else 'Lock' # convert boolean to label
+                    predicted_label = 'Unlocked' if is_authenticated else 'Lock'  # convert boolean to label
                     true_label = self.label_frame_from_ground_truth(ground_truth, frame_count)
 
                     if true_label is not None:
@@ -97,7 +104,6 @@ class VideoProcessor:
         cap.release()
         cv2.destroyAllWindows()
         self.write_results_to_csv(results_csv_path)
-
 
 
     def process_live_stream(self, skip_frames=30):
@@ -130,7 +136,7 @@ class VideoProcessor:
                         distance = 1
                     else:
                         face, box_coordinates = result
-                        draw_detection_box(frame, box_coordinates)
+                        self.draw_detection_box(frame, box_coordinates)
                         embedding = self.embedding_manager.get_embedding(face)
                         distance = self.authenticator.compute_distance_between_embedding_and_enrolment(embedding)
 
@@ -156,3 +162,7 @@ class VideoProcessor:
 
         cap.release()
         cv2.destroyAllWindows()
+
+    def draw_detection_box(frame, points, ):
+        x, y, w, h = points
+        cv2.rectangle(frame, (x, y), (x + w, y + h), (255, 255, 255), 2)

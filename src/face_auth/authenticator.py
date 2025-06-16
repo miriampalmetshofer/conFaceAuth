@@ -19,6 +19,7 @@ class Authenticator:
 
 
     def is_authenticated(self) -> bool:
+        print("trust_score:", self.trust_score, "threshold:", self.threshold)
         return self.trust_score <= self.threshold
 
 
@@ -47,6 +48,7 @@ class Authenticator:
 
     def _get_average_of_closest_percent(self, embedding: np.ndarray, percent: float):
         distances = self._compute_distance_to_enrollment_images(embedding)
+        print("Distances:", distances)
         num_to_select = max(1, int(len(distances) * percent))  # at least 1
         closest_distances = sorted(distances)[:num_to_select]
         average_distance = np.mean(closest_distances)
