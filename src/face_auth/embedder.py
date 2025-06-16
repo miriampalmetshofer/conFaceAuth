@@ -1,6 +1,7 @@
-from keras_facenet import FaceNet
-import numpy as np
+import os
 
+import cv2
+from keras_facenet import FaceNet
 
 class EmbeddingManager:
     def __init__(self, embedder_name="FaceNet"):
@@ -9,10 +10,30 @@ class EmbeddingManager:
         else:
             raise ValueError(f"Unsupported embedder: {embedder_name}")
 
+        self.embeddings = []
+
+
     def get_embedding(self, face_rgb):
         return self.model.embeddings([face_rgb])[0]
 
-    def get_average_distance(self, test_embedding, enrollment_embeddings, top_k=0.1):
-        distances = [np.linalg.norm(test_embedding - emb) for emb in enrollment_embeddings]
-        k = max(1, int(len(distances) * top_k))
-        return np.mean(distances[:k])
+    def initialize_embeddings_from_enrolment_images(self, enrollment_folder: str, face_detector) -> None:
+
+        if not os.path.exists(enrollment_folder) or not os.listdir(enrollment_folder):
+            raise FileNotFoundError(
+                f"No images found in the enrollment folder: {enrollment_folder}. Please ensure the folder exists and contains images.")
+
+        print(f"Found {len(os.listdir(enrollment_folder))} images in the enrollment folder.")
+        for filename in os.listdir(enrollment_folder):
+            image_path = os.path.join(enrollment_folder, filename)
+            image = cv2.imread(image_path)
+            result = face_detector.detect_and_crop(image)
+            if result is None:
+                print(f"No face detected in {filename}. Skipping.")
+            face, _ = result
+            embedding = self.get_embedding(face)
+            if embedding is not None:
+                self.embeddings.append(embedding)
+            else:
+                print(f"Failed to get enrolment embedding for {filename}. Skipping.")
+
+        print(f"Done computing enrolment embeddings: {len(self.embeddings)}. Embeddings stored in EmbeddingsManager.")

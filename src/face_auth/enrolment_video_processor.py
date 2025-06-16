@@ -9,14 +9,14 @@ from src.face_auth.face_direction_detector import FaceDirectionDetector
 class EnrolmentVideoProcessor:
     def __init__(self, video_path):
         self.video_path = video_path
-        self.frames_by_direction = defaultdict(list)
 
-    def process_video(self, frame_interval=5):
+    def get_frames_sorted_by_direction_from_video(self, frame_interval=5):
         """
         Process video and store frames in memory categorized by head direction.
         """
         detector = FaceDirectionDetector()
         cap = cv2.VideoCapture(str(self.video_path))
+        frames_sorted_by_direction = defaultdict(list)
 
         if not cap.isOpened():
             print(f"Error: Could not open video {self.video_path}")
@@ -42,23 +42,25 @@ class EnrolmentVideoProcessor:
                     pitch, yaw, roll = detector.get_head_pose(face_landmarks, frame.shape)
                     if pitch is not None and yaw is not None:
                         direction = detector.classify_direction(pitch, yaw, roll)
-                        self.frames_by_direction[direction].append(frame)
+                        frames_sorted_by_direction[direction].append(frame)
 
                         print(f"Frame {frame_count}: {direction} (pitch={pitch:.1f}°, yaw={yaw:.1f}°, roll={roll:.1f}°)")
 
         cap.release()
         print("\nProcessing complete!")
-        for direction, frames in self.frames_by_direction.items():
+        for direction, frames in frames_sorted_by_direction.items():
             print(f"  {direction}: {len(frames)} frames")
 
+        return frames_sorted_by_direction
 
-    def get_enrolment_frames(self, frames_per_direction=3):
+
+    def get_enrolment_frames(self, frames_by_direction, frames_per_direction=3):
         """
         Sample 5 frames per direction from the middle of the array.
         Returns a dict: {direction: [frames]}
         """
         sampled_frames = {}
-        for direction, frames in self.frames_by_direction.items():
+        for direction, frames in frames_by_direction.items():
             count = len(frames)
             if count == 0:
                 sampled_frames[direction] = []
@@ -77,3 +79,12 @@ class EnrolmentVideoProcessor:
             print(f"  {direction}: {len(frames)} frames")
 
         return sampled_frames
+
+    def save_enrolment_frames_to_folder(self, frames, enrolment_folder):
+        for direction, frames_list in frames.items():
+            enrolment_folder_path = Path(enrolment_folder)
+            for i, frame in enumerate(frames_list):
+                frame_path = enrolment_folder_path / f"{direction}_{i:03d}.jpg"
+                if not 'desktop' in self.video_path.lower():
+                    frame = cv2.rotate(frame, cv2.ROTATE_90_CLOCKWISE)
+                cv2.imwrite(str(frame_path), frame)

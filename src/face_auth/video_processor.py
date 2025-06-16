@@ -23,7 +23,7 @@ class VideoProcessor:
         base_filename = os.path.basename(video_filename)
         row = df[df['video'] == base_filename]
         if row.empty:
-            raise ValueError(f"No annotation found for {base_filename} in CSV.")
+            raise ValueError(f"No annotation found for {base_filename} in {annotations_csv_path}.")
         labels_json = row.iloc[0]['videoLabels']
         return json.loads(labels_json)
 
