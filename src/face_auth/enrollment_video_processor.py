@@ -6,7 +6,7 @@ import numpy as np
 from src.face_auth.face_direction_detector import FaceDirectionDetector
 
 
-class EnrolmentVideoProcessor:
+class EnrollmentVideoProcessor:
     def __init__(self, video_path):
         self.video_path = video_path
 
@@ -54,7 +54,7 @@ class EnrolmentVideoProcessor:
         return frames_sorted_by_direction
 
 
-    def get_enrolment_frames(self, frames_by_direction, frames_per_direction=3):
+    def get_enrollment_frames(self, frames_by_direction, frames_per_direction=3):
         """
         Sample 5 frames per direction from the middle of the array.
         Returns a dict: {direction: [frames]}
@@ -80,11 +80,11 @@ class EnrolmentVideoProcessor:
 
         return sampled_frames
 
-    def save_enrolment_frames_to_folder(self, frames, enrolment_folder):
+    def save_enrollment_frames_to_folder(self, frames, enrollment_folder):
         for direction, frames_list in frames.items():
-            enrolment_folder_path = Path(enrolment_folder)
+            enrollment_folder_path = Path(enrollment_folder)
             for i, frame in enumerate(frames_list):
-                frame_path = enrolment_folder_path / f"{direction}_{i:03d}.jpg"
+                frame_path = enrollment_folder_path / f"{direction}_{i:03d}.jpg"
                 if not 'desktop' in self.video_path.lower():
                     frame = cv2.rotate(frame, cv2.ROTATE_90_CLOCKWISE)
                 cv2.imwrite(str(frame_path), frame)

@@ -81,7 +81,7 @@ class VideoProcessor:
                     else:
                         face, _ = result
                         embedding = self.embedding_manager.get_embedding(face)
-                        distance = self.authenticator.compute_distance_between_embedding_and_enrolment(embedding)
+                        distance = self.authenticator.compute_distance_between_embedding_and_enrollment(embedding)
 
                     self.authenticator.append_distance_to_window_and_update_trust_score(distance)
                     is_authenticated = self.authenticator.is_authenticated()
@@ -138,7 +138,7 @@ class VideoProcessor:
                         face, box_coordinates = result
                         self.draw_detection_box(frame, box_coordinates)
                         embedding = self.embedding_manager.get_embedding(face)
-                        distance = self.authenticator.compute_distance_between_embedding_and_enrolment(embedding)
+                        distance = self.authenticator.compute_distance_between_embedding_and_enrollment(embedding)
 
                     self.authenticator.append_distance_to_window_and_update_trust_score(distance)
                     trust_score = self.authenticator.trust_score

@@ -1,9 +1,9 @@
 {
   "id": "miriam_2",
-  "enrolment": {
-    "enrolment_video_path": "../data/raw/miriam/enrolment/miriam_2_desktop.mp4",
-    "enrolment_folder": "../data/enrolment/miriam_2",
-    "enrolment_frames_per_direction": 5
+  "enrollment": {
+    "enrollment_video_path": "../data/raw/miriam/enrollment/miriam_2_desktop.mp4",
+    "enrollment_folder": "../data/enrollment/miriam_2",
+    "enrollment_frames_per_direction": 5
   },
   "video_path": "../data/raw/miriam/recording/miriam_2_desktop_recording.mp4",
   "annotations_csv_path": "../data/annotation/test2.csv",

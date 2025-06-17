@@ -16,7 +16,7 @@ class EmbeddingManager:
     def get_embedding(self, face_rgb):
         return self.model.embeddings([face_rgb])[0]
 
-    def initialize_embeddings_from_enrolment_images(self, enrollment_folder: str, face_detector) -> None:
+    def initialize_embeddings_from_enrollment_images(self, enrollment_folder: str, face_detector) -> None:
 
         if not os.path.exists(enrollment_folder) or not os.listdir(enrollment_folder):
             raise FileNotFoundError(
@@ -34,6 +34,6 @@ class EmbeddingManager:
             if embedding is not None:
                 self.embeddings.append(embedding)
             else:
-                print(f"Failed to get enrolment embedding for {filename}. Skipping.")
+                print(f"Failed to get enrollment embedding for {filename}. Skipping.")
 
-        print(f"Done computing enrolment embeddings: {len(self.embeddings)}. Embeddings stored in EmbeddingsManager.")
+        print(f"Done computing enrollment embeddings: {len(self.embeddings)}. Embeddings stored in EmbeddingsManager.")

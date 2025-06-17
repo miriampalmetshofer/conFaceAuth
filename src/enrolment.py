@@ -1,4 +1,4 @@
-from src.face_auth import EnrolmentVideoProcessor, ConfigManager
+from src.face_auth import EnrollmentVideoProcessor, ConfigManager
 
 
 

@@ -10,7 +10,7 @@ class Authenticator:
         self.similarity_computation = similarity_computation
         self.trust_score = None
 
-    def compute_distance_between_embedding_and_enrolment(self, embedding):
+    def compute_distance_between_embedding_and_enrollment(self, embedding):
         if isinstance(self.similarity_computation, float) and 0 < self.similarity_computation <= 1.0:
             distance = self._get_average_of_closest_percent(embedding, self.similarity_computation)
         else:

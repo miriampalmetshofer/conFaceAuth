@@ -11,17 +11,17 @@ config = ConfigManager("config.json")
 
 ###
 #
-# Enrolment
+# Enrollment
 #
 ###
-print("INITIALIZING ENROLMENT-MANAGER")
+print("INITIALIZING ENROLLMENT-MANAGER")
 enrollment_manager = EnrollmentManager(
-    enrolment_video=config.get("enrolment").get("enrolment_video_path"),
-    enrollment_folder=config.get("enrolment").get("enrolment_folder")
+    enrollment_video=config.get("enrollment").get("enrollment_video_path"),
+    enrollment_folder=config.get("enrollment").get("enrollment_folder")
 )
-print("STARTING ENROLMENT")
+print("STARTING enrollment")
 enrollment_manager.enroll(
-    frames_per_direction=config.get("enrolment").get("enrolment_frames_per_direction")
+    frames_per_direction=config.get("enrollment").get("enrollment_frames_per_direction")
 )
 
 ###
@@ -37,10 +37,10 @@ print("INITIALIZING EMBEDDING-MANAGER")
 embedding_manager = EmbeddingManager(
     embedder_name=config.get("embedder")
 )
-print("INITIALIZING EMBEDDINGS FROM ENROLMENT IMAGES")
-embedding_manager.initialize_embeddings_from_enrolment_images(face_detector=face_detector,
-                                                              enrollment_folder=config.get("enrolment").get(
-                                                                  "enrolment_folder"))
+print("INITIALIZING EMBEDDINGS FROM ENROLLMENT IMAGES")
+embedding_manager.initialize_embeddings_from_enrollment_images(face_detector=face_detector,
+                                                              enrollment_folder=config.get("enrollment").get(
+                                                                  "enrollment_folder"))
 print("INITIALIZING AUTHENTICATOR")
 authenticator = Authenticator(
     enrollment_embeddings=embedding_manager.embeddings,
