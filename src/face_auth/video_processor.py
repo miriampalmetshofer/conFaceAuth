@@ -97,22 +97,20 @@ class VideoProcessor:
                         print(f"No face detected at frame {frame_count}.")
                         cv2.imwrite(f"no_face/no_face_frame_{frame_count}.jpg", frame)
                         distance = 1
+                        self.authenticator.append_distance_to_window_and_update_trust_score(distance)
+                        predicted_label = "No Face"
                     else:
                         face, _ = result
                         embedding = self.embedding_manager.get_embedding(face)
                         distance = self.authenticator.compute_distance_between_embedding_and_enrollment(embedding)
+                        self.authenticator.append_distance_to_window_and_update_trust_score(distance)
+                        predicted_label = 'Unlocked' if self.authenticator.is_authenticated() else 'Lock'
 
-                    self.authenticator.append_distance_to_window_and_update_trust_score(distance)
-                    is_authenticated = self.authenticator.is_authenticated()
-
-                    predicted_label = 'Unlocked' if is_authenticated else 'Lock'  # convert boolean to label
                     true_label = self.label_frame_from_ground_truth(ground_truth, frame_count)
+                    match = predicted_label == true_label
+                    print(f"Frame {frame_count}: Predicted={predicted_label}, Ground Truth={true_label}, Match={match}")
 
-                    if true_label is not None:
-                        match = predicted_label == true_label
-                        print(
-                            f"Frame {frame_count}: Predicted={predicted_label}, Ground Truth={true_label}, Match={match}")
-                        self.append_frame_result(results, frame_count, predicted_label, true_label, match, distance)
+                    self.append_frame_result(results, frame_count, predicted_label, true_label, match, distance)
 
             except Exception as e:
                 print(f"Error embedding face at frame {frame_count}: {e}")

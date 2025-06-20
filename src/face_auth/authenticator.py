@@ -30,10 +30,9 @@ class Authenticator:
 
     def _update_trust_score(self):
         alpha = 1
-        if not self.distance_window:
-            return self.threshold # start from threshold
         weights = np.exp(np.linspace(-alpha, 0, len(self.distance_window)))
         self.trust_score = np.average(self.distance_window, weights=weights)
+        print(self.trust_score)
 
 
     def _compute_distance_to_enrollment_images(self, embedding) -> list[float]:
