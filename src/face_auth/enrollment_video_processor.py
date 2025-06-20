@@ -81,8 +81,9 @@ class EnrollmentVideoProcessor:
         return sampled_frames
 
     def save_enrollment_frames_to_folder(self, frames, enrollment_folder):
+        enrollment_folder_path = Path(enrollment_folder)
+        enrollment_folder_path.mkdir(parents=True, exist_ok=False)
         for direction, frames_list in frames.items():
-            enrollment_folder_path = Path(enrollment_folder)
             for i, frame in enumerate(frames_list):
                 frame_path = enrollment_folder_path / f"{direction}_{i:03d}.jpg"
                 if not 'desktop' in self.video_path.lower():

@@ -14,16 +14,16 @@ class VideoProcessor:
         self.embedding_manager = embedding_manager
         self.authenticator = authenticator
         self.config = config
-        self.results = []
 
     def load_ground_truth(self, annotations_csv_path, video_filename):
         """Load ground truth labels from the annotations CSV."""
         print(f"Annotations CSV path: {annotations_csv_path}")
         df = pd.read_csv(annotations_csv_path)
-        base_filename = os.path.basename(video_filename)
-        row = df[df['video'] == base_filename]
+        target_basename = os.path.basename(video_filename)
+        row = df[df['video'].str.contains(target_basename, na=False)]
         if row.empty:
-            raise ValueError(f"No annotation found for {base_filename} in {annotations_csv_path}.")
+            raise ValueError(f"No annotation found for {target_basename} in {annotations_csv_path}.")
+
         labels_json = row.iloc[0]['videoLabels']
         return json.loads(labels_json)
 
@@ -36,17 +36,35 @@ class VideoProcessor:
                     return label
         raise ValueError(f"No label for {frame_number} in {ground_truth}")
 
-    def write_results_to_csv(self, results_csv_path) -> None :
-        df = pd.DataFrame(self.results)
-        for key, value in self.config.items():  # Add config parameters to results
-            df[key] = value
-        timestamp = pd.Timestamp.now().strftime('%d_%m_%Y__%H_%M')
-        results_csv_path = results_csv_path.format(timestamp=timestamp)
-        print(f"Writing results to {results_csv_path}")
-        df.to_csv(results_csv_path, index=False)
+    def flatten_config_for_csv(self, config: dict, video_path) -> dict:
+        """Extracts only the needed fields from a nested config."""
+        flattened = {
+            "video_path": video_path,
+            "annotations_file": config.get("annotations_file", ""),
+            "skip_frames": config.get("skip_frames", ""),
+            "window_size": config.get("window_size", ""),
+            "threshold": config.get("threshold", ""),
+            "embedder": config.get("embedder", ""),
+            "detector": config.get("detector", ""),
+            "similarity_computation": config.get("similarity_computation", ""),
+            "enrollment_frames_per_direction": config.get("enrollment_frames_per_direction", ""),
+            "enrollment_folder": config.get("base_path", "") + "/enrollments"  # assuming based on naming convention
+        }
+        return flattened
 
-    def append_frame_result(self, frame_count, predicted_label, true_label, match, distance):
-        self.results.append({
+    def write_results_to_csv(self, results, results_csv_path, video_path) -> None:
+        df = pd.DataFrame(results)
+        flat_config = self.flatten_config_for_csv(self.config, video_path)
+
+        for key, value in flat_config.items():
+            df[key] = value
+
+        file_exists = os.path.isfile(results_csv_path)
+        print(f"{'Appending' if file_exists else 'Creating'} results to {results_csv_path}")
+        df.to_csv(results_csv_path, mode='a', header=not file_exists, index=False)
+
+    def append_frame_result(self, results, frame_count, predicted_label, true_label, match, distance):
+        results.append({
             'frame': frame_count,
             'predicted_label': predicted_label,
             'true_label': true_label,
@@ -61,6 +79,7 @@ class VideoProcessor:
         ground_truth = self.load_ground_truth(annotations_csv_path, video_path)
 
         frame_count = 1
+        results = []
 
         while cap.isOpened():
             ret, frame = cap.read()
@@ -93,7 +112,7 @@ class VideoProcessor:
                         match = predicted_label == true_label
                         print(
                             f"Frame {frame_count}: Predicted={predicted_label}, Ground Truth={true_label}, Match={match}")
-                        self.append_frame_result(frame_count, predicted_label, true_label, match, distance)
+                        self.append_frame_result(results, frame_count, predicted_label, true_label, match, distance)
 
             except Exception as e:
                 print(f"Error embedding face at frame {frame_count}: {e}")
@@ -103,7 +122,7 @@ class VideoProcessor:
 
         cap.release()
         cv2.destroyAllWindows()
-        self.write_results_to_csv(results_csv_path)
+        self.write_results_to_csv(results, results_csv_path, video_path)
 
 
     def process_live_stream(self, skip_frames=30):
