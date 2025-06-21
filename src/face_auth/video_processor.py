@@ -180,6 +180,6 @@ class VideoProcessor:
         cap.release()
         cv2.destroyAllWindows()
 
-    def draw_detection_box(frame, points, ):
+    def draw_detection_box(self, frame, points):
         x, y, w, h = points
         cv2.rectangle(frame, (x, y), (x + w, y + h), (255, 255, 255), 2)

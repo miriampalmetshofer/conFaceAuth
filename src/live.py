@@ -1,6 +1,5 @@
 from face_auth import (
     Authenticator,
-    EnrollmentManager,
     EmbeddingManager,
     FaceDetector,
     ConfigManager,
@@ -9,19 +8,17 @@ from face_auth import (
 
 config = ConfigManager("config.json")
 
-enrollment = EnrollmentManager(
-    enrollment_folder=config.get("enrollment_folder")
-)
-
 face_detector = FaceDetector(
     detector_name=config.get("detector")
 )
 embedding_manager = EmbeddingManager(
     embedder_name=config.get("embedder")
 )
+embedding_manager.initialize_embeddings_from_enrollment_images('../data/runs/run1/enrollments/miriam_desktop',
+                                                               face_detector=face_detector)
 
 authenticator = Authenticator(
-    enrollment.embeddings,
+    embedding_manager.embeddings,
     window_size=config.get("window_size"),
     threshold=config.get("threshold"),
     similarity_computation=config.get("similarity_computation"),
