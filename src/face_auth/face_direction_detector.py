@@ -21,6 +21,13 @@ class FaceDirectionDetector:
         self.left_mouth_corner = 61
         self.right_mouth_corner = 291
 
+    def rotation_matrix_to_euler_angles(self, rotation_matrix):
+        x = math.atan2(rotation_matrix[2, 1], rotation_matrix[2, 2])
+        y = math.atan2(-rotation_matrix[2, 0], math.sqrt(rotation_matrix[0, 0] ** 2 +
+                                                         rotation_matrix[1, 0] ** 2))
+        z = math.atan2(rotation_matrix[1, 0], rotation_matrix[0, 0])
+        return np.array([x, y, z]) * 180. / math.pi
+
     def get_head_pose(self, landmarks, img_shape):
         """Calculate head pose angles from facial landmarks"""
         h, w = img_shape[:2]
@@ -87,28 +94,13 @@ class FaceDirectionDetector:
         elif pitch < -90:
             pitch += 180
 
-        return pitch, angles[1], angles[2]
+        yaw = angles[1]
+        roll = angles[2]
 
-    def rotation_matrix_to_euler_angles(self, R):
-        """Convert rotation matrix to Euler angles"""
-        sy = math.sqrt(R[0, 0] * R[0, 0] + R[1, 0] * R[1, 0])
-
-        singular = sy < 1e-6
-
-        if not singular:
-            x = math.atan2(R[2, 1], R[2, 2])
-            y = math.atan2(-R[2, 0], sy)
-            z = math.atan2(R[1, 0], R[0, 0])
-        else:
-            x = math.atan2(-R[1, 2], R[1, 1])
-            y = math.atan2(-R[2, 0], sy)
-            z = 0
-
-        return np.array([x, y, z]) * 180.0 / np.pi
+        return pitch, yaw, roll
 
     def classify_direction(self, pitch, yaw, roll):
-        """Classify head direction based on pose angles"""
-        # Thresholds for direction classification (in degrees)
+
         yaw_threshold = 15
         pitch_threshold = 15
 

@@ -12,7 +12,7 @@ class EnrollmentManager:
             video_path=self.enrollment_video
         )
         frames_sorted_by_direction = enrollment_video_processor.get_frames_sorted_by_direction_from_video()
-        samples_frames = enrollment_video_processor.get_enrollment_frames(frames_sorted_by_direction, frames_per_direction)
+        samples_frames = enrollment_video_processor.get_enrollment_frames_per_direction(frames_sorted_by_direction, frames_per_direction)
         if not samples_frames:
             raise ValueError(
                 "No frames were derived from enrollment. Please check the video and ensure it contains detectable faces.")

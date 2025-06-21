@@ -11,9 +11,6 @@ class EnrollmentVideoProcessor:
         self.video_path = video_path
 
     def get_frames_sorted_by_direction_from_video(self, frame_interval=5):
-        """
-        Process video and store frames in memory categorized by head direction.
-        """
         detector = FaceDirectionDetector()
         cap = cv2.VideoCapture(str(self.video_path))
         frames_sorted_by_direction = defaultdict(list)
@@ -54,9 +51,10 @@ class EnrollmentVideoProcessor:
         return frames_sorted_by_direction
 
 
-    def get_enrollment_frames(self, frames_by_direction, frames_per_direction=3):
+    def get_enrollment_frames_per_direction(self, frames_by_direction, frames_per_direction=3):
         """
-        Sample 5 frames per direction from the middle of the array.
+        Samples frames per direction.
+        Uses a normal distribution to sample frames.
         Returns a dict: {direction: [frames]}
         """
         sampled_frames = {}
@@ -67,7 +65,7 @@ class EnrollmentVideoProcessor:
                 continue
 
             mean = count // 2
-            stddev = count / 4  # heuristic: ~99.7% within range for large sets
+            stddev = count / 4
             indices = np.clip(
                 np.random.normal(loc=mean, scale=stddev, size=frames_per_direction).astype(int),
                 0, count - 1
