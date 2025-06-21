@@ -96,7 +96,7 @@ class VideoProcessor:
                     if result is None:
                         print(f"No face detected at frame {frame_count}.")
                         cv2.imwrite(f"no_face/no_face_frame_{frame_count}.jpg", frame)
-                        distance = 1
+                        distance = self.config.get("no_face_penalty")
                         self.authenticator.append_distance_to_window_and_update_trust_score(distance)
                         predicted_label = "No Face"
                     else:

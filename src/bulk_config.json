@@ -25,5 +25,6 @@
   "embedder": "FaceNet",
   "detector": "MTCNN",
   "similarity_computation": 0.1,
-  "enrollment_frames_per_direction": 5
+  "enrollment_frames_per_direction": 5,
+  "no_face_penalty": 1.0
 }

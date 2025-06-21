@@ -13,5 +13,6 @@
   "threshold": 0.8,
   "embedder": "FaceNet",
   "detector": "MTCNN",
-  "similarity_computation": 0.1
+  "similarity_computation": 0.1,
+   "no_face_penalty": 1.0
 }
