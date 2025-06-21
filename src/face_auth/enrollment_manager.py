@@ -61,7 +61,7 @@ class EnrollmentManager:
         return frames_sorted_by_direction
 
 
-    def _get_enrollment_frames_per_direction(self, frames_by_direction, frames_per_direction=3):
+    def _get_enrollment_frames_per_direction(self, frames_by_direction, frames_per_direction):
         """
         Samples frames per direction.
         Uses a normal distribution to sample frames.
@@ -76,10 +76,13 @@ class EnrollmentManager:
 
             mean = count // 2
             stddev = count / 4
+            np.random.seed(42) # for reproducibility
+
             indices = np.clip(
                 np.random.normal(loc=mean, scale=stddev, size=frames_per_direction).astype(int),
                 0, count - 1
             )
+            print(indices)
             sampled_frames[direction] = [frames[i] for i in indices]
 
         print("\nSampled frames by direction:")

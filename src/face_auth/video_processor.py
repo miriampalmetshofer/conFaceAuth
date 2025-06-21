@@ -37,7 +37,7 @@ class VideoProcessor:
         raise ValueError(f"No label for {frame_number} in {ground_truth}")
 
     def flatten_config_for_csv(self, config: dict, video_path) -> dict:
-        """Extracts only the needed fields from a nested config."""
+        """Extracts the needed fields from config."""
         flattened = {
             "video_path": video_path,
             "annotations_file": config.get("annotations_file", ""),
