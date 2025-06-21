@@ -97,6 +97,6 @@ class EnrollmentManager:
         for direction, frames_list in frames.items():
             for i, frame in enumerate(frames_list):
                 frame_path = enrollment_folder_path / f"{direction}_{i:03d}.jpg"
-                if not 'desktop' in self.enrollment_video.lower():
+                if 'mobile' in self.enrollment_video.lower():  # mobile videos are 90 degrees rotated
                     frame = cv2.rotate(frame, cv2.ROTATE_90_CLOCKWISE)
                 cv2.imwrite(str(frame_path), frame)

@@ -86,7 +86,7 @@ class VideoProcessor:
             if not ret:
                 break
 
-            if not 'desktop' in video_path.lower():
+            if 'mobile' in video_path.lower(): # mobile videos are 90 degrees rotated
                 frame = cv2.rotate(frame, cv2.ROTATE_90_CLOCKWISE)
 
             try:
