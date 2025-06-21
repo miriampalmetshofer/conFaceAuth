@@ -17,25 +17,23 @@ class Authenticator:
             raise ValueError(f"Unsupported similarity config: {self.similarity_computation}")
         return distance
 
-
     def is_authenticated(self) -> bool:
         print("trust_score:", self.trust_score, "threshold:", self.threshold)
         return self.trust_score <= self.threshold
-
 
     def append_distance_to_window_and_update_trust_score(self, distance) -> None:
         self.distance_window.append(distance)
         self._update_trust_score()
 
-
     def _update_trust_score(self):
+        """Use exponentially decaying weights to compute the weighted average of the distances in the window."""
         alpha = 1
         weights = np.exp(np.linspace(-alpha, 0, len(self.distance_window)))
         self.trust_score = np.average(self.distance_window, weights=weights)
         print(self.trust_score)
 
-
     def _compute_distance_to_enrollment_images(self, embedding) -> list[float]:
+        """ Compute the distance between the given embedding and all enrollment embeddings using Euclidean distance."""
         distances = []
 
         for idx, enrollment_embedding in enumerate(self.enrollment_embeddings):
@@ -46,6 +44,7 @@ class Authenticator:
         return distances
 
     def _get_average_of_closest_percent(self, embedding: np.ndarray, percent: float):
+        """ Compute the average distance of the closest n percent of distances."""
         distances = self._compute_distance_to_enrollment_images(embedding)
         print("Distances:", distances)
         num_to_select = max(1, int(len(distances) * percent))  # at least 1
