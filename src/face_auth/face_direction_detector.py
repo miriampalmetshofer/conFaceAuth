@@ -4,6 +4,8 @@ import cv2
 import mediapipe as mp
 import numpy as np
 
+from src.helper.enums import HeadDirection
+
 
 class FaceDirectionDetector:
     def __init__(self):
@@ -99,20 +101,20 @@ class FaceDirectionDetector:
 
         return pitch, yaw, roll
 
-    def classify_direction(self, pitch, yaw, roll):
+    def classify_direction(self, pitch, yaw, roll) -> HeadDirection:
 
         yaw_threshold = 15
         pitch_threshold = 15
 
         if abs(yaw) < yaw_threshold and abs(pitch) < pitch_threshold:
-            return "front"
+            return HeadDirection.FRONT
         elif yaw > yaw_threshold:
-            return "right"  # Person looking to their right (our left)
+            return HeadDirection.RIGHT  # Person looking to their right (our left)
         elif yaw < -yaw_threshold:
-            return "left"  # Person looking to their left (our right)
+            return HeadDirection.LEFT  # Person looking to their left (our right)
         elif pitch > pitch_threshold:
-            return "down"
+            return HeadDirection.DOWN
         elif pitch < -pitch_threshold:
-            return "up"
+            return HeadDirection.UP
         else:
-            return "front"  # Default to front for ambiguous cases
+            return HeadDirection.FRONT  # Default to front for ambiguous cases

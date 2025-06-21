@@ -22,6 +22,7 @@ for device in devices:
     for participant in participants:
         sessions = participant["sessions"]
         name = participant["name"]
+
         for session in sessions:
             video_filename = f"{name}_{session}_{device}.mp4"
             video_path = os.path.join(video_folder, device, video_filename)

@@ -6,21 +6,31 @@ import numpy as np
 from src.face_auth.face_direction_detector import FaceDirectionDetector
 
 
-class EnrollmentVideoProcessor:
-    def __init__(self, video_path):
-        self.video_path = video_path
+class EnrollmentManager:
+    def __init__(self, enrollment_folder: str, enrollment_video: str) -> None:
+        self.enrollment_video = enrollment_video
+        self.enrollment_folder = enrollment_folder
 
-    def get_frames_sorted_by_direction_from_video(self, frame_interval=5):
+    def enroll(self, frames_per_direction: int) -> None:
+        frames_sorted_by_direction = self._get_frames_sorted_by_direction_from_video()
+        samples_frames = self._get_enrollment_frames_per_direction(frames_sorted_by_direction, frames_per_direction)
+        if not samples_frames:
+            raise ValueError(
+                "No frames were derived from enrollment. Please check the video and ensure it contains detectable faces.")
+
+        self._save_enrollment_frames_to_folder(samples_frames, self.enrollment_folder)
+
+    def _get_frames_sorted_by_direction_from_video(self, frame_interval=5):
         detector = FaceDirectionDetector()
-        cap = cv2.VideoCapture(str(self.video_path))
+        cap = cv2.VideoCapture(str(self.enrollment_video))
         frames_sorted_by_direction = defaultdict(list)
 
         if not cap.isOpened():
-            print(f"Error: Could not open video {self.video_path}")
+            print(f"Error: Could not open video {self.enrollment_video}")
             return
 
         frame_count = 0
-        print(f"Processing video: {self.video_path}")
+        print(f"Processing video: {self.enrollment_video}")
 
         while True:
             ret, frame = cap.read()
@@ -39,7 +49,7 @@ class EnrollmentVideoProcessor:
                     pitch, yaw, roll = detector.get_head_pose(face_landmarks, frame.shape)
                     if pitch is not None and yaw is not None:
                         direction = detector.classify_direction(pitch, yaw, roll)
-                        frames_sorted_by_direction[direction].append(frame)
+                        frames_sorted_by_direction[direction.value].append(frame)
 
                         print(f"Frame {frame_count}: {direction} (pitch={pitch:.1f}°, yaw={yaw:.1f}°, roll={roll:.1f}°)")
 
@@ -51,7 +61,7 @@ class EnrollmentVideoProcessor:
         return frames_sorted_by_direction
 
 
-    def get_enrollment_frames_per_direction(self, frames_by_direction, frames_per_direction=3):
+    def _get_enrollment_frames_per_direction(self, frames_by_direction, frames_per_direction=3):
         """
         Samples frames per direction.
         Uses a normal distribution to sample frames.
@@ -78,12 +88,12 @@ class EnrollmentVideoProcessor:
 
         return sampled_frames
 
-    def save_enrollment_frames_to_folder(self, frames, enrollment_folder):
+    def _save_enrollment_frames_to_folder(self, frames, enrollment_folder):
         enrollment_folder_path = Path(enrollment_folder)
         enrollment_folder_path.mkdir(parents=True, exist_ok=False)
         for direction, frames_list in frames.items():
             for i, frame in enumerate(frames_list):
                 frame_path = enrollment_folder_path / f"{direction}_{i:03d}.jpg"
-                if not 'desktop' in self.video_path.lower():
+                if not 'desktop' in self.enrollment_video.lower():
                     frame = cv2.rotate(frame, cv2.ROTATE_90_CLOCKWISE)
                 cv2.imwrite(str(frame_path), frame)
