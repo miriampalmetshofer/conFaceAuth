@@ -3,7 +3,7 @@ from pathlib import Path
 import cv2
 import numpy as np
 
-from src.face_auth.face_direction_detector import FaceDirectionDetector
+from face_auth.face_direction_detector import FaceDirectionDetector
 
 
 class EnrollmentVideoProcessor:
