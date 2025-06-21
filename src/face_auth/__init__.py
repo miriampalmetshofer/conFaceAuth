@@ -1,5 +1,5 @@
 from .authenticator import Authenticator
-from .enrollment_manager import EnrollmentManager
+from .enrollment import EnrollmentManager
 from .embedder import EmbeddingManager
 from .face_detector import FaceDetector
 from .video_processor import VideoProcessor
