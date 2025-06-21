@@ -3,8 +3,8 @@ import pandas as pd
 import json
 import os
 
-from src.face_auth import Authenticator, EmbeddingManager, FaceDetector
-from src.helper.enums import Color
+from face_auth import Authenticator, EmbeddingManager, FaceDetector
+from helper.enums import Color
 
 
 class VideoProcessor:

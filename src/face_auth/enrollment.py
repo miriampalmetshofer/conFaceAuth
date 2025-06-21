@@ -1,4 +1,4 @@
-from src.face_auth.enrollment_video_processor import EnrollmentVideoProcessor
+from face_auth.enrollment_video_processor import EnrollmentVideoProcessor
 
 
 
