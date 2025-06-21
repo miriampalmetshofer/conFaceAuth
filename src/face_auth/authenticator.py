@@ -8,7 +8,7 @@ class Authenticator:
         self.distance_window = deque(maxlen=window_size)
         self.threshold = threshold
         self.similarity_computation = similarity_computation
-        self.trust_score = None
+        self.risk_score = None
 
     def compute_distance_between_embedding_and_enrollment(self, embedding):
         if isinstance(self.similarity_computation, float) and 0 < self.similarity_computation <= 1.0:
@@ -18,19 +18,19 @@ class Authenticator:
         return distance
 
     def is_authenticated(self) -> bool:
-        print("trust_score:", self.trust_score, "threshold:", self.threshold)
-        return self.trust_score <= self.threshold
+        print("risk_score:", self.risk_score, "threshold:", self.threshold)
+        return self.risk_score <= self.threshold
 
-    def append_distance_to_window_and_update_trust_score(self, distance) -> None:
+    def append_distance_to_window_and_update_risk_score(self, distance) -> None:
         self.distance_window.append(distance)
-        self._update_trust_score()
+        self._update_risk_score()
 
-    def _update_trust_score(self):
+    def _update_risk_score(self):
         """Use exponentially decaying weights to compute the weighted average of the distances in the window."""
         alpha = 1
         weights = np.exp(np.linspace(-alpha, 0, len(self.distance_window)))
-        self.trust_score = np.average(self.distance_window, weights=weights)
-        print(self.trust_score)
+        self.risk_score = np.average(self.distance_window, weights=weights)
+        print(self.risk_score)
 
     def _compute_distance_to_enrollment_images(self, embedding) -> list[float]:
         """ Compute the distance between the given embedding and all enrollment embeddings using Euclidean distance."""

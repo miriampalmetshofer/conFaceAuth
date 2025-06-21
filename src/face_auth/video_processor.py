@@ -70,7 +70,7 @@ class VideoProcessor:
             'true_label': true_label,
             'match': match,
             'distance': distance,
-            'trust_score': self.authenticator.trust_score
+            'risk_score': self.authenticator.risk_score
         })
 
 
@@ -97,13 +97,13 @@ class VideoProcessor:
                         print(f"No face detected at frame {frame_count}.")
                         cv2.imwrite(f"no_face/no_face_frame_{frame_count}.jpg", frame)
                         distance = self.config.get("no_face_penalty")
-                        self.authenticator.append_distance_to_window_and_update_trust_score(distance)
+                        self.authenticator.append_distance_to_window_and_update_risk_score(distance)
                         predicted_label = "No Face"
                     else:
                         face, _ = result
                         embedding = self.embedding_manager.get_embedding(face)
                         distance = self.authenticator.compute_distance_between_embedding_and_enrollment(embedding)
-                        self.authenticator.append_distance_to_window_and_update_trust_score(distance)
+                        self.authenticator.append_distance_to_window_and_update_risk_score(distance)
                         predicted_label = 'Unlocked' if self.authenticator.is_authenticated() else 'Lock'
 
                     true_label = self.label_frame_from_ground_truth(ground_truth, frame_count)
@@ -135,7 +135,7 @@ class VideoProcessor:
 
         frame_count = 0
         distance = 0
-        trust_score = 0
+        risk_score = 0
         color = Color.GREEN.value
 
         while True:
@@ -157,8 +157,8 @@ class VideoProcessor:
                         embedding = self.embedding_manager.get_embedding(face)
                         distance = self.authenticator.compute_distance_between_embedding_and_enrollment(embedding)
 
-                    self.authenticator.append_distance_to_window_and_update_trust_score(distance)
-                    trust_score = self.authenticator.trust_score
+                    self.authenticator.append_distance_to_window_and_update_risk_score(distance)
+                    risk_score = self.authenticator.risk_score
                     is_authenticated = self.authenticator.is_authenticated()
 
                     color = Color.GREEN.value if is_authenticated else Color.RED.value
@@ -168,7 +168,7 @@ class VideoProcessor:
                 continue
 
             cv2.putText(frame, f"Distance: {distance:.4f}", (30, 100), cv2.FONT_HERSHEY_SIMPLEX, 1.0, color, 2)
-            cv2.putText(frame, f"Trust: {trust_score:.4f}", (30, 140), cv2.FONT_HERSHEY_SIMPLEX, 1.0, color, 2)
+            cv2.putText(frame, f"Trust: {risk_score:.4f}", (30, 140), cv2.FONT_HERSHEY_SIMPLEX, 1.0, color, 2)
 
             cv2.imshow('Live Face Authentication', frame)
 
