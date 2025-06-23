@@ -32,7 +32,7 @@ class VideoProcessor:
         for segment in ground_truth:
             label = segment['timelinelabels'][0]
             for range_dict in segment['ranges']:
-                if range_dict['start'] <= frame_number < range_dict['end']:
+                if range_dict['start'] <= frame_number <= range_dict['end']:
                     return label
         raise ValueError(f"No label for {frame_number} in {ground_truth}")
 
