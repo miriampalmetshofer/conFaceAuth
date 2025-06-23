@@ -14,6 +14,34 @@
         1,
         2
       ]
+    },
+    {
+      "name": "frieda",
+      "sessions": [
+        1,
+        2
+      ]
+    },
+    {
+      "name": "bettina",
+      "sessions": [
+        1,
+        2
+      ]
+    },
+    {
+      "name": "stefan",
+      "sessions": [
+        1,
+        2
+      ]
+    },
+    {
+      "name": "gudrun",
+      "sessions": [
+        1,
+        2
+      ]
     }
   ],
   "video_folder": "{base_path}/videos",
