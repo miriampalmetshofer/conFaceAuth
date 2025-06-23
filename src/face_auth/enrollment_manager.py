@@ -82,7 +82,6 @@ class EnrollmentManager:
                 np.random.normal(loc=mean, scale=stddev, size=frames_per_direction).astype(int),
                 0, count - 1
             )
-            print(indices)
             sampled_frames[direction] = [frames[i] for i in indices]
 
         print("\nSampled frames by direction:")
