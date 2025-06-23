@@ -28,12 +28,14 @@ class EmbeddingManager:
             image = cv2.imread(image_path)
             result = face_detector.detect_and_crop(image)
             if result is None:
-                print(f"No face detected in {filename}. Skipping.")
+                print(f"No face detected in enrollment image {filename}. Please check the image. Skipping for now.")
+                continue
             face, _ = result
             embedding = self.get_embedding(face)
             if embedding is not None:
                 self.embeddings.append(embedding)
             else:
-                print(f"Failed to get enrollment embedding for {filename}. Skipping.")
+                print(f"Failed to compute embedding for enrollment image {filename}. Please check the image. Skipping for now.")
+                continue
 
         print(f"Done computing enrollment embeddings: {len(self.embeddings)}. Embeddings stored in EmbeddingsManager.")

@@ -70,9 +70,12 @@ class EnrollmentManager:
         sampled_frames = {}
         for direction, frames in frames_by_direction.items():
             count = len(frames)
-            if count == 0:
-                sampled_frames[direction] = []
-                continue
+            if count < frames_per_direction:
+                print(
+                    f"Direction '{direction}' has {count} frames, expected at least {frames_per_direction}."
+                )
+                if count == 0:
+                    continue
 
             mean = count // 2
             stddev = count / 4

@@ -15,7 +15,7 @@ class VideoProcessor:
         self.authenticator = authenticator
         self.config = config
 
-    def load_ground_truth(self, annotations_csv_path, video_filename):
+    def load_ground_truth(self, annotations_csv_path, video_filename) -> list:
         """Load ground truth labels from the annotations CSV."""
         print(f"Annotations CSV path: {annotations_csv_path}")
         df = pd.read_csv(annotations_csv_path)
@@ -73,10 +73,22 @@ class VideoProcessor:
             'risk_score': self.authenticator.risk_score
         })
 
+    def _check_video_requirements_and_log_issues(self, cap: cv2.VideoCapture, ground_truth: list) -> None:
+        fps = cap.get(cv2.CAP_PROP_FPS)
+        if fps != 30:
+            print(f"Warning: Video FPS is {fps}, expected 30 FPS. This may affect annotation label matching.")
+
+        total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+        if ground_truth and ground_truth[-1]['ranges'][-1]['end'] != total_frames:
+            print(
+                f"Last frame in ground truth {ground_truth[-1]['ranges'][-1]['end']} does not match last frame in video {total_frames}.")
+
 
     def process_video(self, video_path, skip_frames, annotations_csv_path, results_csv_path):
         cap = cv2.VideoCapture(video_path)
         ground_truth = self.load_ground_truth(annotations_csv_path, video_path)
+
+        self._check_video_requirements_and_log_issues(cap, ground_truth)
 
         frame_count = 1
         results = []
@@ -109,6 +121,8 @@ class VideoProcessor:
                     true_label = self.label_frame_from_ground_truth(ground_truth, frame_count)
                     match = predicted_label == true_label
                     print(f"Frame {frame_count}: Predicted={predicted_label}, Ground Truth={true_label}, Match={match}")
+                    if true_label == "No Face" and predicted_label != "No Face":
+                        cv2.imwrite(f"{self.config.get('base_path', '')}/debug/no_face_mismatch_frame_{frame_count}.jpg", frame)
 
                     self.append_frame_result(results, frame_count, predicted_label, true_label, match, distance)
 
