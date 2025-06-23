@@ -18,6 +18,11 @@ results_csv_path = config.get("results_file").format(base_path=base_path)
 participants = config.get("participants")
 devices = ["desktop", "mobile"]
 
+# delete results file if it exists
+if os.path.exists(results_csv_path):
+    print(f"Deleting existing results file: {results_csv_path}")
+    os.remove(results_csv_path)
+
 for device in devices:
     for participant in participants:
         sessions = participant["sessions"]
