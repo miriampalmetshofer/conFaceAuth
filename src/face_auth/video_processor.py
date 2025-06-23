@@ -104,7 +104,7 @@ class VideoProcessor:
                         embedding = self.embedding_manager.get_embedding(face)
                         distance = self.authenticator.compute_distance_between_embedding_and_enrollment(embedding)
                         self.authenticator.append_distance_to_window_and_update_risk_score(distance)
-                        predicted_label = 'Unlocked' if self.authenticator.is_authenticated() else 'Lock'
+                        predicted_label = 'Unlocked' if self.authenticator.is_authenticated() else 'Locked'
 
                     true_label = self.label_frame_from_ground_truth(ground_truth, frame_count)
                     match = predicted_label == true_label
