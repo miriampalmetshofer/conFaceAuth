@@ -148,13 +148,14 @@ class AuthenticationManager:
         cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
 
         frame_count = 0
-        distance = 0
         risk_score = 0
         color = Color.GREEN.value
+        threshold = self.config.get('threshold')
 
         while True:
             ret, frame = cap.read()
             if not ret:
+                print("Cannot read frame.")
                 break
 
             try:
@@ -182,7 +183,7 @@ class AuthenticationManager:
                 print(f"Error at frame {frame_count}: {e}")
                 continue
 
-            cv2.putText(frame, f"{risk_score:.4f} (Distance) < 0.8 (Threshold)", (20, 30), cv2.FONT_HERSHEY_SIMPLEX, 1.0, color, 2)
+            cv2.putText(frame, f"{risk_score:.4f} (Distance) < {threshold} (Threshold)", (20, 30), cv2.FONT_HERSHEY_SIMPLEX, 1.0, color, 2)
 
             cv2.imshow('Live Face Authentication', frame)
 
