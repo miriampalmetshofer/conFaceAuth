@@ -1,8 +1,8 @@
 {
-  "id": "miriam_2",
+  "id": "miriam_live",
   "enrollment": {
     "enrollment_video_path": "../data/raw/miriam/enrollment/miriam_2_desktop.mp4",
-    "enrollment_folder": "../data/enrollment/miriam_2",
+    "enrollment_folder": "../data/test/live_enrollment_desktop",
     "enrollment_frames_per_direction": 5
   },
   "video_path": "../data/raw/miriam/recording/miriam_2_desktop_recording.mp4",
@@ -14,5 +14,6 @@
   "embedder": "FaceNet",
   "detector": "MTCNN",
   "similarity_computation": 0.1,
-   "no_face_penalty": 1.0
+   "no_face_penalty": 1.0,
+  "alpha": 1.0
 }

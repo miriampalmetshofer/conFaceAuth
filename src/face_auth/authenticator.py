@@ -3,12 +3,17 @@ import numpy as np
 
 
 class Authenticator:
-    def __init__(self, enrollment_embeddings, similarity_computation: str, window_size: int, threshold: float):
+    def __init__(self, enrollment_embeddings, similarity_computation: str, window_size: int, threshold: float, alpha: float) -> None:
         self.enrollment_embeddings = enrollment_embeddings
         self.distance_window = deque(maxlen=window_size)
         self.threshold = threshold
         self.similarity_computation = similarity_computation
         self.risk_score = None
+        self.alpha = alpha
+
+    def is_authenticated(self) -> bool:
+        print("risk_score:", self.risk_score, "threshold:", self.threshold)
+        return self.risk_score <= self.threshold
 
     def compute_distance_between_embedding_and_enrollment(self, embedding):
         if isinstance(self.similarity_computation, float) and 0 < self.similarity_computation <= 1.0:
@@ -17,20 +22,25 @@ class Authenticator:
             raise ValueError(f"Unsupported similarity config: {self.similarity_computation}")
         return distance
 
-    def is_authenticated(self) -> bool:
-        print("risk_score:", self.risk_score, "threshold:", self.threshold)
-        return self.risk_score <= self.threshold
-
     def append_distance_to_window_and_update_risk_score(self, distance) -> None:
         self.distance_window.append(distance)
         self._update_risk_score()
 
     def _update_risk_score(self):
         """Use exponentially decaying weights to compute the weighted average of the distances in the window."""
-        alpha = 1
+        alpha = self.alpha
         weights = np.exp(np.linspace(-alpha, 0, len(self.distance_window)))
         self.risk_score = np.average(self.distance_window, weights=weights)
         print(self.risk_score)
+
+    def _get_average_of_closest_percent(self, embedding: np.ndarray, percent: float):
+        """ Compute the average distance of the closest n percent of distances."""
+        distances = self._compute_distance_to_enrollment_images(embedding)
+        print("Distances:", distances)
+        num_to_select = max(1, int(len(distances) * percent))  # at least 1
+        closest_distances = sorted(distances)[:num_to_select]
+        average_distance = np.mean(closest_distances)
+        return average_distance
 
     def _compute_distance_to_enrollment_images(self, embedding) -> list[float]:
         """ Compute the distance between the given embedding and all enrollment embeddings using Euclidean distance."""
@@ -42,12 +52,3 @@ class Authenticator:
         distances.sort()
 
         return distances
-
-    def _get_average_of_closest_percent(self, embedding: np.ndarray, percent: float):
-        """ Compute the average distance of the closest n percent of distances."""
-        distances = self._compute_distance_to_enrollment_images(embedding)
-        print("Distances:", distances)
-        num_to_select = max(1, int(len(distances) * percent))  # at least 1
-        closest_distances = sorted(distances)[:num_to_select]
-        average_distance = np.mean(closest_distances)
-        return average_distance

@@ -3,7 +3,7 @@ from face_auth import (
     EmbeddingManager,
     FaceDetector,
     ConfigManager,
-    VideoProcessor
+    AuthenticationManager
 )
 
 config = ConfigManager("config.json")
@@ -14,7 +14,7 @@ face_detector = FaceDetector(
 embedding_manager = EmbeddingManager(
     embedder_name=config.get("embedder")
 )
-embedding_manager.initialize_embeddings_from_enrollment_images('../data/runs/run1/enrollments/miriam_desktop',
+embedding_manager.initialize_embeddings_from_enrollment_images(config.get('enrollment').get("enrollment_folder"),
                                                                face_detector=face_detector)
 
 authenticator = Authenticator(
@@ -22,11 +22,12 @@ authenticator = Authenticator(
     window_size=config.get("window_size"),
     threshold=config.get("threshold"),
     similarity_computation=config.get("similarity_computation"),
+    alpha=config.get("alpha"),
 )
-processor = VideoProcessor(
+processor = AuthenticationManager(
     face_detector,
     embedding_manager,
     authenticator,
     config=config.config,
 )
-processor.process_live_stream(skip_frames=30)  # Adjust skip_frames for speed/performance
+processor.process_live_stream(skip_frames=config.get("skip_frames"))

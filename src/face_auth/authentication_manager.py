@@ -7,7 +7,7 @@ from src.face_auth import Authenticator, EmbeddingManager, FaceDetector
 from src.helper.enums import Color
 
 
-class VideoProcessor:
+class AuthenticationManager:
     def __init__(self, face_detector: FaceDetector, embedding_manager: EmbeddingManager,
                  authenticator: Authenticator, config):
         self.face_detector = face_detector
@@ -102,7 +102,7 @@ class VideoProcessor:
                 frame = cv2.rotate(frame, cv2.ROTATE_90_CLOCKWISE)
 
             try:
-                if frame_count % skip_frames == 0:
+                if frame_count == 1 or frame_count % skip_frames == 0:
                     result = self.face_detector.detect_and_crop(frame)
 
                     if result is None:
@@ -159,10 +159,11 @@ class VideoProcessor:
 
             try:
                 if frame_count % skip_frames == 0:
+
                     result = self.face_detector.detect_and_crop(frame)
 
                     if result is None:
-                        cv2.putText(frame, "No face detected", (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 1.5,
+                        cv2.putText(frame, "No face detected", (70, 70), cv2.FONT_HERSHEY_SIMPLEX, 1,
                                     Color.RED.value, 2)
                         distance = 1
                     else:
@@ -181,8 +182,7 @@ class VideoProcessor:
                 print(f"Error at frame {frame_count}: {e}")
                 continue
 
-            cv2.putText(frame, f"Distance: {distance:.4f}", (30, 100), cv2.FONT_HERSHEY_SIMPLEX, 1.0, color, 2)
-            cv2.putText(frame, f"Trust: {risk_score:.4f}", (30, 140), cv2.FONT_HERSHEY_SIMPLEX, 1.0, color, 2)
+            cv2.putText(frame, f"{risk_score:.4f} (Distance) < 0.8 (Threshold)", (20, 30), cv2.FONT_HERSHEY_SIMPLEX, 1.0, color, 2)
 
             cv2.imshow('Live Face Authentication', frame)
 

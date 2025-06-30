@@ -2,10 +2,10 @@ from .authenticator import Authenticator
 from .enrollment_manager import EnrollmentManager
 from .embedder import EmbeddingManager
 from .face_detector import FaceDetector
-from .video_processor import VideoProcessor
+from .authentication_manager import AuthenticationManager
 from .config_manager import ConfigManager
 
 __all__ = [
     "Authenticator", "EnrollmentManager", "EmbeddingManager",
-    "FaceDetector", "VideoProcessor", "ConfigManager"
+    "FaceDetector", "AuthenticationManager", "ConfigManager"
 ]

@@ -4,7 +4,7 @@ from face_auth import (
     EnrollmentManager,
     EmbeddingManager,
     FaceDetector,
-    VideoProcessor,
+    AuthenticationManager,
     ConfigManager
 )
 
@@ -18,10 +18,16 @@ results_csv_path = config.get("results_file").format(base_path=base_path)
 participants = config.get("participants")
 devices = ["desktop", "mobile"]
 
-# delete results file if it exists
 if os.path.exists(results_csv_path):
-    print(f"Deleting existing results file: {results_csv_path}")
-    os.remove(results_csv_path)
+    print(f"Results file already exists at: {results_csv_path}")
+    confirm = input("Do you want to delete this file and continue? (y/N): ").strip().lower()
+    if confirm == 'y':
+        os.remove(results_csv_path)
+        print("File deleted.")
+    else:
+        print("File NOT deleted. Stopping execution.")
+        exit(0)
+
 
 for device in devices:
     for participant in participants:
@@ -65,10 +71,11 @@ for device in devices:
                 window_size=config.get("window_size"),
                 threshold=config.get("threshold"),
                 similarity_computation=config.get("similarity_computation"),
+                alpha=config.get("alpha"),
             )
 
             print("VIDEO PROCESSOR")
-            processor = VideoProcessor(
+            processor = AuthenticationManager(
                 face_detector=face_detector,
                 embedding_manager=embedding_manager,
                 authenticator=authenticator,
