@@ -3,8 +3,10 @@ import pandas as pd
 import json
 import os
 
-from src.face_auth import Authenticator, EmbeddingManager, FaceDetector
-from src.helper.enums import Color
+from face_auth.authenticator import Authenticator
+from face_auth.embedder import EmbeddingManager
+from face_auth.face_detector import FaceDetector
+from helper.enums import Color
 
 
 class AuthenticationManager:

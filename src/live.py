@@ -1,10 +1,8 @@
-from face_auth import (
-    Authenticator,
-    EmbeddingManager,
-    FaceDetector,
-    ConfigManager,
-    AuthenticationManager
-)
+from face_auth.authentication_manager import AuthenticationManager
+from face_auth.authenticator import Authenticator
+from face_auth.config_manager import ConfigManager
+from face_auth.embedder import EmbeddingManager
+from face_auth.face_detector import FaceDetector
 
 config = ConfigManager("config.json")
 

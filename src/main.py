@@ -1,12 +1,9 @@
 import os
-from face_auth import (
-    Authenticator,
-    EnrollmentManager,
-    EmbeddingManager,
-    FaceDetector,
-    AuthenticationManager,
-    ConfigManager
-)
+from face_auth.authentication_manager import AuthenticationManager
+from face_auth.authenticator import Authenticator
+from face_auth.config_manager import ConfigManager
+from face_auth.embedder import EmbeddingManager
+from face_auth.face_detector import FaceDetector
 
 # Load and resolve config
 config = ConfigManager("bulk_config.json")
