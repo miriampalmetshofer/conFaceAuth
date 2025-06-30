@@ -21,6 +21,8 @@ For quick testing and trying out the system, using `live.py` is recommended. Thi
 - Perform real-time face authentication
 - Display the authentication results on screen
 
+<img width="600" alt="Screenshot 2025-06-30 at 12 08 09" src="https://github.com/user-attachments/assets/4042ba7a-5721-4861-87a0-e3fad0c7f536" />
+
 
 #### Setting Up Enrollment Data for Quick Testing
 
@@ -42,6 +44,8 @@ Before running live.py, you should create a folder with some images of yourself 
 For comprehensive evaluation, use `main.py`. 
 CHeck the `bulk_config.json` file to set up the batch processing parameters. 
 The `bulk_config.json` is written to work with a folder structure like this:
+
+<img width="299" alt="Screenshot 2025-06-30 at 12 06 35" src="https://github.com/user-attachments/assets/9e281dc3-3be3-4dd0-b361-fdbdd2612662" />
 
 ## Configuration
 
