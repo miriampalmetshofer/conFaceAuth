@@ -4,7 +4,7 @@ from face_auth.config_manager import ConfigManager
 from face_auth.embedder import EmbeddingManager
 from face_auth.face_detector import FaceDetector
 
-config = ConfigManager("config.json")
+config = ConfigManager("live_config.json")
 
 face_detector = FaceDetector(
     detector_name=config.get("detector")
