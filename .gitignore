@@ -1,3 +1,31 @@
-data
+# IDE
 .idea
-no_face
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Virtual environment
+venv/
+env/
+ENV/
+src/venv/
+
+# macOS
+.DS_Store
+*.DS_Store
+
+# Data and results
+data/
+
+# Debug output
+no_face/
+src/no_face/
+
+# PNG output files
+*.png
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints/
