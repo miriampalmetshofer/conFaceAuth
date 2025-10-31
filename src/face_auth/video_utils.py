@@ -4,12 +4,9 @@ import json
 import os
 
 
-def get_video_rotation(video_path):
+def get_video_rotation_from_metadata(video_path) -> int:
     """
     Get the rotation angle from video metadata using ffprobe.
-
-    Args:
-        video_path: Path to the video file
 
     Returns:
         int: Rotation angle (0, 90, 180, or 270)
@@ -74,16 +71,7 @@ def get_video_rotation(video_path):
 
 
 def rotate_frame(frame, rotation_angle):
-    """
-    Rotate a frame based on the rotation angle.
-
-    Args:
-        frame: The frame to rotate (numpy array)
-        rotation_angle: Angle in degrees (0, 90, 180, 270)
-
-    Returns:
-        Rotated frame
-    """
+    """Rotate a frame based on the rotation angle."""
     if rotation_angle == 0:
         return frame
     elif rotation_angle == 90:
@@ -98,63 +86,8 @@ def rotate_frame(frame, rotation_angle):
 
 
 def get_frame_dimensions_after_rotation(width, height, rotation_angle):
-    """
-    Get the dimensions of a frame after rotation.
-
-    Args:
-        width: Original width
-        height: Original height
-        rotation_angle: Rotation angle (0, 90, 180, 270)
-
-    Returns:
-        tuple: (new_width, new_height)
-    """
+    """Get the dimensions of a frame after rotation."""
     if rotation_angle in [90, 270]:
-        return (height, width)
+        return height, width
     else:
-        return (width, height)
-
-
-def apply_rotation_to_video(input_path, output_path, rotation_angle):
-    """
-    Create a new video file with rotation applied at the pixel level.
-    This is useful for creating properly oriented enrollment videos.
-
-    Args:
-        input_path: Path to input video
-        output_path: Path to output video
-        rotation_angle: Rotation angle (0, 90, 180, 270)
-    """
-    if rotation_angle == 0:
-        print(f"No rotation needed, copying file...")
-        import shutil
-        shutil.copy2(input_path, output_path)
-        return
-
-    cap = cv2.VideoCapture(input_path)
-
-    # Get video properties
-    fps = cap.get(cv2.CAP_PROP_FPS)
-    width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
-    height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
-
-    # Calculate dimensions after rotation
-    out_width, out_height = get_frame_dimensions_after_rotation(width, height, rotation_angle)
-
-    # Create video writer
-    fourcc = cv2.VideoWriter_fourcc(*'mp4v')
-    out = cv2.VideoWriter(output_path, fourcc, fps, (out_width, out_height))
-
-    frame_count = 0
-    while True:
-        ret, frame = cap.read()
-        if not ret:
-            break
-
-        rotated_frame = rotate_frame(frame, rotation_angle)
-        out.write(rotated_frame)
-        frame_count += 1
-
-    cap.release()
-    out.release()
-    print(f"Rotated {frame_count} frames by {rotation_angle}° and saved to {output_path}")
+        return width, height

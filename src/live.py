@@ -4,6 +4,9 @@ from face_auth.config_manager import ConfigManager
 from face_auth.embedder import Embedder
 from face_auth.enrollment_service import EnrollmentService
 from face_auth.face_detector import FaceDetector
+from face_auth.frame_authenticator import FrameAuthenticator
+from face_auth.result_writer import ResultWriter
+from face_auth.debug_frame_saver import DebugFrameSaver
 
 config = ConfigManager("live_config.json")
 
@@ -29,10 +32,20 @@ authenticator = Authenticator(
     similarity_computation=config.get("similarity_computation"),
     alpha=config.get("alpha"),
 )
+
+frame_authenticator = FrameAuthenticator(
+    face_detector=face_detector,
+    embedder=embedder,
+    authenticator=authenticator,
+    no_face_penalty=config.get("no_face_penalty")
+)
+
+result_writer = ResultWriter(config=config.config)
+debug_saver = DebugFrameSaver()
+
 processor = VideoProcessor(
-    face_detector,
-    embedder,
-    authenticator,
-    config=config.config,
+    frame_authenticator=frame_authenticator,
+    result_writer=result_writer,
+    debug_saver=debug_saver
 )
 processor.process_live_stream(skip_frames=config.get("skip_frames"))

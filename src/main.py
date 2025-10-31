@@ -8,6 +8,9 @@ from face_auth.embedder import Embedder
 from face_auth.enrollment_service import EnrollmentService
 from face_auth.enrollment_manager import EnrollmentManager
 from face_auth.face_detector import FaceDetector
+from face_auth.frame_authenticator import FrameAuthenticator
+from face_auth.result_writer import ResultWriter
+from face_auth.debug_frame_saver import DebugFrameSaver
 
 
 def main(config_file):
@@ -89,7 +92,6 @@ def main(config_file):
 
             # Use the first enrollment video found
             enrollment_video_path = enrollment_videos[0]
-            # Processed enrollment images will be saved in a subfolder named after the video file
             enrollment_video_name = os.path.splitext(os.path.basename(enrollment_video_path))[0]
             enrollment_folder = os.path.join(participant_enrollment_folder, enrollment_video_name)
 
@@ -126,11 +128,20 @@ def main(config_file):
                 alpha=config.get("alpha"),
             )
 
-            processor = VideoProcessor(
+            frame_authenticator = FrameAuthenticator(
                 face_detector=face_detector,
                 embedder=embedder,
                 authenticator=authenticator,
-                config=config.config
+                no_face_penalty=config.get("no_face_penalty")
+            )
+
+            result_writer = ResultWriter(config=config.config)
+            debug_saver = DebugFrameSaver()
+
+            processor = VideoProcessor(
+                frame_authenticator=frame_authenticator,
+                result_writer=result_writer,
+                debug_saver=debug_saver
             )
 
             for video_path in video_files:

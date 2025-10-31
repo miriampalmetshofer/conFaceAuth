@@ -4,7 +4,7 @@ import cv2
 import numpy as np
 
 from face_auth.face_direction_detector import FaceDirectionDetector
-from face_auth.video_utils import get_video_rotation, rotate_frame
+from face_auth.video_utils import get_video_rotation_from_metadata, rotate_frame
 
 
 class EnrollmentManager:
@@ -23,7 +23,7 @@ class EnrollmentManager:
 
     def _get_frames_sorted_by_direction_from_video(self, frame_interval=5):
         # Detect video rotation from metadata
-        rotation_angle = get_video_rotation(self.enrollment_video)
+        rotation_angle = get_video_rotation_from_metadata(self.enrollment_video)
 
         detector = FaceDirectionDetector()
         cap = cv2.VideoCapture(str(self.enrollment_video))
