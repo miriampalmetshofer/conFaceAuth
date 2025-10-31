@@ -1,7 +1,8 @@
 from face_auth.video_processor import VideoProcessor
 from face_auth.authenticator import Authenticator
 from face_auth.config_manager import ConfigManager
-from face_auth.embedder import EmbeddingManager
+from face_auth.embedder import Embedder
+from face_auth.enrollment_service import EnrollmentService
 from face_auth.face_detector import FaceDetector
 
 config = ConfigManager("live_config.json")
@@ -9,14 +10,20 @@ config = ConfigManager("live_config.json")
 face_detector = FaceDetector(
     detector_name=config.get("detector")
 )
-embedding_manager = EmbeddingManager(
+embedder = Embedder(
     embedder_name=config.get("embedder")
 )
-embedding_manager.initialize_embeddings_from_enrollment_images(config.get('enrollment').get("enrollment_folder"),
-                                                               face_detector=face_detector)
+enrollment_service = EnrollmentService(
+    embedder=embedder,
+    face_detector=face_detector
+)
+
+enrollment_embeddings = enrollment_service.load_enrollment_embeddings(
+    config.get('enrollment').get("enrollment_folder")
+)
 
 authenticator = Authenticator(
-    embedding_manager.embeddings,
+    enrollment_embeddings,
     window_size=config.get("window_size"),
     threshold=config.get("threshold"),
     similarity_computation=config.get("similarity_computation"),
@@ -24,7 +31,7 @@ authenticator = Authenticator(
 )
 processor = VideoProcessor(
     face_detector,
-    embedding_manager,
+    embedder,
     authenticator,
     config=config.config,
 )

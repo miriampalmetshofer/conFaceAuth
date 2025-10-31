@@ -4,7 +4,8 @@ import glob
 from face_auth.video_processor import VideoProcessor
 from face_auth.authenticator import Authenticator
 from face_auth.config_manager import ConfigManager
-from face_auth.embedder import EmbeddingManager
+from face_auth.embedder import Embedder
+from face_auth.enrollment_service import EnrollmentService
 from face_auth.enrollment_manager import EnrollmentManager
 from face_auth.face_detector import FaceDetector
 
@@ -109,15 +110,16 @@ def main(config_file):
             # Initialize components (once per participant/device)
             print("\nInitializing components...")
             face_detector = FaceDetector(detector_name=config.get("detector"))
-            embedding_manager = EmbeddingManager(embedder_name=config.get("embedder"))
-
-            embedding_manager.initialize_embeddings_from_enrollment_images(
-                face_detector=face_detector,
-                enrollment_folder=enrollment_folder
+            embedder = Embedder(embedder_name=config.get("embedder"))
+            enrollment_service = EnrollmentService(
+                embedder=embedder,
+                face_detector=face_detector
             )
 
+            enrollment_embeddings = enrollment_service.load_enrollment_embeddings(enrollment_folder)
+
             authenticator = Authenticator(
-                enrollment_embeddings=embedding_manager.embeddings,
+                enrollment_embeddings=enrollment_embeddings,
                 window_size=config.get("window_size"),
                 threshold=config.get("threshold"),
                 similarity_computation=config.get("similarity_computation"),
@@ -126,7 +128,7 @@ def main(config_file):
 
             processor = VideoProcessor(
                 face_detector=face_detector,
-                embedding_manager=embedding_manager,
+                embedder=embedder,
                 authenticator=authenticator,
                 config=config.config
             )

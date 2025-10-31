@@ -3,17 +3,17 @@ import pandas as pd
 import os
 
 from face_auth.authenticator import Authenticator
-from face_auth.embedder import EmbeddingManager
+from face_auth.embedder import Embedder
 from face_auth.face_detector import FaceDetector
 from face_auth.video_utils import get_video_rotation, rotate_frame
 from helper.enums import Color
 
 
 class VideoProcessor:
-    def __init__(self, face_detector: FaceDetector, embedding_manager: EmbeddingManager,
+    def __init__(self, face_detector: FaceDetector, embedder: Embedder,
                  authenticator: Authenticator, config):
         self.face_detector = face_detector
-        self.embedding_manager = embedding_manager
+        self.embedder = embedder
         self.authenticator = authenticator
         self.config = config
         self.debug_folder = "no_face_detected_debug"
@@ -107,7 +107,7 @@ class VideoProcessor:
                         predicted_state = "No Face"
                     else:
                         face, _ = result
-                        embedding = self.embedding_manager.get_embedding(face)
+                        embedding = self.embedder.get_embedding(face)
                         distance = self.authenticator.compute_distance_between_embedding_and_enrollment(embedding)
                         self.authenticator.append_distance_to_window_and_update_risk_score(distance)
                         predicted_state = 'Unlocked' if self.authenticator.is_authenticated() else 'Locked'
@@ -160,7 +160,7 @@ class VideoProcessor:
                     else:
                         face, box_coordinates = result
                         self.draw_detection_box(frame, box_coordinates)
-                        embedding = self.embedding_manager.get_embedding(face)
+                        embedding = self.embedder.get_embedding(face)
                         distance = self.authenticator.compute_distance_between_embedding_and_enrollment(embedding)
 
                     self.authenticator.append_distance_to_window_and_update_risk_score(distance)
