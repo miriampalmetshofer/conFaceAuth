@@ -1,5 +1,8 @@
 from collections import deque
 import numpy as np
+from face_auth.logging_config import get_logger
+
+logger = get_logger(__name__)
 
 
 class Authenticator:
@@ -12,7 +15,7 @@ class Authenticator:
         self.alpha = alpha
 
     def is_authenticated(self) -> bool:
-        print("risk_score:", self.risk_score, "threshold:", self.threshold)
+        logger.debug(f"risk_score: {self.risk_score}, threshold: {self.threshold}")
         return self.risk_score <= self.threshold
 
     def compute_distance_between_embedding_and_enrollment(self, embedding):
@@ -31,12 +34,12 @@ class Authenticator:
         alpha = self.alpha
         weights = np.exp(np.linspace(-alpha, 0, len(self.distance_window)))
         self.risk_score = np.average(self.distance_window, weights=weights)
-        print(self.risk_score)
+        logger.debug(f"Updated risk_score: {self.risk_score}")
 
     def _get_average_of_closest_percent(self, embedding: np.ndarray, percent: float):
         """ Compute the average distance of the closest n percent of distances."""
         distances = self._compute_distance_to_enrollment_images(embedding)
-        print("Distances:", distances)
+        logger.debug(f"Distances to enrollment embeddings: {distances}")
         num_to_select = max(1, int(len(distances) * percent))  # at least 1
         closest_distances = sorted(distances)[:num_to_select]
         average_distance = np.mean(closest_distances)

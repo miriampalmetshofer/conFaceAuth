@@ -7,6 +7,9 @@ from face_auth.face_detector import FaceDetector
 from face_auth.frame_authenticator import FrameAuthenticator
 from face_auth.result_writer import ResultWriter
 from face_auth.debug_frame_saver import DebugFrameSaver
+from face_auth.logging_config import setup_logging
+
+setup_logging()
 
 config = ConfigManager("live_config.json")
 

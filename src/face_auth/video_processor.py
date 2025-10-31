@@ -5,7 +5,10 @@ from face_auth.frame_authenticator import FrameAuthenticator
 from face_auth.result_writer import ResultWriter
 from face_auth.debug_frame_saver import DebugFrameSaver
 from face_auth.video_utils import get_video_rotation_from_metadata, rotate_frame
+from face_auth.logging_config import get_logger
 from helper.enums import Color
+
+logger = get_logger(__name__)
 
 
 class VideoProcessor:
@@ -41,10 +44,10 @@ class VideoProcessor:
                     auth_result = self.frame_authenticator.authenticate_frame(frame)
 
                     if not auth_result.face_detected:
-                        print(f"NO FACE detected at frame {frame_count}.")
+                        logger.warning(f"No face detected at frame {frame_count}")
                         self.debug_saver.save_frame(frame, frame_count, video_name)
 
-                    print(f"Frame {frame_count}: Predicted State={auth_result.predicted_state}, "
+                    logger.info(f"Frame {frame_count}: Predicted State={auth_result.predicted_state}, "
                           f"Distance={auth_result.distance:.4f}, Risk Score={auth_result.risk_score:.4f}")
 
                     results.append({
@@ -55,7 +58,7 @@ class VideoProcessor:
                     })
 
             except Exception as e:
-                print(f"ERROR processing frame {frame_count}: {e}")
+                logger.error(f"Error processing frame {frame_count}: {e}")
                 raise e
 
             frame_count += 1
@@ -73,7 +76,7 @@ class VideoProcessor:
         cap = cv2.VideoCapture(0)
 
         if not cap.isOpened():
-            print("Cannot open webcam.")
+            logger.error("Cannot open webcam")
             return
 
         cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
@@ -85,7 +88,7 @@ class VideoProcessor:
         while True:
             ret, frame = cap.read()
             if not ret:
-                print("Cannot read frame.")
+                logger.error("Cannot read frame")
                 break
 
             try:
@@ -103,7 +106,7 @@ class VideoProcessor:
                               (20, 30), cv2.FONT_HERSHEY_SIMPLEX, 1.0, color, 2)
 
             except Exception as e:
-                print(f"Error at frame {frame_count}: {e}")
+                logger.error(f"Error at frame {frame_count}: {e}")
 
             cv2.imshow('Live Face Authentication', frame)
 
@@ -119,10 +122,10 @@ class VideoProcessor:
         """Log video metadata."""
         fps = cap.get(cv2.CAP_PROP_FPS)
         if fps != 30:
-            print(f"Info: Video FPS is {fps}.")
+            logger.info(f"Video FPS is {fps}")
 
         total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
-        print(f"Total frames in video: {total_frames}")
+        logger.info(f"Total frames in video: {total_frames}")
 
     def _draw_detection_box(self, frame, box):
         """Draw bounding box around detected face."""

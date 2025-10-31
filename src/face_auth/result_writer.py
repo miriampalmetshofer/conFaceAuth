@@ -1,5 +1,8 @@
 import os
 import pandas as pd
+from face_auth.logging_config import get_logger
+
+logger = get_logger(__name__)
 
 
 class ResultWriter:
@@ -18,7 +21,7 @@ class ResultWriter:
             df[key] = value
 
         file_exists = os.path.isfile(csv_path)
-        print(f"{'Appending' if file_exists else 'Creating'} results to {csv_path}")
+        logger.info(f"{'Appending' if file_exists else 'Creating'} results to {csv_path}")
         df.to_csv(csv_path, mode='a', header=not file_exists, index=False)
 
     def _extract_metadata(self, video_path: str) -> dict:

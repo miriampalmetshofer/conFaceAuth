@@ -11,9 +11,12 @@ from face_auth.face_detector import FaceDetector
 from face_auth.frame_authenticator import FrameAuthenticator
 from face_auth.result_writer import ResultWriter
 from face_auth.debug_frame_saver import DebugFrameSaver
+from face_auth.logging_config import setup_logging, get_logger
 
 
 def main(config_file):
+    logger = get_logger(__name__)
+
     config = ConfigManager(config_file)
     base_path = config.get("base_path")
     enrollment_base_path = config.get("enrollment_base_path")
@@ -24,22 +27,22 @@ def main(config_file):
     devices = config.get("devices", ["mobile", "desktop"])
     pool_name = config.get("pool", "unknown")
 
-    print(f"\n{'='*60}")
-    print(f"Processing Pool: {pool_name.upper()}")
-    print(f"Base Path: {base_path}")
-    print(f"Enrollment Path: {enrollment_base_path}")
-    print(f"Devices: {', '.join(devices)}")
-    print(f"{'='*60}\n")
+    logger.info(f"{'='*60}")
+    logger.info(f"Processing Pool: {pool_name.upper()}")
+    logger.info(f"Base Path: {base_path}")
+    logger.info(f"Enrollment Path: {enrollment_base_path}")
+    logger.info(f"Devices: {', '.join(devices)}")
+    logger.info(f"{'='*60}")
 
     # Check if results file already exists
     if os.path.exists(results_csv_path):
-        print(f"Results file already exists at: {results_csv_path}")
+        logger.warning(f"Results file already exists at: {results_csv_path}")
         confirm = input("Do you want to delete this file and continue? (y/N): ").strip().lower()
         if confirm == 'y':
             os.remove(results_csv_path)
-            print("File deleted.")
+            logger.info("File deleted")
         else:
-            print("File NOT deleted. Stopping execution.")
+            logger.info("File NOT deleted. Stopping execution")
             return
 
     # Process videos for each participant
@@ -57,13 +60,13 @@ def main(config_file):
             video_files = glob.glob(video_pattern) + glob.glob(video_pattern_upper)
 
             if not video_files:
-                print(f"INFO: No videos found for {name} on {device}")
+                logger.info(f"No videos found for {name} on {device}")
                 continue
 
-            print(f"\n{'='*60}")
-            print(f"Participant: {name} | Device: {device}")
-            print(f"Found {len(video_files)} video(s)")
-            print(f"{'='*60}\n")
+            logger.info(f"{'='*60}")
+            logger.info(f"Participant: {name} | Device: {device}")
+            logger.info(f"Found {len(video_files)} video(s)")
+            logger.info(f"{'='*60}")
 
             participant_enrollment_folder = os.path.join(enrollment_base_path, device, name)
 
@@ -97,10 +100,10 @@ def main(config_file):
 
             # Enrollment phase
             if os.path.exists(enrollment_folder) and any(f.endswith(".jpg") for f in os.listdir(enrollment_folder)):
-                print(f"SKIPPING ENROLLMENT {name} ({device}) — already exists.")
+                logger.info(f"Skipping enrollment for {name} ({device}) — already exists")
             else:
-                print(f"\n=== ENROLLING: {name} ({device}) ===")
-                print(f"Using enrollment video: {os.path.basename(enrollment_video_path)}")
+                logger.info(f"=== ENROLLING: {name} ({device}) ===")
+                logger.info(f"Using enrollment video: {os.path.basename(enrollment_video_path)}")
                 enrollment_manager = EnrollmentManager(
                     enrollment_video=enrollment_video_path,
                     enrollment_folder=enrollment_folder
@@ -110,7 +113,7 @@ def main(config_file):
                 )
 
             # Initialize components (once per participant/device)
-            print("\nInitializing components...")
+            logger.info("Initializing components...")
             face_detector = FaceDetector(detector_name=config.get("detector"))
             embedder = Embedder(embedder_name=config.get("embedder"))
             enrollment_service = EnrollmentService(
@@ -146,19 +149,23 @@ def main(config_file):
 
             for video_path in video_files:
                 video_filename = os.path.basename(video_path)
-                print(f"\n--- PROCESSING: {video_filename} ---")
+                logger.info(f"--- PROCESSING: {video_filename} ---")
                 processor.process_video(
                     video_path=video_path,
                     skip_frames=config.get("skip_frames"),
                     results_csv_path=results_csv_path
                 )
 
-    print(f"\n{'='*60}")
-    print(f"Processing complete! Results saved to: {results_csv_path}")
-    print(f"{'='*60}\n")
+    logger.info(f"{'='*60}")
+    logger.info(f"Processing complete! Results saved to: {results_csv_path}")
+    logger.info(f"{'='*60}")
 
 
 if __name__ == "__main__":
+    # Setup logging early for any startup messages
+    setup_logging()
+    startup_logger = get_logger(__name__)
+
     # Allow config file to be passed as command line argument
     if len(sys.argv) > 1:
         config_file = sys.argv[1]
@@ -173,7 +180,7 @@ if __name__ == "__main__":
         elif choice == "2":
             config_file = "in_the_wild_config.json"
         else:
-            print("Invalid choice. Using controlled_study_config.json")
+            startup_logger.warning("Invalid choice. Using controlled_study_config.json")
             config_file = "controlled_study_config.json"
 
     main(config_file)

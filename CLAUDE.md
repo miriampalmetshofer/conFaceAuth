@@ -1,5 +1,10 @@
 # Claude Code Development Instructions
 
+## Docstrings
+- Use triple double quotes (`"""`) for all docstrings.
+- Mostly a oneliner docstring is preferred.
+- No input/output descriptions unless necessary. Only necessary E.g. if the output value is int but can only return 3 specific values, document that.
+
 ## Commit Messages
 
 After each implementation, write a concise commit message following this format:

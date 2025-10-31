@@ -5,6 +5,9 @@ import numpy as np
 
 from face_auth.face_direction_detector import FaceDirectionDetector
 from face_auth.video_utils import get_video_rotation_from_metadata, rotate_frame
+from face_auth.logging_config import get_logger
+
+logger = get_logger(__name__)
 
 
 class EnrollmentManager:
@@ -30,11 +33,11 @@ class EnrollmentManager:
         frames_sorted_by_direction = defaultdict(list)
 
         if not cap.isOpened():
-            print(f"Error: Could not open video {self.enrollment_video}")
+            logger.error(f"Could not open video {self.enrollment_video}")
             return
 
         frame_count = 0
-        print(f"Processing video: {self.enrollment_video}")
+        logger.info(f"Processing enrollment video: {self.enrollment_video}")
 
         while True:
             ret, frame = cap.read()
@@ -58,12 +61,12 @@ class EnrollmentManager:
                         direction = detector.classify_direction(pitch, yaw, roll)
                         frames_sorted_by_direction[direction.value].append(frame)
 
-                        print(f"Frame {frame_count}: {direction} (pitch={pitch:.1f}°, yaw={yaw:.1f}°, roll={roll:.1f}°)")
+                        logger.debug(f"Frame {frame_count}: {direction} (pitch={pitch:.1f}°, yaw={yaw:.1f}°, roll={roll:.1f}°)")
 
         cap.release()
-        print("\nProcessing complete!")
+        logger.info("Enrollment video processing complete")
         for direction, frames in frames_sorted_by_direction.items():
-            print(f"  {direction}: {len(frames)} frames")
+            logger.info(f"  {direction}: {len(frames)} frames")
 
         return frames_sorted_by_direction
 
@@ -78,8 +81,8 @@ class EnrollmentManager:
         for direction, frames in frames_by_direction.items():
             count = len(frames)
             if count < frames_per_direction:
-                print(
-                    f"Direction '{direction}' has {count} frames, expected at least {frames_per_direction}."
+                logger.warning(
+                    f"Direction '{direction}' has {count} frames, expected at least {frames_per_direction}"
                 )
                 if count == 0:
                     continue
@@ -94,9 +97,9 @@ class EnrollmentManager:
             )
             sampled_frames[direction] = [frames[i] for i in indices]
 
-        print("\nSampled frames by direction:")
+        logger.info("Sampled frames by direction:")
         for direction, frames in sampled_frames.items():
-            print(f"  {direction}: {len(frames)} frames")
+            logger.info(f"  {direction}: {len(frames)} frames")
 
         return sampled_frames
 

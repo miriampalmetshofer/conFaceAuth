@@ -1,5 +1,8 @@
 import os
 import cv2
+from face_auth.logging_config import get_logger
+
+logger = get_logger(__name__)
 
 
 class EnrollmentService:
@@ -19,16 +22,20 @@ class EnrollmentService:
 
         embeddings = []
         image_files = os.listdir(enrollment_folder)
-        print(f"Found {len(image_files)} images in the enrollment folder.")
+        logger.info(f"Found {len(image_files)} images in the enrollment folder")
 
         for filename in image_files:
             image_path = os.path.join(enrollment_folder, filename)
             image = cv2.imread(image_path)
 
+            if image is None:
+                logger.warning(f"Could not read image {filename}. Skipping")
+                continue
+
             result = self.face_detector.detect_and_crop(image)
 
             if result is None:
-                print(f"No face detected in enrollment image {filename}. Skipping.")
+                logger.warning(f"No face detected in enrollment image {filename}. Skipping")
                 continue
 
             face, _ = result
@@ -37,7 +44,7 @@ class EnrollmentService:
             if embedding is not None:
                 embeddings.append(embedding)
             else:
-                print(f"Failed to compute embedding for {filename}. Skipping.")
+                logger.warning(f"Failed to compute embedding for {filename}. Skipping")
 
-        print(f"Successfully computed {len(embeddings)} enrollment embeddings.")
+        logger.info(f"Successfully computed {len(embeddings)} enrollment embeddings")
         return embeddings

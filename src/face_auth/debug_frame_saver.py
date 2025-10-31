@@ -1,5 +1,8 @@
 import os
 import cv2
+from face_auth.logging_config import get_logger
+
+logger = get_logger(__name__)
 
 
 class DebugFrameSaver:
@@ -13,11 +16,11 @@ class DebugFrameSaver:
         """Create debug folder if it doesn't exist."""
         if not os.path.exists(self.debug_folder):
             os.makedirs(self.debug_folder)
-            print(f"Created debug folder: {self.debug_folder}")
+            logger.info(f"Created debug folder: {self.debug_folder}")
 
     def save_frame(self, frame, frame_count: int, video_name: str) -> None:
         """Save a frame where no face was detected."""
         filename = f"{video_name}_frame_{frame_count}.jpg"
         filepath = os.path.join(self.debug_folder, filename)
         cv2.imwrite(filepath, frame)
-        print(f"Saved no-face frame to {filepath}")
+        logger.debug(f"Saved no-face frame to {filepath}")
