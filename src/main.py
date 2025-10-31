@@ -10,7 +10,6 @@ from face_auth.face_detector import FaceDetector
 
 
 def main(config_file):
-    # Load and resolve config
     config = ConfigManager(config_file)
     base_path = config.get("base_path")
     enrollment_base_path = config.get("enrollment_base_path")
@@ -45,7 +44,6 @@ def main(config_file):
             name = participant["name"]
 
             # Discover videos for this participant and device
-            # Naming conventions:
             # - Controlled study: {name}_{mode}_{timestamp}.mp4
             # - In the wild: {name}_{timestamp}.mp4 (no mode)
             device_folder = os.path.join(video_folder, device)
@@ -133,7 +131,6 @@ def main(config_file):
                 config=config.config
             )
 
-            # Process each video
             for video_path in video_files:
                 video_filename = os.path.basename(video_path)
                 print(f"\n--- PROCESSING: {video_filename} ---")
