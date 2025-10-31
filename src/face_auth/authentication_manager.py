@@ -16,6 +16,19 @@ class AuthenticationManager:
         self.embedding_manager = embedding_manager
         self.authenticator = authenticator
         self.config = config
+        self.debug_folder = "no_face_detected_debug"
+        self._ensure_debug_folder_exists()
+
+    def _ensure_debug_folder_exists(self):
+        if not os.path.exists(self.debug_folder):
+            os.makedirs(self.debug_folder)
+            print(f"Created debug folder: {self.debug_folder}")
+
+    def _save_no_face_frame(self, frame, frame_count, video_name):
+        filename = f"{video_name}_frame_{frame_count}.jpg"
+        filepath = os.path.join(self.debug_folder, filename)
+        cv2.imwrite(filepath, frame)
+        print(f"Saved no-face frame to {filepath}")
 
 
     def flatten_config_for_csv(self, config: dict, video_path) -> dict:
@@ -72,6 +85,7 @@ class AuthenticationManager:
 
         frame_count = 1
         results = []
+        video_name = os.path.splitext(os.path.basename(video_path))[0]
 
         while cap.isOpened():
             ret, frame = cap.read()
@@ -87,6 +101,7 @@ class AuthenticationManager:
 
                     if result is None:
                         print(f"No face detected at frame {frame_count}.")
+                        self._save_no_face_frame(frame, frame_count, video_name)
                         distance = self.config.get("no_face_penalty")
                         self.authenticator.append_distance_to_window_and_update_risk_score(distance)
                         predicted_state = "No Face"
