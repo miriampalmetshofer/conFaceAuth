@@ -4,6 +4,7 @@ import cv2
 import numpy as np
 
 from face_auth.face_direction_detector import FaceDirectionDetector
+from face_auth.video_utils import get_video_rotation, rotate_frame
 
 
 class EnrollmentManager:
@@ -21,6 +22,9 @@ class EnrollmentManager:
         self._save_enrollment_frames_to_folder(samples_frames, self.enrollment_folder)
 
     def _get_frames_sorted_by_direction_from_video(self, frame_interval=5):
+        # Detect video rotation from metadata
+        rotation_angle = get_video_rotation(self.enrollment_video)
+
         detector = FaceDirectionDetector()
         cap = cv2.VideoCapture(str(self.enrollment_video))
         frames_sorted_by_direction = defaultdict(list)
@@ -36,6 +40,9 @@ class EnrollmentManager:
             ret, frame = cap.read()
             if not ret:
                 break
+
+            # Apply rotation based on metadata
+            frame = rotate_frame(frame, rotation_angle)
 
             frame_count += 1
             if frame_count % frame_interval != 0:
@@ -99,6 +106,4 @@ class EnrollmentManager:
         for direction, frames_list in frames.items():
             for i, frame in enumerate(frames_list):
                 frame_path = enrollment_folder_path / f"{direction}_{i:03d}.jpg"
-                if 'mobile' in self.enrollment_video.lower():  # mobile videos are 90 degrees rotated
-                    frame = cv2.rotate(frame, cv2.ROTATE_90_CLOCKWISE)
                 cv2.imwrite(str(frame_path), frame)

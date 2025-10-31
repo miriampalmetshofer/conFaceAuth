@@ -1,47 +1,105 @@
 import os
+import sys
+import glob
 from face_auth.authentication_manager import AuthenticationManager
 from face_auth.authenticator import Authenticator
 from face_auth.config_manager import ConfigManager
 from face_auth.embedder import EmbeddingManager
+from face_auth.enrollment_manager import EnrollmentManager
 from face_auth.face_detector import FaceDetector
 
-# Load and resolve config
-config = ConfigManager("bulk_config.json")
-base_path = config.get("base_path")
-video_folder = config.get("video_folder").format(base_path=base_path)
-annotations_csv_path = config.get("annotations_file").format(base_path=base_path)
-results_csv_path = config.get("results_file").format(base_path=base_path)
 
-participants = config.get("participants")
-devices = ["desktop", "mobile"]
+def main(config_file):
+    # Load and resolve config
+    config = ConfigManager(config_file)
+    base_path = config.get("base_path")
+    enrollment_base_path = config.get("enrollment_base_path")
+    video_folder = config.get("video_folder").format(base_path=base_path)
+    results_csv_path = config.get("results_file").format(base_path=base_path)
 
-if os.path.exists(results_csv_path):
-    print(f"Results file already exists at: {results_csv_path}")
-    confirm = input("Do you want to delete this file and continue? (y/N): ").strip().lower()
-    if confirm == 'y':
-        os.remove(results_csv_path)
-        print("File deleted.")
-    else:
-        print("File NOT deleted. Stopping execution.")
-        exit(0)
+    participants = config.get("participants")
+    devices = config.get("devices", ["mobile", "desktop"])
+    pool_name = config.get("pool", "unknown")
 
+    print(f"\n{'='*60}")
+    print(f"Processing Pool: {pool_name.upper()}")
+    print(f"Base Path: {base_path}")
+    print(f"Enrollment Path: {enrollment_base_path}")
+    print(f"Devices: {', '.join(devices)}")
+    print(f"{'='*60}\n")
 
-for device in devices:
-    for participant in participants:
-        sessions = participant["sessions"]
-        name = participant["name"]
+    # Check if results file already exists
+    if os.path.exists(results_csv_path):
+        print(f"Results file already exists at: {results_csv_path}")
+        confirm = input("Do you want to delete this file and continue? (y/N): ").strip().lower()
+        if confirm == 'y':
+            os.remove(results_csv_path)
+            print("File deleted.")
+        else:
+            print("File NOT deleted. Stopping execution.")
+            return
 
-        for session in sessions:
-            video_filename = f"{name}_{session}_{device}.mp4"
-            video_path = os.path.join(video_folder, device, video_filename)
+    # Process videos for each participant
+    for device in devices:
+        for participant in participants:
+            name = participant["name"]
 
-            enrollment_video_path = os.path.join(video_folder, device, f"{name}_enrollment_{device}.mp4")
-            enrollment_folder = os.path.join(base_path, "enrollments", f"{name}_{device}")
+            # Discover videos for this participant and device
+            # Naming conventions:
+            # - Controlled study: {name}_{mode}_{timestamp}.mp4
+            # - In the wild: {name}_{timestamp}.mp4 (no mode)
+            device_folder = os.path.join(video_folder, device)
 
+            video_pattern = os.path.join(device_folder, f"{name}_*.mp4")
+            video_pattern_upper = os.path.join(device_folder, f"{name}_*.MP4")
+            video_files = glob.glob(video_pattern) + glob.glob(video_pattern_upper)
+
+            if not video_files:
+                print(f"INFO: No videos found for {name} on {device}")
+                continue
+
+            print(f"\n{'='*60}")
+            print(f"Participant: {name} | Device: {device}")
+            print(f"Found {len(video_files)} video(s)")
+            print(f"{'='*60}\n")
+
+            participant_enrollment_folder = os.path.join(enrollment_base_path, device, name)
+
+            if not os.path.exists(participant_enrollment_folder):
+                raise FileNotFoundError(
+                    f"\n{'!'*60}\n"
+                    f"ERROR: Enrollment folder not found!\n"
+                    f"Path: {participant_enrollment_folder}\n"
+                    f"Participant: '{name}' | Device: '{device}'\n"
+                    f"{'!'*60}\n"
+                )
+
+            enrollment_video_pattern = os.path.join(participant_enrollment_folder, f"{name}_enrollment_*.mp4")
+            enrollment_video_pattern_upper = os.path.join(participant_enrollment_folder, f"{name}_enrollment_*.MP4")
+            enrollment_videos = glob.glob(enrollment_video_pattern) + glob.glob(enrollment_video_pattern_upper)
+
+            if not enrollment_videos:
+                raise FileNotFoundError(
+                    f"\n{'!'*60}\n"
+                    f"ERROR: No enrollment video found!\n"
+                    f"Searched in: {participant_enrollment_folder}\n"
+                    f"Expected pattern: {name}_enrollment_*.mp4 or .MP4\n"
+                    f"Participant: '{name}' | Device: '{device}'\n"
+                    f"{'!'*60}\n"
+                )
+
+            # Use the first enrollment video found
+            enrollment_video_path = enrollment_videos[0]
+            # Processed enrollment images will be saved in a subfolder named after the video file
+            enrollment_video_name = os.path.splitext(os.path.basename(enrollment_video_path))[0]
+            enrollment_folder = os.path.join(participant_enrollment_folder, enrollment_video_name)
+
+            # Enrollment phase
             if os.path.exists(enrollment_folder) and any(f.endswith(".jpg") for f in os.listdir(enrollment_folder)):
                 print(f"SKIPPING ENROLLMENT {name} ({device}) — already exists.")
             else:
                 print(f"\n=== ENROLLING: {name} ({device}) ===")
+                print(f"Using enrollment video: {os.path.basename(enrollment_video_path)}")
                 enrollment_manager = EnrollmentManager(
                     enrollment_video=enrollment_video_path,
                     enrollment_folder=enrollment_folder
@@ -50,19 +108,16 @@ for device in devices:
                     frames_per_direction=config.get("enrollment_frames_per_direction")
                 )
 
-            print("FACE-DETECTOR")
+            # Initialize components (once per participant/device)
+            print("\nInitializing components...")
             face_detector = FaceDetector(detector_name=config.get("detector"))
-
-            print("EMBEDDING-MANAGER")
             embedding_manager = EmbeddingManager(embedder_name=config.get("embedder"))
 
-            print("EMBEDDINGS FROM ENROLLMENT IMAGES")
             embedding_manager.initialize_embeddings_from_enrollment_images(
                 face_detector=face_detector,
                 enrollment_folder=enrollment_folder
             )
 
-            print("AUTHENTICATOR")
             authenticator = Authenticator(
                 enrollment_embeddings=embedding_manager.embeddings,
                 window_size=config.get("window_size"),
@@ -71,7 +126,6 @@ for device in devices:
                 alpha=config.get("alpha"),
             )
 
-            print("VIDEO PROCESSOR")
             processor = AuthenticationManager(
                 face_detector=face_detector,
                 embedding_manager=embedding_manager,
@@ -79,10 +133,37 @@ for device in devices:
                 config=config.config
             )
 
-            print(f"\n--- PROCESSING: {video_filename} ---")
-            processor.process_video(
-                video_path=video_path,
-                annotations_csv_path=annotations_csv_path,
-                skip_frames=config.get("skip_frames"),
-                results_csv_path=results_csv_path
-            )
+            # Process each video
+            for video_path in video_files:
+                video_filename = os.path.basename(video_path)
+                print(f"\n--- PROCESSING: {video_filename} ---")
+                processor.process_video(
+                    video_path=video_path,
+                    skip_frames=config.get("skip_frames"),
+                    results_csv_path=results_csv_path
+                )
+
+    print(f"\n{'='*60}")
+    print(f"Processing complete! Results saved to: {results_csv_path}")
+    print(f"{'='*60}\n")
+
+
+if __name__ == "__main__":
+    # Allow config file to be passed as command line argument
+    if len(sys.argv) > 1:
+        config_file = sys.argv[1]
+    else:
+        print("No config file specified. Available configs:")
+        print("  1. controlled_study_config.json")
+        print("  2. in_the_wild_config.json")
+        choice = input("\nSelect config (1 or 2): ").strip()
+
+        if choice == "1":
+            config_file = "controlled_study_config.json"
+        elif choice == "2":
+            config_file = "in_the_wild_config.json"
+        else:
+            print("Invalid choice. Using controlled_study_config.json")
+            config_file = "controlled_study_config.json"
+
+    main(config_file)

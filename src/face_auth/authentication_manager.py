@@ -1,11 +1,11 @@
 import cv2
 import pandas as pd
-import json
 import os
 
 from face_auth.authenticator import Authenticator
 from face_auth.embedder import EmbeddingManager
 from face_auth.face_detector import FaceDetector
+from face_auth.video_utils import get_video_rotation, rotate_frame
 from helper.enums import Color
 
 
@@ -17,32 +17,11 @@ class AuthenticationManager:
         self.authenticator = authenticator
         self.config = config
 
-    def load_ground_truth(self, annotations_csv_path, video_filename) -> list:
-        """Load ground truth labels from the annotations CSV."""
-        print(f"Annotations CSV path: {annotations_csv_path}")
-        df = pd.read_csv(annotations_csv_path)
-        target_basename = os.path.basename(video_filename)
-        row = df[df['video'].str.contains(target_basename, na=False)]
-        if row.empty:
-            raise ValueError(f"No annotation found for {target_basename} in {annotations_csv_path}.")
-
-        labels_json = row.iloc[0]['videoLabels']
-        return json.loads(labels_json)
-
-    def label_frame_from_ground_truth(self, ground_truth, frame_number):
-        """Return 'Unlocked' or 'Lock' based on frame number."""
-        for segment in ground_truth:
-            label = segment['timelinelabels'][0]
-            for range_dict in segment['ranges']:
-                if range_dict['start'] <= frame_number <= range_dict['end']:
-                    return label
-        raise ValueError(f"No label for {frame_number} in {ground_truth}")
 
     def flatten_config_for_csv(self, config: dict, video_path) -> dict:
         """Extracts the needed fields from config."""
         flattened = {
             "video_path": video_path,
-            "annotations_file": config.get("annotations_file", ""),
             "skip_frames": config.get("skip_frames", ""),
             "window_size": config.get("window_size", ""),
             "threshold": config.get("threshold", ""),
@@ -50,7 +29,8 @@ class AuthenticationManager:
             "detector": config.get("detector", ""),
             "similarity_computation": config.get("similarity_computation", ""),
             "enrollment_frames_per_direction": config.get("enrollment_frames_per_direction", ""),
-            "enrollment_folder": config.get("base_path", "") + "/enrollments"  # assuming based on naming convention
+            "no_face_penalty": config.get("no_face_penalty", ""),
+            "alpha": config.get("alpha", "")
         }
         return flattened
 
@@ -65,32 +45,30 @@ class AuthenticationManager:
         print(f"{'Appending' if file_exists else 'Creating'} results to {results_csv_path}")
         df.to_csv(results_csv_path, mode='a', header=not file_exists, index=False)
 
-    def append_frame_result(self, results, frame_count, predicted_label, true_label, match, distance):
+    def append_frame_result(self, results, frame_count, predicted_state, distance):
         results.append({
             'frame': frame_count,
-            'predicted_label': predicted_label,
-            'true_label': true_label,
-            'match': match,
+            'predicted_state': predicted_state,
             'distance': distance,
             'risk_score': self.authenticator.risk_score
         })
 
-    def _check_video_requirements_and_log_issues(self, cap: cv2.VideoCapture, ground_truth: list) -> None:
+    def _check_video_requirements(self, cap: cv2.VideoCapture) -> None:
         fps = cap.get(cv2.CAP_PROP_FPS)
         if fps != 30:
-            print(f"Warning: Video FPS is {fps}, expected 30 FPS. This may affect annotation label matching.")
+            print(f"Info: Video FPS is {fps}.")
 
         total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
-        if ground_truth and ground_truth[-1]['ranges'][-1]['end'] != total_frames:
-            print(
-                f"Last frame in ground truth {ground_truth[-1]['ranges'][-1]['end']} does not match last frame in video {total_frames}.")
+        print(f"Total frames in video: {total_frames}")
 
 
-    def process_video(self, video_path, skip_frames, annotations_csv_path, results_csv_path):
+    def process_video(self, video_path, skip_frames, results_csv_path):
+        # Detect video rotation from metadata
+        rotation_angle = get_video_rotation(video_path)
+
         cap = cv2.VideoCapture(video_path)
-        ground_truth = self.load_ground_truth(annotations_csv_path, video_path)
 
-        self._check_video_requirements_and_log_issues(cap, ground_truth)
+        self._check_video_requirements(cap)
 
         frame_count = 1
         results = []
@@ -100,8 +78,8 @@ class AuthenticationManager:
             if not ret:
                 break
 
-            if 'mobile' in video_path.lower(): # mobile videos are 90 degrees rotated
-                frame = cv2.rotate(frame, cv2.ROTATE_90_CLOCKWISE)
+            # Apply rotation based on metadata
+            frame = rotate_frame(frame, rotation_angle)
 
             try:
                 if frame_count == 1 or frame_count % skip_frames == 0:
@@ -109,27 +87,22 @@ class AuthenticationManager:
 
                     if result is None:
                         print(f"No face detected at frame {frame_count}.")
-                        cv2.imwrite(f"no_face/no_face_frame_{frame_count}.jpg", frame)
                         distance = self.config.get("no_face_penalty")
                         self.authenticator.append_distance_to_window_and_update_risk_score(distance)
-                        predicted_label = "No Face"
+                        predicted_state = "No Face"
                     else:
                         face, _ = result
                         embedding = self.embedding_manager.get_embedding(face)
                         distance = self.authenticator.compute_distance_between_embedding_and_enrollment(embedding)
                         self.authenticator.append_distance_to_window_and_update_risk_score(distance)
-                        predicted_label = 'Unlocked' if self.authenticator.is_authenticated() else 'Locked'
+                        predicted_state = 'Unlocked' if self.authenticator.is_authenticated() else 'Locked'
 
-                    true_label = self.label_frame_from_ground_truth(ground_truth, frame_count)
-                    match = predicted_label == true_label
-                    print(f"Frame {frame_count}: Predicted={predicted_label}, Ground Truth={true_label}, Match={match}")
-                    if true_label == "No Face" and predicted_label != "No Face":
-                        cv2.imwrite(f"{self.config.get('base_path', '')}/debug/no_face_mismatch_frame_{frame_count}.jpg", frame)
+                    print(f"Frame {frame_count}: Predicted State={predicted_state}, Distance={distance:.4f}, Risk Score={self.authenticator.risk_score:.4f}")
 
-                    self.append_frame_result(results, frame_count, predicted_label, true_label, match, distance)
+                    self.append_frame_result(results, frame_count, predicted_state, distance)
 
             except Exception as e:
-                print(f"Error embedding face at frame {frame_count}: {e}")
+                print(f"Error processing frame {frame_count}: {e}")
                 raise e
 
             frame_count += 1
