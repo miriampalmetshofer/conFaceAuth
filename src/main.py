@@ -1,7 +1,7 @@
 import os
 import sys
 import glob
-from face_auth.authentication_manager import AuthenticationManager
+from face_auth.video_processor import VideoProcessor
 from face_auth.authenticator import Authenticator
 from face_auth.config_manager import ConfigManager
 from face_auth.embedder import EmbeddingManager
@@ -124,7 +124,7 @@ def main(config_file):
                 alpha=config.get("alpha"),
             )
 
-            processor = AuthenticationManager(
+            processor = VideoProcessor(
                 face_detector=face_detector,
                 embedding_manager=embedding_manager,
                 authenticator=authenticator,

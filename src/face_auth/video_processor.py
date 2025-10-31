@@ -9,7 +9,7 @@ from face_auth.video_utils import get_video_rotation, rotate_frame
 from helper.enums import Color
 
 
-class AuthenticationManager:
+class VideoProcessor:
     def __init__(self, face_detector: FaceDetector, embedding_manager: EmbeddingManager,
                  authenticator: Authenticator, config):
         self.face_detector = face_detector

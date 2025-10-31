@@ -1,4 +1,4 @@
-from face_auth.authentication_manager import AuthenticationManager
+from face_auth.video_processor import VideoProcessor
 from face_auth.authenticator import Authenticator
 from face_auth.config_manager import ConfigManager
 from face_auth.embedder import EmbeddingManager
@@ -22,7 +22,7 @@ authenticator = Authenticator(
     similarity_computation=config.get("similarity_computation"),
     alpha=config.get("alpha"),
 )
-processor = AuthenticationManager(
+processor = VideoProcessor(
     face_detector,
     embedding_manager,
     authenticator,
