@@ -1,6 +1,7 @@
 import os
 import sys
 import glob
+import logging
 from face_auth.video_processor import VideoProcessor
 from face_auth.authenticator import Authenticator
 from face_auth.config_manager import ConfigManager
@@ -12,6 +13,15 @@ from face_auth.frame_authenticator import FrameAuthenticator
 from face_auth.result_writer import ResultWriter
 from face_auth.debug_frame_saver import DebugFrameSaver
 from face_auth.logging_config import setup_logging, get_logger
+
+
+def initialize_logging(config_file):
+    """Initialize logging based on the log level specified in the config file."""
+    config = ConfigManager(config_file)
+    log_level_str = config.get("log_level", "INFO")
+    log_level = getattr(logging, log_level_str.upper(), logging.INFO)
+    setup_logging(log_level)
+    return get_logger(__name__)
 
 
 def main(config_file):
@@ -162,10 +172,6 @@ def main(config_file):
 
 
 if __name__ == "__main__":
-    # Setup logging early for any startup messages
-    setup_logging()
-    startup_logger = get_logger(__name__)
-
     # Allow config file to be passed as command line argument
     if len(sys.argv) > 1:
         config_file = sys.argv[1]
@@ -180,7 +186,10 @@ if __name__ == "__main__":
         elif choice == "2":
             config_file = "in_the_wild_config.json"
         else:
-            startup_logger.warning("Invalid choice. Using controlled_study_config.json")
+            print("Invalid choice. Using controlled_study_config.json")
             config_file = "controlled_study_config.json"
+
+    # Initialize logging based on config
+    startup_logger = initialize_logging(config_file)
 
     main(config_file)
