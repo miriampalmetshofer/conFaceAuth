@@ -137,7 +137,7 @@ def main(config_file):
                 enrollment_embeddings=enrollment_embeddings,
                 window_size=config.get("window_size"),
                 threshold=config.get("threshold"),
-                similarity_computation=config.get("similarity_computation"),
+                similarity_percentile=config.get("similarity_percentile"),
                 alpha=config.get("alpha"),
             )
 

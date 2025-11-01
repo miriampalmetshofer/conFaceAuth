@@ -33,7 +33,7 @@ class ResultWriter:
             "threshold": self.config.get("threshold"),
             "embedder": self.config.get("embedder"),
             "detector": self.config.get("detector"),
-            "similarity_computation": self.config.get("similarity_computation"),
+            "similarity_percentile": self.config.get("similarity_percentile"),
             "enrollment_frames_per_direction": self.config.get("enrollment_frames_per_direction"),
             "no_face_penalty": self.config.get("no_face_penalty"),
             "alpha": self.config.get("alpha")
