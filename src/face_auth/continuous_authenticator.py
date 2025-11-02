@@ -5,7 +5,7 @@ from face_auth.logging_config import get_logger
 logger = get_logger(__name__)
 
 
-class Authenticator:
+class ContinuousAuthenticator:
     def __init__(self, enrollment_embeddings, similarity_percentile: float, window_size: int, threshold: float, alpha: float) -> None:
         self.enrollment_embeddings = enrollment_embeddings
         self.distance_window = deque(maxlen=window_size)

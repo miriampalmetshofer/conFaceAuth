@@ -1,7 +1,7 @@
 import cv2
 import os
 
-from face_auth.frame_authenticator import FrameAuthenticator
+from face_auth.frame_processor import FrameProcessor
 from face_auth.result_writer import ResultWriter
 from face_auth.debug_frame_saver import DebugFrameSaver
 from face_auth.video_utils import get_video_rotation_from_metadata, rotate_frame
@@ -14,12 +14,10 @@ logger = get_logger(__name__)
 class VideoProcessor:
     """Orchestrates video processing and face authentication pipeline."""
 
-    def __init__(self, frame_authenticator: FrameAuthenticator,
-                 result_writer: ResultWriter,
-                 debug_saver: DebugFrameSaver):
-        self.frame_authenticator = frame_authenticator
-        self.result_writer = result_writer
-        self.debug_saver = debug_saver
+    def __init__(self, frame_processor: FrameProcessor, config: dict):
+        self.frame_processor = frame_processor
+        self.result_writer = ResultWriter(config)
+        self.debug_saver = DebugFrameSaver()
 
     def process_video(self, video_path: str, skip_frames: int, results_csv_path: str) -> None:
         """Process a video file and authenticate faces in frames."""
@@ -41,7 +39,7 @@ class VideoProcessor:
 
             try:
                 if frame_count == 1 or frame_count % skip_frames == 0:
-                    auth_result = self.frame_authenticator.authenticate_frame(frame)
+                    auth_result = self.frame_processor.authenticate_frame(frame)
 
                     if not auth_result.face_detected:
                         logger.warning(f"No face detected at frame {frame_count}")
@@ -83,7 +81,7 @@ class VideoProcessor:
         cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
 
         frame_count = 0
-        threshold = self.frame_authenticator.authenticator.threshold
+        threshold = self.frame_processor.continuous_authenticator.threshold
 
         while True:
             ret, frame = cap.read()
@@ -93,7 +91,7 @@ class VideoProcessor:
 
             try:
                 if frame_count % skip_frames == 0:
-                    auth_result = self.frame_authenticator.authenticate_frame(frame)
+                    auth_result = self.frame_processor.authenticate_frame(frame)
 
                     if not auth_result.face_detected:
                         cv2.putText(frame, "No face detected", (70, 70),

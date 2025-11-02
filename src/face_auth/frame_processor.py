@@ -13,13 +13,13 @@ class FrameAuthenticationResult:
     face_box: Optional[Tuple[int, int, int, int]] = None
 
 
-class FrameAuthenticator:
+class FrameProcessor:
     """Handles authentication logic for a single frame."""
 
-    def __init__(self, face_detector, embedder, authenticator, no_face_penalty: float):
+    def __init__(self, face_detector, embedder, continuous_authenticator, no_face_penalty: float):
         self.face_detector = face_detector
         self.embedder = embedder
-        self.authenticator = authenticator
+        self.continuous_authenticator = continuous_authenticator
         self.no_face_penalty = no_face_penalty
 
     def authenticate_frame(self, frame: np.ndarray) -> FrameAuthenticationResult:
@@ -34,12 +34,12 @@ class FrameAuthenticator:
     def _handle_no_face_detected(self) -> FrameAuthenticationResult:
         """Handle case when no face is detected in frame."""
         distance = self.no_face_penalty
-        self.authenticator.append_distance_to_window_and_update_risk_score(distance)
+        self.continuous_authenticator.append_distance_to_window_and_update_risk_score(distance)
 
         return FrameAuthenticationResult(
             predicted_state="No Face",
             distance=distance,
-            risk_score=self.authenticator.risk_score,
+            risk_score=self.continuous_authenticator.risk_score,
             face_detected=False
         )
 
@@ -48,15 +48,15 @@ class FrameAuthenticator:
         face, box = detection_result
 
         embedding = self.embedder.get_embedding(face)
-        distance = self.authenticator.compute_distance_between_embedding_and_enrollment(embedding)
-        self.authenticator.append_distance_to_window_and_update_risk_score(distance)
+        distance = self.continuous_authenticator.compute_distance_between_embedding_and_enrollment(embedding)
+        self.continuous_authenticator.append_distance_to_window_and_update_risk_score(distance)
 
-        predicted_state = 'Unlocked' if self.authenticator.is_authenticated() else 'Locked'
+        predicted_state = 'Unlocked' if self.continuous_authenticator.is_authenticated() else 'Locked'
 
         return FrameAuthenticationResult(
             predicted_state=predicted_state,
             distance=distance,
-            risk_score=self.authenticator.risk_score,
+            risk_score=self.continuous_authenticator.risk_score,
             face_detected=True,
             face_box=box
         )

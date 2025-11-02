@@ -1,12 +1,10 @@
 from face_auth.video_processor import VideoProcessor
-from face_auth.authenticator import Authenticator
+from face_auth.continuous_authenticator import ContinuousAuthenticator
 from face_auth.config_manager import ConfigManager
 from face_auth.embedder import Embedder
 from face_auth.enrollment_service import EnrollmentService
 from face_auth.face_detector import FaceDetector
-from face_auth.frame_authenticator import FrameAuthenticator
-from face_auth.result_writer import ResultWriter
-from face_auth.debug_frame_saver import DebugFrameSaver
+from face_auth.frame_processor import FrameProcessor
 from face_auth.logging_config import setup_logging
 
 setup_logging()
@@ -28,7 +26,7 @@ enrollment_embeddings = enrollment_service.load_enrollment_embeddings(
     config.get('enrollment').get("enrollment_folder")
 )
 
-authenticator = Authenticator(
+continuous_authenticator = ContinuousAuthenticator(
     enrollment_embeddings,
     window_size=config.get("window_size"),
     threshold=config.get("threshold"),
@@ -36,19 +34,15 @@ authenticator = Authenticator(
     alpha=config.get("alpha"),
 )
 
-frame_authenticator = FrameAuthenticator(
+frame_processor = FrameProcessor(
     face_detector=face_detector,
     embedder=embedder,
-    authenticator=authenticator,
+    continuous_authenticator=continuous_authenticator,
     no_face_penalty=config.get("no_face_penalty")
 )
 
-result_writer = ResultWriter(config=config.config)
-debug_saver = DebugFrameSaver()
-
 processor = VideoProcessor(
-    frame_authenticator=frame_authenticator,
-    result_writer=result_writer,
-    debug_saver=debug_saver
+    frame_processor=frame_processor,
+    config=config.config
 )
 processor.process_live_stream(skip_frames=config.get("skip_frames"))

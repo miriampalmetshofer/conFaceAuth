@@ -72,11 +72,7 @@ class EnrollmentManager:
 
 
     def _get_enrollment_frames_per_direction(self, frames_by_direction, frames_per_direction):
-        """
-        Samples frames per direction.
-        Uses a normal distribution to sample frames.
-        Returns a dict: {direction: [frames]}
-        """
+        """ Samples frames per direction. Uses a normal distribution to sample frames. """
         sampled_frames = {}
         for direction, frames in frames_by_direction.items():
             count = len(frames)

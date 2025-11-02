@@ -5,7 +5,6 @@
   "participants": [
     {"name": "miriam"}
   ],
-  "video_folder": "{base_path}/videos",
   "results_file": "{base_path}/results.csv",
   "log_level": "INFO",
   "devices": ["mobile", "desktop"],
