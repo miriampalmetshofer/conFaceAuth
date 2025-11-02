@@ -42,10 +42,11 @@ class Authenticator:
         """Compute the average distance of the closest embeddings."""
         distances = self._compute_distance_to_enrollment_images(embedding)
         logger.debug(f"Distances to enrollment embeddings: {distances}")
-        num_to_select = max(1, int(len(distances) * closest_fraction))  # at least 1
+        num_to_select = round(len(distances) * closest_fraction)
         closest_distances = sorted(distances)[:num_to_select]
         average_distance = np.mean(closest_distances)
         logger.debug(f"Using {num_to_select} closest embeddings ({closest_fraction*100:.0f}%), average distance: {average_distance:.4f}")
+
         return average_distance
 
     def _compute_distance_to_enrollment_images(self, embedding) -> list[float]:

@@ -122,8 +122,7 @@ def main(config_file):
                     frames_per_direction=config.get("enrollment_frames_per_direction")
                 )
 
-            # Initialize components (once per participant/device)
-            logger.info("Initializing components...")
+            logger.info("Initializing shared components...")
             face_detector = FaceDetector(detector_name=config.get("detector"))
             embedder = Embedder(embedder_name=config.get("embedder"))
             enrollment_service = EnrollmentService(
@@ -132,34 +131,34 @@ def main(config_file):
             )
 
             enrollment_embeddings = enrollment_service.load_enrollment_embeddings(enrollment_folder)
-
-            authenticator = Authenticator(
-                enrollment_embeddings=enrollment_embeddings,
-                window_size=config.get("window_size"),
-                threshold=config.get("threshold"),
-                similarity_percentile=config.get("similarity_percentile"),
-                alpha=config.get("alpha"),
-            )
-
-            frame_authenticator = FrameAuthenticator(
-                face_detector=face_detector,
-                embedder=embedder,
-                authenticator=authenticator,
-                no_face_penalty=config.get("no_face_penalty")
-            )
-
             result_writer = ResultWriter(config=config.config)
             debug_saver = DebugFrameSaver()
-
-            processor = VideoProcessor(
-                frame_authenticator=frame_authenticator,
-                result_writer=result_writer,
-                debug_saver=debug_saver
-            )
 
             for video_path in video_files:
                 video_filename = os.path.basename(video_path)
                 logger.info(f"--- PROCESSING: {video_filename} ---")
+
+                authenticator = Authenticator(
+                    enrollment_embeddings=enrollment_embeddings,
+                    window_size=config.get("window_size"),
+                    threshold=config.get("threshold"),
+                    similarity_percentile=config.get("similarity_percentile"),
+                    alpha=config.get("alpha"),
+                )
+
+                frame_authenticator = FrameAuthenticator(
+                    face_detector=face_detector,
+                    embedder=embedder,
+                    authenticator=authenticator,
+                    no_face_penalty=config.get("no_face_penalty")
+                )
+
+                processor = VideoProcessor(
+                    frame_authenticator=frame_authenticator,
+                    result_writer=result_writer,
+                    debug_saver=debug_saver
+                )
+
                 processor.process_video(
                     video_path=video_path,
                     skip_frames=config.get("skip_frames"),
@@ -189,7 +188,6 @@ if __name__ == "__main__":
             print("Invalid choice. Using controlled_study_config.json")
             config_file = "controlled_study_config.json"
 
-    # Initialize logging based on config
     startup_logger = initialize_logging(config_file)
 
     main(config_file)
