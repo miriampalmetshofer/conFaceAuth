@@ -56,6 +56,5 @@ class ContinuousAuthenticator:
         for idx, enrollment_embedding in enumerate(self.enrollment_embeddings):
             distance = np.linalg.norm(embedding - enrollment_embedding)
             distances.append(distance)
-        distances.sort()
 
         return distances
