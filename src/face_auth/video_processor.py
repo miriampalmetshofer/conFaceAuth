@@ -52,7 +52,8 @@ class VideoProcessor:
                         'frame': frame_count,
                         'predicted_state': auth_result.predicted_state,
                         'distance': auth_result.distance,
-                        'risk_score': auth_result.risk_score
+                        'risk_score': auth_result.risk_score,
+                        'face_detected': auth_result.face_detected
                     })
 
             except Exception as e:

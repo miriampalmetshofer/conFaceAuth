@@ -167,9 +167,10 @@ python main.py in_the_wild_config.json
 
 The pipeline outputs a CSV file with the following columns:
 - `frame` - Frame number
-- `predicted_state` - "Unlocked", "Locked", or "No Face"
+- `predicted_state` - "Unlocked" or "Locked" (determined by risk_score)
 - `distance` - Distance metric between embedding and enrollment
 - `risk_score` - Computed trust/risk score
+- `face_detected` - Boolean indicating whether a face was detected in the frame
 - `video_path` - Path to the processed video
 - Configuration parameters (for reproducibility)
 

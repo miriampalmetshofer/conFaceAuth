@@ -36,8 +36,10 @@ class FrameProcessor:
         distance = self.no_face_penalty
         self.continuous_authenticator.append_distance_to_window_and_update_risk_score(distance)
 
+        predicted_state = 'Unlocked' if self.continuous_authenticator.is_authenticated() else 'Locked'
+
         return FrameAuthenticationResult(
-            predicted_state="No Face",
+            predicted_state=predicted_state,
             distance=distance,
             risk_score=self.continuous_authenticator.risk_score,
             face_detected=False
