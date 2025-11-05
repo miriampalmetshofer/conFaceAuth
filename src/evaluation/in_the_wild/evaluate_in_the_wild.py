@@ -33,6 +33,86 @@ print_section("LOADING RESULTS")
 results_df = load_results_csv(results_path)
 
 # %%
+# Overall authentication performance metrics
+print_section("OVERALL AUTHENTICATION PERFORMANCE")
+
+# Authentication rate
+total_frames = len(results_df)
+unlocked_frames = len(results_df[results_df['predicted_state'] == 'Unlocked'])
+auth_rate = (unlocked_frames / total_frames) * 100
+
+print(f"Total frames: {total_frames}")
+print(f"Unlocked frames: {unlocked_frames}")
+print(f"Authentication rate: {auth_rate:.2f}%")
+
+# Risk score statistics
+avg_risk_score = results_df['risk_score'].mean()
+median_risk_score = results_df['risk_score'].median()
+std_risk_score = results_df['risk_score'].std()
+
+print(f"\nRisk Score Statistics:")
+print(f"  Mean: {avg_risk_score:.4f}")
+print(f"  Median: {median_risk_score:.4f}")
+print(f"  Std Dev: {std_risk_score:.4f}")
+
+# Distance statistics
+avg_distance = results_df['distance'].mean()
+median_distance = results_df['distance'].median()
+std_distance = results_df['distance'].std()
+
+print(f"\nDistance Statistics:")
+print(f"  Mean: {avg_distance:.4f}")
+print(f"  Median: {median_distance:.4f}")
+print(f"  Std Dev: {std_distance:.4f}")
+
+# State transitions (calculate how many times state changes)
+state_changes = (results_df['predicted_state'] != results_df['predicted_state'].shift()).sum() - 1
+print(f"\nState transitions: {state_changes}")
+print(f"Average frames between transitions: {total_frames / max(state_changes, 1):.1f}")
+
+# Create performance plots
+fig, axes = plt.subplots(2, 2, figsize=(14, 10))
+
+# 1. Authentication state distribution (pie chart)
+state_counts = results_df['predicted_state'].value_counts()
+axes[0, 0].pie(state_counts.values, labels=state_counts.index, autopct='%1.1f%%', startangle=90)
+axes[0, 0].set_title('Authentication State Distribution')
+
+# 2. Risk score distribution (histogram)
+axes[0, 1].hist(results_df['risk_score'], bins=50, color='steelblue', alpha=0.7, edgecolor='black')
+axes[0, 1].axvline(results_df['threshold'].iloc[0], color='red', linestyle='--', label=f"Threshold ({results_df['threshold'].iloc[0]})")
+axes[0, 1].set_xlabel('Risk Score')
+axes[0, 1].set_ylabel('Frequency')
+axes[0, 1].set_title('Risk Score Distribution')
+axes[0, 1].legend()
+axes[0, 1].grid(axis='y', alpha=0.3)
+
+# 3. Distance distribution (histogram)
+axes[1, 0].hist(results_df['distance'], bins=50, color='green', alpha=0.7, edgecolor='black')
+axes[1, 0].set_xlabel('Distance')
+axes[1, 0].set_ylabel('Frequency')
+axes[1, 0].set_title('Face Distance Distribution')
+axes[1, 0].grid(axis='y', alpha=0.3)
+
+# 4. Risk score over frames (line plot with different color per video)
+for video_path in results_df['video_path'].unique():
+    video_data = results_df[results_df['video_path'] == video_path]
+    axes[1, 1].plot(video_data['frame'], video_data['risk_score'], alpha=0.7, linewidth=1.5, label=video_path.split('/')[-1].replace('.mp4', ''))
+
+axes[1, 1].axhline(results_df['threshold'].iloc[0], color='black', linestyle='--', linewidth=2, label='Threshold')
+axes[1, 1].set_xlabel('Frame')
+axes[1, 1].set_ylabel('Risk Score')
+axes[1, 1].set_title('Risk Score Over Time (by Video)')
+axes[1, 1].legend(fontsize=8, loc='best')
+axes[1, 1].grid(alpha=0.3)
+
+plt.suptitle('Overall Authentication Performance', fontsize=16, y=0.995)
+plt.tight_layout()
+
+save_plot(fig, output_path, 'overall_performance.png')
+plt.show()
+
+# %%
 # Load annotations
 print_section("LOADING ANNOTATIONS")
 annotations_list = []
