@@ -1,0 +1,21 @@
+{
+  "list_fields": [
+    "occlusions",
+    "face_visibility",
+    "background",
+    "interactions"
+  ],
+  "single_choice_fields": [
+    "environment",
+    "light_quality_indoor",
+    "light_quality_outdoor",
+    "angle",
+    "main_movement",
+    "device_movement"
+  ],
+  "metadata_fields": [
+    "video_filename",
+    "user",
+    "timestamp"
+  ]
+}
