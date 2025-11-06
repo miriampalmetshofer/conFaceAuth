@@ -21,10 +21,9 @@ class ParticipantInfo:
 def discover_videos(base_path: str, participant: ParticipantInfo) -> list[str]:
     """Discover video files for a participant and device."""
     device_folder = os.path.join(base_path, participant.device)
-    video_pattern = os.path.join(device_folder, f"{participant.name}_*.mp4")
-    video_pattern_upper = os.path.join(device_folder, f"{participant.name}_*.MP4")
+    video_pattern = os.path.join(device_folder, f"{participant.name}_*4")
 
-    return glob.glob(video_pattern) + glob.glob(video_pattern_upper)
+    return glob.glob(video_pattern)
 
 
 def find_enrollment_video(enrollment_base_path: str, participant: ParticipantInfo) -> str:
@@ -40,16 +39,15 @@ def find_enrollment_video(enrollment_base_path: str, participant: ParticipantInf
             f"{'!' * 60}\n"
         )
 
-    enrollment_video_pattern = os.path.join(participant_enrollment_folder, f"{participant.name}_enrollment_*.mp4")
-    enrollment_video_pattern_upper = os.path.join(participant_enrollment_folder, f"{participant.name}_enrollment_*.MP4")
-    enrollment_videos = glob.glob(enrollment_video_pattern) + glob.glob(enrollment_video_pattern_upper)
+    enrollment_video_pattern = os.path.join(participant_enrollment_folder, f"{participant.name}_enrollment_*4")
+    enrollment_videos = glob.glob(enrollment_video_pattern)
 
     if not enrollment_videos:
         raise FileNotFoundError(
             f"\n{'!' * 60}\n"
             f"ERROR: No enrollment video found!\n"
             f"Searched in: {participant_enrollment_folder}\n"
-            f"Expected pattern: {participant.name}_enrollment_*.mp4 or .MP4\n"
+            f"Expected pattern: {participant.name}_enrollment_*4\n"
             f"Participant: '{participant.name}' | Device: '{participant.device}'\n"
             f"{'!' * 60}\n"
         )
