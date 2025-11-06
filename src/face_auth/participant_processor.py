@@ -6,10 +6,9 @@ from face_auth.video_processor import VideoProcessor
 from face_auth.continuous_authenticator import ContinuousAuthenticator
 from face_auth.config_manager import ConfigManager
 from face_auth.embedder import Embedder
-from face_auth.enrollment_service import EnrollmentService
-from face_auth.enrollment_manager import EnrollmentManager
 from face_auth.face_detector import FaceDetector
 from face_auth.frame_processor import FrameProcessor
+from face_auth import enrollment_service
 
 
 @dataclass
@@ -58,7 +57,8 @@ def find_enrollment_video(enrollment_base_path: str, participant: ParticipantInf
     return enrollment_videos[0]
 
 
-def get_enrollment_folder_name(enrollment_video_path: str, enrollment_base_path: str, participant: ParticipantInfo) -> str:
+def get_enrollment_folder_name(enrollment_video_path: str, enrollment_base_path: str,
+                               participant: ParticipantInfo) -> str:
     """Derive enrollment folder path from video path."""
     participant_enrollment_folder = os.path.join(enrollment_base_path, participant.device, participant.name)
     enrollment_video_name = os.path.splitext(os.path.basename(enrollment_video_path))[0]
@@ -74,24 +74,22 @@ def setup_enrollment(enrollment_base_path: str,
     enrollment_video_path = find_enrollment_video(enrollment_base_path, participant)
     enrollment_folder = get_enrollment_folder_name(enrollment_video_path, enrollment_base_path, participant)
 
-    enrollment_folder_is_already_filled = os.path.exists(enrollment_folder) and any(f.endswith(".jpg") for f in os.listdir(enrollment_folder))
+    enrollment_folder_is_already_filled = os.path.exists(enrollment_folder) and any(
+        f.endswith(".jpg") for f in os.listdir(enrollment_folder))
     if enrollment_folder_is_already_filled:
         logger.info(f"Skipping enrollment for {participant.name} ({participant.device}) — already exists")
     else:
         logger.info(f"=== ENROLLING: {participant.name} ({participant.device}) ===")
         logger.info(f"Using enrollment video: {os.path.basename(enrollment_video_path)}")
-        enrollment_manager = EnrollmentManager(
-            enrollment_video=enrollment_video_path,
-            enrollment_folder=enrollment_folder
-        )
-        enrollment_manager.enroll(frames_per_direction=frames_per_direction)
+        enrollment_frames = enrollment_service.get_enrollment_frames_for_video(enrollment_video_path, frames_per_direction)
+        enrollment_service.save_enrollment_frames_to_folder(enrollment_frames, enrollment_folder)
 
     return enrollment_folder
 
 
 def process_participant(participant: ParticipantInfo, base_path: str,
-                       enrollment_base_path: str, results_csv_path: str,
-                       config: ConfigManager, logger):
+                        enrollment_base_path: str, results_csv_path: str,
+                        config: ConfigManager, logger):
     """Process all videos for a single participant on a device."""
     video_files = discover_videos(base_path, participant)
     if not video_files:
@@ -113,11 +111,7 @@ def process_participant(participant: ParticipantInfo, base_path: str,
     logger.info("Initializing shared components...")
     face_detector = FaceDetector(detector_name=config.get("detector"))
     embedder = Embedder(embedder_name=config.get("embedder"))
-    enrollment_service = EnrollmentService(
-        embedder=embedder,
-        face_detector=face_detector
-    )
-    enrollment_embeddings = enrollment_service.load_enrollment_embeddings(enrollment_folder)
+    enrollment_embeddings = enrollment_service.load_enrollment_embeddings(enrollment_folder, embedder, face_detector)
 
     for video_path in video_files:
         video_filename = os.path.basename(video_path)
