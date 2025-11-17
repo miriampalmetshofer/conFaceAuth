@@ -2,6 +2,7 @@ import cv2
 import os
 
 from face_auth.frame_processor import FrameProcessor
+from face_auth.participant_processor import ParticipantInfo
 from face_auth.result_writer import ResultWriter
 from face_auth.debug_frame_saver import DebugFrameSaver
 from face_auth.video_utils import get_video_rotation_from_metadata, rotate_frame
@@ -19,7 +20,7 @@ class VideoProcessor:
         self.result_writer = ResultWriter(config)
         self.debug_saver = DebugFrameSaver()
 
-    def process_video(self, video_path: str, skip_frames: int, results_csv_path: str) -> None:
+    def process_video(self, video_path: str, skip_frames: int, results_csv_path: str, participant: ParticipantInfo) -> None:
         """Process a video file and authenticate faces in frames."""
         rotation_angle = get_video_rotation_from_metadata(video_path)
         cap = cv2.VideoCapture(video_path)
@@ -64,7 +65,7 @@ class VideoProcessor:
 
         cap.release()
         cv2.destroyAllWindows()
-        self.result_writer.write_results(results, results_csv_path, video_path)
+        self.result_writer.write_results(results, results_csv_path, video_path, participant)
 
     def process_live_stream(self, skip_frames: int = 30) -> None:
         """Process live webcam stream with face authentication.

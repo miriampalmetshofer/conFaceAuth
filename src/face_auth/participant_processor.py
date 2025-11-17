@@ -138,5 +138,6 @@ def process_participant(participant: ParticipantInfo, base_path: str,
         processor.process_video(
             video_path=video_path,
             skip_frames=config.get("skip_frames"),
-            results_csv_path=results_csv_path
+            results_csv_path=results_csv_path,
+            participant=participant
         )
