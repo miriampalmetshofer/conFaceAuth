@@ -56,11 +56,29 @@ Make sure to execute commands from the `src` folder.
 
 ### Prerequisites
 - Python 3.7+
-- Required packages (install via `pip install -r requirements.txt`)
 - **ffmpeg/ffprobe** (for automatic video rotation detection)
   - macOS: `brew install ffmpeg`
   - Linux: `sudo apt-get install ffmpeg`
   - Windows: Download from [ffmpeg.org](https://ffmpeg.org/download.html)
+
+### Setup
+
+1. **Create a virtual environment**:
+```bash
+python3 -m venv venv
+```
+
+2. **Activate the virtual environment**:
+```bash
+source venv/bin/activate  # On macOS/Linux
+# or
+venv\Scripts\activate  # On Windows
+```
+
+3. **Install dependencies**:
+```bash
+pip install -r requirements.txt
+```
 
 ### Quick Testing with live.py
 
