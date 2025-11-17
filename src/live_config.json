@@ -1,7 +1,7 @@
 {
   "id": "miriam_live",
   "enrollment": {
-    "enrollment_folder": "../data/test/live_enrollment_desktop"
+    "enrollment_folder": "../data/enrollments/desktop/miriam/miriam_enrollment_easy_cw_2025-10-31_08-01-23"
   },
   "skip_frames": 30,
   "window_size": 5,

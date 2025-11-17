@@ -2,7 +2,7 @@ import cv2
 import os
 
 from face_auth.frame_processor import FrameProcessor
-from face_auth.participant_processor import ParticipantInfo
+from face_auth.models import ParticipantInfo
 from face_auth.result_writer import ResultWriter
 from face_auth.debug_frame_saver import DebugFrameSaver
 from face_auth.video_utils import get_video_rotation_from_metadata, rotate_frame
@@ -85,6 +85,9 @@ class VideoProcessor:
         frame_count = 0
         threshold = self.frame_processor.continuous_authenticator.threshold
 
+        # Store last authentication result to persist display
+        last_auth_result = None
+
         while True:
             ret, frame = cap.read()
             if not ret:
@@ -92,17 +95,20 @@ class VideoProcessor:
                 break
 
             try:
+                # Authenticate only on skip_frames interval
                 if frame_count % skip_frames == 0:
-                    auth_result = self.frame_processor.authenticate_frame(frame)
+                    last_auth_result = self.frame_processor.authenticate_frame(frame)
 
-                    if not auth_result.face_detected:
+                # Display last authentication result on every frame
+                if last_auth_result is not None:
+                    if not last_auth_result.face_detected:
                         cv2.putText(frame, "No face detected", (70, 70),
                                   cv2.FONT_HERSHEY_SIMPLEX, 1, Color.RED.value, 2)
                     else:
-                        self._draw_detection_box(frame, auth_result.face_box)
+                        self._draw_detection_box(frame, last_auth_result.face_box)
 
-                    color = Color.GREEN.value if auth_result.predicted_state == 'Unlocked' else Color.RED.value
-                    cv2.putText(frame, f"{auth_result.risk_score:.4f} (Distance) < {threshold} (Threshold)",
+                    color = Color.GREEN.value if last_auth_result.predicted_state == 'Unlocked' else Color.RED.value
+                    cv2.putText(frame, f"{last_auth_result.risk_score:.4f} (Distance) < {threshold} (Threshold)",
                               (20, 30), cv2.FONT_HERSHEY_SIMPLEX, 1.0, color, 2)
 
             except Exception as e:

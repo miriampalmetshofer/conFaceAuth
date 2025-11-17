@@ -1,7 +1,7 @@
 import os
 import pandas as pd
 from face_auth.logging_config import get_logger
-from face_auth.participant_processor import ParticipantInfo
+from face_auth.models import ParticipantInfo
 
 logger = get_logger(__name__)
 

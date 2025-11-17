@@ -3,7 +3,8 @@ import sys
 import logging
 from face_auth.config_manager import ConfigManager
 from face_auth.logging_config import setup_logging, get_logger
-from face_auth.participant_processor import ParticipantInfo, process_participant
+from face_auth.models import ParticipantInfo
+from face_auth.participant_processor import process_participant
 
 
 def initialize_logging(config_file):

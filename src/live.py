@@ -2,7 +2,7 @@ from face_auth.video_processor import VideoProcessor
 from face_auth.continuous_authenticator import ContinuousAuthenticator
 from face_auth.config_manager import ConfigManager
 from face_auth.embedder import Embedder
-from face_auth.enrollment_service import EnrollmentService
+from face_auth import enrollment_service
 from face_auth.face_detector import FaceDetector
 from face_auth.frame_processor import FrameProcessor
 from face_auth.logging_config import setup_logging
@@ -17,13 +17,11 @@ face_detector = FaceDetector(
 embedder = Embedder(
     embedder_name=config.get("embedder")
 )
-enrollment_service = EnrollmentService(
-    embedder=embedder,
-    face_detector=face_detector
-)
 
 enrollment_embeddings = enrollment_service.load_enrollment_embeddings(
-    config.get('enrollment').get("enrollment_folder")
+    config.get('enrollment').get("enrollment_folder"),
+    embedder,
+    face_detector
 )
 
 continuous_authenticator = ContinuousAuthenticator(

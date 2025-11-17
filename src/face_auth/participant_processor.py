@@ -1,7 +1,7 @@
 import os
 import glob
-from dataclasses import dataclass
 
+from face_auth.models import ParticipantInfo
 from face_auth.video_processor import VideoProcessor
 from face_auth.continuous_authenticator import ContinuousAuthenticator
 from face_auth.config_manager import ConfigManager
@@ -9,13 +9,6 @@ from face_auth.embedder import Embedder
 from face_auth.face_detector import FaceDetector
 from face_auth.frame_processor import FrameProcessor
 from face_auth import enrollment_service
-
-
-@dataclass
-class ParticipantInfo:
-    """Represents participant identification information."""
-    name: str
-    device: str
 
 
 def discover_videos(base_path: str, participant: ParticipantInfo) -> list[str]:
