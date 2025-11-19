@@ -1,9 +1,14 @@
 # Imposter Sample Creation
 
-Script for creating stitched videos combining genuine user, black screen, and impostor segments for the controlled study.
+Scripts for creating stitched videos combining genuine user, black screen, and impostor segments for the controlled study.
 
-The purpose of this script is to create videos that simulate impostor attempts. Imposter attempts normally consist of a genuine user segment followed by an impostor segment.
+The purpose of these scripts is to create videos that simulate impostor attempts. Imposter attempts normally consist of a genuine user segment followed by an impostor segment.
 The black screen segment is added in between as usually there is a delay between the genuine user and impostor in real scenarios (maybe imposter covers camera when taking over).
+
+## Scripts
+
+- **`stitch.py`** - Core video stitching functionality. Can be used standalone to stitch two specific videos.
+- **`batch_stitch.py`** - Batch processing script that uses `stitch.py` to create stitched videos for all participant combinations.
 
 ## Configuration
 
@@ -25,7 +30,28 @@ All frame alignment is controlled by `stitch_config.json`:
 
 ## Usage
 
-Process one participant's videos and create stitched versions with all other participants.
+### Option 1: Stitch Two Specific Videos
+
+Use `stitch.py` to stitch two specific videos together:
+
+```bash
+python3 stitch.py <video1> <video2> <output> [config_path]
+```
+
+**Arguments:**
+- `video1` - Path to genuine user video
+- `video2` - Path to impostor video
+- `output` - Path for output stitched video
+- `config_path` - Optional path to config JSON (default: stitch_config.json)
+
+**Example:**
+```bash
+python3 stitch.py john_easy.mp4 sarah_easy.mp4 john_vs_sarah.mp4
+```
+
+### Option 2: Batch Process Participant Videos
+
+Use `batch_stitch.py` to process all videos for a participant and create stitched versions with all other participants:
 
 ```bash
 python3 batch_stitch.py <participant_name> [device]
@@ -65,3 +91,33 @@ Stitched videos are named: `{genuine_user}_{category}_vs_{impostor}.mp4`
 Examples:
 - `miriam_easy_vs_john.mp4` - Miriam (easy) as genuine, John (easy) as impostor
 - `miriam_angle_vs_sarah.mp4` - Miriam (angle) as genuine, Sarah (angle) as impostor
+
+## Project Structure
+
+```
+imposter_sample_creation/
+├── stitch.py              # Core stitching functionality
+├── batch_stitch.py        # Batch processing script
+├── stitch_config.json     # Configuration file
+├── README.md
+└── tests/                 # Test suite
+    ├── __init__.py
+    ├── test_stitch.py         # Tests for stitch.py
+    └── test_batch_stitch.py   # Tests for batch_stitch.py
+```
+
+## Testing
+
+Run all tests using unittest discovery:
+
+```bash
+python -m unittest discover -s tests -p "test_*.py" -v
+```
+
+Or run individual test files:
+
+```bash
+cd tests
+python test_stitch.py -v
+python test_batch_stitch.py -v
+```
