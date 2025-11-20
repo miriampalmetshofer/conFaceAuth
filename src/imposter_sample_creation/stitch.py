@@ -9,6 +9,18 @@ import subprocess
 from models import FrameBoundaries, VideoInfo
 
 
+def parse_fps(fps_string):
+    """Parse frame rate from ffprobe output (handles both fractions and integers)."""
+    parts = fps_string.split('/')
+
+    if len(parts) == 2:
+        # Fractional fps (e.g., "30000/1001" for NTSC = 29.97 fps)
+        return int(parts[0]) / int(parts[1])
+    else:
+        # Integer fps (e.g., "25" for PAL)
+        return float(parts[0])
+
+
 def get_video_info(video_path):
     """Get video dimensions, duration, and frame rate."""
     cmd = [
@@ -24,12 +36,10 @@ def get_video_info(video_path):
 
     # Parse dimensions and frame rate
     stream_info = output[0].split(',')
+
     width = int(stream_info[0])
     height = int(stream_info[1])
-    fps_parts = stream_info[2].split('/')
-    fps = int(fps_parts[0]) / int(fps_parts[1]) if len(fps_parts) == 2 else int(fps_parts[0])
-
-    # Parse duration
+    fps = parse_fps(stream_info[2])
     duration = float(output[1])
 
     return VideoInfo(width=width, height=height, fps=fps, duration=duration)
