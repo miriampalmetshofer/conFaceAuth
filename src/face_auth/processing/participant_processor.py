@@ -6,8 +6,9 @@ from face_auth.processing.video_processor import VideoProcessor
 from face_auth.core.authenticator import ContinuousAuthenticator
 from face_auth.io.config_manager import ConfigManager
 from face_auth.core.embedder import Embedder
-from face_auth.core.detector import FaceDetector
+from face_auth.detection import FaceDetector, FaceExtractor
 from face_auth.core.frame_processor import FrameProcessor
+from face_auth.core.constants import FACENET_INPUT_WIDTH, FACENET_INPUT_HEIGHT
 from face_auth.enrollment import service as enrollment_service
 
 
@@ -100,9 +101,15 @@ def process_participant(participant: ParticipantInfo, base_path: str,
     )
 
     logger.info("Initializing shared components...")
-    face_detector = FaceDetector(detector_name=config.get("detector"))
-    embedder = Embedder(embedder_name=config.get("embedder"))
-    enrollment_embeddings = enrollment_service.load_enrollment_embeddings(enrollment_folder, embedder, face_detector)
+    face_detector = FaceDetector(detector_backend=config.get("detector"))
+    face_extractor = FaceExtractor(
+        target_width=FACENET_INPUT_WIDTH,
+        target_height=FACENET_INPUT_HEIGHT
+    )
+    embedder = Embedder(model_name=config.get("embedder"))
+    enrollment_embeddings = enrollment_service.load_enrollment_embeddings(
+        enrollment_folder, embedder, face_detector, face_extractor
+    )
 
     for video_path in video_files:
         video_filename = os.path.basename(video_path)
@@ -117,9 +124,10 @@ def process_participant(participant: ParticipantInfo, base_path: str,
         )
 
         frame_processor = FrameProcessor(
-            face_detector=face_detector,
+            detector=face_detector,
+            extractor=face_extractor,
             embedder=embedder,
-            continuous_authenticator=continuous_authenticator,
+            authenticator=continuous_authenticator,
             no_face_penalty=config.get("no_face_penalty")
         )
 

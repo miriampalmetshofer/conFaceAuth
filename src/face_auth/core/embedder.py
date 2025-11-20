@@ -1,15 +1,36 @@
+"""Face embedding generation."""
+import numpy as np
 from keras_facenet import FaceNet
 
 
 class Embedder:
-    """Handles embedding generation for face images."""
+    """Generates face embeddings from preprocessed face images."""
 
-    def __init__(self, embedder_name="FaceNet"):
-        if embedder_name == "FaceNet":
-            self.model = FaceNet()
+    def __init__(self, model_name: str):
+        """Initialize embedder with specified model.
+
+        Args:
+            model_name: Name of embedding model to use
+
+        Raises:
+            ValueError: If model_name is not supported
+        """
+        if model_name == "FaceNet":
+            self._model = FaceNet()
         else:
-            raise ValueError(f"Unsupported embedder: {embedder_name}")
+            raise ValueError(
+                f"Unsupported embedding model: {model_name}. "
+                f"Supported models: ['FaceNet']"
+            )
 
-    def get_embedding(self, face_rgb):
-        """Generate embedding for a single face image."""
-        return self.model.embeddings([face_rgb])[0]
+    def get_embedding(self, face_rgb: np.ndarray) -> np.ndarray:
+        """Generate embedding vector for a face image.
+
+        Args:
+            face_rgb: Preprocessed face image in RGB format
+
+        Returns:
+            Embedding vector for the face
+        """
+        embeddings = self._model.embeddings([face_rgb])
+        return embeddings[0]

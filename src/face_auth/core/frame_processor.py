@@ -1,64 +1,99 @@
-from dataclasses import dataclass
-from typing import Optional, Tuple
+"""Frame processing for face authentication."""
 import numpy as np
 
-
-@dataclass
-class FrameAuthenticationResult:
-    """Result of authenticating a single frame."""
-    predicted_state: str
-    distance: float
-    risk_score: float
-    face_detected: bool
-    face_box: Optional[Tuple[int, int, int, int]] = None
+from face_auth.core.models import FrameAuthenticationResult, AuthenticationState
+from face_auth.detection import FaceDetector, FaceExtractor
+from face_auth.core.embedder import Embedder
+from face_auth.core.authenticator import ContinuousAuthenticator
 
 
 class FrameProcessor:
-    """Handles authentication logic for a single frame."""
+    """Processes individual frames for face authentication."""
 
-    def __init__(self, face_detector, embedder, continuous_authenticator, no_face_penalty: float):
-        self.face_detector = face_detector
-        self.embedder = embedder
-        self.continuous_authenticator = continuous_authenticator
-        self.no_face_penalty = no_face_penalty
+    def __init__(
+            self,
+            detector: FaceDetector,
+            extractor: FaceExtractor,
+            embedder: Embedder,
+            authenticator: ContinuousAuthenticator,
+            no_face_penalty: float
+    ):
+        """Initialize frame processor.
 
-    def authenticate_frame(self, frame: np.ndarray) -> FrameAuthenticationResult:
-        """Process a frame and determine authentication state."""
-        detection_result = self.face_detector.detect_and_crop(frame)
+        Args:
+            detector: Face detector instance
+            extractor: Face extractor instance
+            embedder: Embedding generator instance
+            authenticator: Continuous authenticator instance
+            no_face_penalty: Distance penalty when no face is detected
+        """
+        self._detector = detector
+        self._extractor = extractor
+        self._embedder = embedder
+        self._authenticator = authenticator
+        self._no_face_penalty = no_face_penalty
+
+    def authenticate_frame(self, frame_bgr: np.ndarray) -> FrameAuthenticationResult:
+        """Process frame and return authentication result.
+
+        Args:
+            frame_bgr: Frame image in BGR format
+
+        Returns:
+            Authentication result for the frame
+        """
+        detection_result = self._extractor.detect_and_extract(frame_bgr, self._detector)
 
         if detection_result is None:
-            return self._handle_no_face_detected()
-        else:
-            return self._handle_face_detected(detection_result)
+            return self._create_result_for_no_face()
 
-    def _handle_no_face_detected(self) -> FrameAuthenticationResult:
-        """Handle case when no face is detected in frame."""
-        distance = self.no_face_penalty
-        self.continuous_authenticator.append_distance_to_window_and_update_risk_score(distance)
+        return self._create_result_for_detected_face(detection_result)
 
-        predicted_state = 'Unlocked' if self.continuous_authenticator.is_authenticated() else 'Locked'
+    def _create_result_for_no_face(self) -> FrameAuthenticationResult:
+        """Create authentication result when no face was detected.
+
+        Returns:
+            FrameAuthenticationResult with no_face_penalty distance
+        """
+        self._authenticator.update_with_distance(self._no_face_penalty)
 
         return FrameAuthenticationResult(
-            predicted_state=predicted_state,
-            distance=distance,
-            risk_score=self.continuous_authenticator.risk_score,
-            face_detected=False
+            state=self._get_authentication_state(),
+            distance=self._no_face_penalty,
+            risk_score=self._authenticator.risk_score,
+            face_detected=False,
+            bounding_box=None
         )
 
-    def _handle_face_detected(self, detection_result) -> FrameAuthenticationResult:
-        """Handle case when face is detected in frame."""
-        face, box = detection_result
+    def _create_result_for_detected_face(self, detection) -> FrameAuthenticationResult:
+        """Create authentication result when face was detected.
 
-        embedding = self.embedder.get_embedding(face)
-        distance = self.continuous_authenticator.compute_distance_between_embedding_and_enrollment(embedding)
-        self.continuous_authenticator.append_distance_to_window_and_update_risk_score(distance)
+        Args:
+            detection: DetectionResult with face image and bounding box
 
-        predicted_state = 'Unlocked' if self.continuous_authenticator.is_authenticated() else 'Locked'
+        Returns:
+            FrameAuthenticationResult with computed distance and risk score
+        """
+        embedding = self._embedder.get_embedding(detection.face_image)
+        distance = self._authenticator.compute_distance_to_enrollment(embedding)
+        self._authenticator.update_with_distance(distance)
 
         return FrameAuthenticationResult(
-            predicted_state=predicted_state,
+            state=self._get_authentication_state(),
             distance=distance,
-            risk_score=self.continuous_authenticator.risk_score,
+            risk_score=self._authenticator.risk_score,
             face_detected=True,
-            face_box=box
+            bounding_box=detection.bounding_box
+        )
+
+    def _get_authentication_state(self) -> AuthenticationState:
+        """Get current authentication state from authenticator.
+
+        Returns:
+            Current authentication state
+        """
+        return (
+            AuthenticationState.UNLOCKED
+            if self._authenticator.is_authenticated()
+            else AuthenticationState.LOCKED
         )

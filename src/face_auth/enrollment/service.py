@@ -105,8 +105,18 @@ def save_enrollment_frames_to_folder(frames, enrollment_folder):
             cv2.imwrite(str(frame_path), frame)
 
 
-def load_enrollment_embeddings(enrollment_folder: str, embedder, face_detector) -> list:
-    """Load enrollment images and compute their embeddings."""
+def load_enrollment_embeddings(enrollment_folder: str, embedder, face_detector, face_extractor) -> list:
+    """Load enrollment images and compute their embeddings.
+
+    Args:
+        enrollment_folder: Path to folder containing enrollment images
+        embedder: Embedder instance for generating embeddings
+        face_detector: FaceDetector instance for detecting faces
+        face_extractor: FaceExtractor instance for extracting face regions
+
+    Returns:
+        List of embedding vectors
+    """
     if not os.path.exists(enrollment_folder) or not os.listdir(enrollment_folder):
         raise FileNotFoundError(
             f"No images found in the enrollment folder: {enrollment_folder}. "
@@ -125,14 +135,13 @@ def load_enrollment_embeddings(enrollment_folder: str, embedder, face_detector) 
             logger.warning(f"Could not read image {filename}. Skipping")
             continue
 
-        result = face_detector.detect_and_crop(image)
+        detection_result = face_extractor.detect_and_extract(image, face_detector)
 
-        if result is None:
+        if detection_result is None:
             logger.warning(f"No face detected in enrollment image {filename}. Skipping")
             continue
 
-        face, _ = result
-        embedding = embedder.get_embedding(face)
+        embedding = embedder.get_embedding(detection_result.face_image)
 
         if embedding is not None:
             embeddings.append(embedding)

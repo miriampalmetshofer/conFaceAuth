@@ -1,5 +1,12 @@
 from face_auth.processing import VideoProcessor
-from face_auth.core import ContinuousAuthenticator, Embedder, FaceDetector, FrameProcessor
+from face_auth.core import (
+    ContinuousAuthenticator,
+    Embedder,
+    FrameProcessor,
+    FACENET_INPUT_WIDTH,
+    FACENET_INPUT_HEIGHT
+)
+from face_auth.detection import FaceDetector, FaceExtractor
 from face_auth.io import ConfigManager
 from face_auth.enrollment import service as enrollment_service
 from face_auth.utils import setup_logging
@@ -9,16 +16,21 @@ setup_logging()
 config = ConfigManager("live_config.json")
 
 face_detector = FaceDetector(
-    detector_name=config.get("detector")
+    detector_backend=config.get("detector")
+)
+face_extractor = FaceExtractor(
+    target_width=FACENET_INPUT_WIDTH,
+    target_height=FACENET_INPUT_HEIGHT
 )
 embedder = Embedder(
-    embedder_name=config.get("embedder")
+    model_name=config.get("embedder")
 )
 
 enrollment_embeddings = enrollment_service.load_enrollment_embeddings(
     config.get('enrollment').get("enrollment_folder"),
     embedder,
-    face_detector
+    face_detector,
+    face_extractor
 )
 
 continuous_authenticator = ContinuousAuthenticator(
@@ -30,9 +42,10 @@ continuous_authenticator = ContinuousAuthenticator(
 )
 
 frame_processor = FrameProcessor(
-    face_detector=face_detector,
+    detector=face_detector,
+    extractor=face_extractor,
     embedder=embedder,
-    continuous_authenticator=continuous_authenticator,
+    authenticator=continuous_authenticator,
     no_face_penalty=config.get("no_face_penalty")
 )
 

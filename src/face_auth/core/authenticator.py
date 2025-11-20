@@ -1,60 +1,105 @@
-from collections import deque
+"""Continuous face authentication logic."""
+from typing import Optional
 import numpy as np
+
+from face_auth.core.similarity_calculator import SimilarityCalculator
+from face_auth.core.percentile_filter import PercentileFilter
+from face_auth.core.temporal_window import TemporalWindow
+from face_auth.core.risk_scorer import RiskScorer
 from face_auth.utils.logging_config import get_logger
 
 logger = get_logger(__name__)
 
 
 class ContinuousAuthenticator:
-    def __init__(self, enrollment_embeddings, similarity_percentile: float, window_size: int, threshold: float, alpha: float) -> None:
+    """Makes authentication decisions based on continuous face verification."""
+
+    def __init__(
+        self,
+        enrollment_embeddings: list[np.ndarray],
+        threshold: float,
+        window_size: int,
+        similarity_percentile: float,
+        alpha: float
+    ):
+        """Initialize continuous authenticator.
+
+        Args:
+            enrollment_embeddings: Reference embeddings for enrolled user
+            threshold: Risk score threshold for authentication
+            window_size: Number of frames to consider in temporal window
+            similarity_percentile: Percentile for filtering enrollment embeddings
+            alpha: Exponential decay parameter for risk scoring
+        """
         self.enrollment_embeddings = enrollment_embeddings
-        self.distance_window = deque(maxlen=window_size)
         self.threshold = threshold
-        self.similarity_percentile = similarity_percentile
-        self.risk_score = None
-        self.alpha = alpha
+
+        self._similarity_calculator = SimilarityCalculator()
+        self._percentile_filter = PercentileFilter(similarity_percentile)
+        self._distance_window = TemporalWindow[float](window_size)
+        self._risk_scorer = RiskScorer(alpha)
+
+        self._current_risk_score: Optional[float] = None
+
+    def compute_distance_to_enrollment(self, embedding: np.ndarray) -> float:
+        """Compute distance from embedding to enrollment set.
+
+        Uses percentile filtering to focus on most similar enrollment images.
+
+        Args:
+            embedding: Query embedding to compare
+
+        Returns:
+            Average distance to closest enrollment embeddings
+        """
+        distances = self._similarity_calculator.compute_distances_to_all(
+            embedding, self.enrollment_embeddings
+        )
+        logger.debug(f"Distances to enrollment embeddings: {distances}")
+
+        avg_distance = self._percentile_filter.get_average_of_closest(distances)
+        logger.debug(f"Average distance to closest embeddings: {avg_distance:.4f}")
+
+        return avg_distance
+
+    def update_with_distance(self, distance: float) -> None:
+        """Add distance to temporal window and update risk score.
+
+        Args:
+            distance: Distance value to add to window
+        """
+        self._distance_window.append(distance)
+        self._current_risk_score = self._risk_scorer.compute_risk_score(
+            self._distance_window.get_values()
+        )
+        logger.debug(f"Updated risk_score: {self._current_risk_score:.4f}")
 
     def is_authenticated(self) -> bool:
-        logger.debug(f"risk_score: {self.risk_score}, threshold: {self.threshold}")
-        return self.risk_score <= self.threshold
+        """Check if current risk score indicates user is authenticated.
 
-    def compute_distance_between_embedding_and_enrollment(self, embedding):
-        if isinstance(self.similarity_percentile, float) and 0 < self.similarity_percentile <= 1.0:
-            # Convert percentile to fraction of closest distances e.g., 0.9 percentile = top 10% most similar = 10% smallest distances
-            closest_fraction = 1.0 - self.similarity_percentile
-            distance = self._get_average_of_closest_embeddings(embedding, closest_fraction)
-        else:
-            raise ValueError(f"Unsupported similarity_percentile: {self.similarity_percentile}")
-        return distance
+        Returns:
+            True if risk score <= threshold, False otherwise
 
-    def append_distance_to_window_and_update_risk_score(self, distance) -> None:
-        self.distance_window.append(distance)
-        self._update_risk_score()
+        Raises:
+            ValueError: If called before processing any frames
+        """
+        if self._current_risk_score is None:
+            raise ValueError("Cannot check authentication before processing any frames")
 
-    def _update_risk_score(self):
-        """Use exponentially decaying weights to compute the weighted average of the distances in the window."""
-        alpha = self.alpha
-        weights = np.exp(np.linspace(-alpha, 0, len(self.distance_window)))
-        self.risk_score = np.average(self.distance_window, weights=weights)
-        logger.debug(f"Updated risk_score: {self.risk_score}")
+        is_auth = self._current_risk_score <= self.threshold
+        logger.debug(f"risk_score: {self._current_risk_score:.4f}, threshold: {self.threshold}, authenticated: {is_auth}")
+        return is_auth
 
-    def _get_average_of_closest_embeddings(self, embedding: np.ndarray, closest_fraction: float):
-        """Compute the average distance of the closest embeddings."""
-        distances = self._compute_distance_to_enrollment_images(embedding)
-        logger.debug(f"Distances to enrollment embeddings: {distances}")
-        num_to_select = round(len(distances) * closest_fraction)
-        closest_distances = sorted(distances)[:num_to_select]
-        average_distance = np.mean(closest_distances)
-        logger.debug(f"Using {num_to_select} closest embeddings ({closest_fraction*100:.0f}%), average distance: {average_distance:.4f}")
+    @property
+    def risk_score(self) -> float:
+        """Get current risk score.
 
-        return average_distance
+        Returns:
+            Current risk score
 
-    def _compute_distance_to_enrollment_images(self, embedding) -> list[float]:
-        """ Compute the distance between the given embedding and all enrollment embeddings using Euclidean distance."""
-        distances = []
-
-        for idx, enrollment_embedding in enumerate(self.enrollment_embeddings):
-            distance = np.linalg.norm(embedding - enrollment_embedding)
-            distances.append(distance)
-
-        return distances
+        Raises:
+            ValueError: If no risk score available yet
+        """
+        if self._current_risk_score is None:
+            raise ValueError("No risk score available before processing frames")
+        return self._current_risk_score

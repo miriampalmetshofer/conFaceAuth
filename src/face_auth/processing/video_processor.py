@@ -46,12 +46,12 @@ class VideoProcessor:
                         logger.warning(f"No face detected at frame {frame_count}")
                         self.debug_saver.save_frame(frame, frame_count, video_name)
 
-                    logger.info(f"Frame {frame_count}: Predicted State={auth_result.predicted_state}, "
+                    logger.info(f"Frame {frame_count}: Predicted State={auth_result.state.value}, "
                           f"Distance={auth_result.distance:.4f}, Risk Score={auth_result.risk_score:.4f}")
 
                     results.append({
                         'frame': frame_count,
-                        'predicted_state': auth_result.predicted_state,
+                        'predicted_state': auth_result.state.value,  # Convert enum to string
                         'distance': auth_result.distance,
                         'risk_score': auth_result.risk_score,
                         'face_detected': auth_result.face_detected
