@@ -4,9 +4,9 @@ from pathlib import Path
 import cv2
 import numpy as np
 
-from face_auth.face_direction_detector import FaceDirectionDetector
-from face_auth.video_utils import get_video_rotation_from_metadata, rotate_frame
-from face_auth.logging_config import get_logger
+from face_auth.enrollment.direction_detector import FaceDirectionDetector
+from face_auth.processing.video_utils import get_video_rotation_from_metadata, rotate_frame
+from face_auth.utils.logging_config import get_logger
 
 logger = get_logger(__name__)
 

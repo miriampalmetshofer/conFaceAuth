@@ -1,11 +1,8 @@
-from face_auth.video_processor import VideoProcessor
-from face_auth.continuous_authenticator import ContinuousAuthenticator
-from face_auth.config_manager import ConfigManager
-from face_auth.embedder import Embedder
-from face_auth import enrollment_service
-from face_auth.face_detector import FaceDetector
-from face_auth.frame_processor import FrameProcessor
-from face_auth.logging_config import setup_logging
+from face_auth.processing import VideoProcessor
+from face_auth.core import ContinuousAuthenticator, Embedder, FaceDetector, FrameProcessor
+from face_auth.io import ConfigManager
+from face_auth.enrollment import service as enrollment_service
+from face_auth.utils import setup_logging
 
 setup_logging()
 

@@ -1,13 +1,13 @@
 import cv2
 import os
 
-from face_auth.frame_processor import FrameProcessor
+from face_auth.core.frame_processor import FrameProcessor
 from face_auth.models import ParticipantInfo
-from face_auth.result_writer import ResultWriter
-from face_auth.debug_frame_saver import DebugFrameSaver
-from face_auth.video_utils import get_video_rotation_from_metadata, rotate_frame
-from face_auth.logging_config import get_logger
-from helper.enums import Color
+from face_auth.io.result_writer import ResultWriter
+from face_auth.utils.debug_frame_saver import DebugFrameSaver
+from face_auth.processing.video_utils import get_video_rotation_from_metadata, rotate_frame
+from face_auth.utils.logging_config import get_logger
+from face_auth.utils.enums import Color
 
 logger = get_logger(__name__)
 

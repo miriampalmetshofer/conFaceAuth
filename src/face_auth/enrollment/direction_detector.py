@@ -3,7 +3,7 @@ import cv2
 import mediapipe as mp
 import numpy as np
 
-from helper.enums import HeadDirection
+from face_auth.utils.enums import HeadDirection
 
 class FaceDirectionDetector:
     def __init__(self):
