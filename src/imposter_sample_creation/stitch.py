@@ -6,6 +6,8 @@ import sys
 import json
 import subprocess
 
+from models import FrameBoundaries, VideoInfo
+
 
 def get_video_info(video_path):
     """Get video dimensions, duration, and frame rate."""
@@ -30,7 +32,7 @@ def get_video_info(video_path):
     # Parse duration
     duration = float(output[1])
 
-    return width, height, fps, duration
+    return VideoInfo(width=width, height=height, fps=fps, duration=duration)
 
 
 def load_config(config_path=None):
@@ -50,41 +52,30 @@ def stitch_videos(video1_path, video2_path, output_path, config):
     black_seconds = config['black_screen_seconds']
     impostor_seconds = config['impostor_seconds']
 
-    # Calculate frame ranges
-    genuine_frames = int(genuine_seconds * fps)
-    black_frames = int(black_seconds * fps)
-    impostor_frames = int(impostor_seconds * fps)
-
-    # Calculate exact frame boundaries
-    genuine_start = 1
-    genuine_end = genuine_frames
-    black_start = genuine_end + 1
-    black_end = genuine_end + black_frames
-    impostor_start = black_end + 1
-    impostor_end = black_end + impostor_frames
-    total_frames = impostor_end
+    # Calculate frame boundaries
+    bounds = calculate_frame_boundaries(genuine_seconds, black_seconds, impostor_seconds, fps)
 
     # Get video info
     print("  Analyzing videos...")
-    width1, height1, fps1, duration1 = get_video_info(video1_path)
-    width2, height2, fps2, duration2 = get_video_info(video2_path)
+    video1 = get_video_info(video1_path)
+    video2 = get_video_info(video2_path)
 
-    print(f"  Video 1: {width1}x{height1} @ {fps1:.2f}fps, duration: {duration1:.2f}s")
-    print(f"  Video 2: {width2}x{height2} @ {fps2:.2f}fps, duration: {duration2:.2f}s")
+    print(f"  Video 1: {video1.width}x{video1.height} @ {video1.fps:.2f}fps, duration: {video1.duration:.2f}s")
+    print(f"  Video 2: {video2.width}x{video2.height} @ {video2.fps:.2f}fps, duration: {video2.duration:.2f}s")
 
     # Use dimensions from first video
-    width, height = width1, height1
+    width, height = video1.width, video1.height
 
     # Calculate start time for last impostor_seconds of video2
-    start_time2 = max(0, duration2 - impostor_seconds)
+    start_time2 = max(0, video2.duration - impostor_seconds)
 
     print(f"\n  {'='*60}")
     print(f"  FRAME ALIGNMENT")
     print(f"  {'='*60}")
-    print(f"  Genuine user:  Frames {genuine_start:3d}-{genuine_end:3d}  ({genuine_seconds:.2f}s × {fps} fps)")
-    print(f"  Black screen:  Frames {black_start:3d}-{black_end:3d}  ({black_seconds:.2f}s × {fps} fps)")
-    print(f"  Impostor:      Frames {impostor_start:3d}-{impostor_end:3d}  ({impostor_seconds:.2f}s × {fps} fps)")
-    print(f"  Total:         {total_frames} frames ({total_frames/fps:.2f}s)")
+    print(f"  Genuine user:  Frames {bounds.genuine_start:3d}-{bounds.genuine_end:3d}  ({genuine_seconds:.2f}s × {fps} fps)")
+    print(f"  Black screen:  Frames {bounds.black_start:3d}-{bounds.black_end:3d}  ({black_seconds:.2f}s × {fps} fps)")
+    print(f"  Impostor:      Frames {bounds.impostor_start:3d}-{bounds.impostor_end:3d}  ({impostor_seconds:.2f}s × {fps} fps)")
+    print(f"  Total:         {bounds.total_frames} frames ({bounds.total_frames/fps:.2f}s)")
     print(f"  {'='*60}")
 
     print("\n  Processing...")
@@ -110,7 +101,7 @@ def stitch_videos(video1_path, video2_path, output_path, config):
     filter_complex = f"""
     [0:v]trim=0:{genuine_seconds},setpts=PTS-STARTPTS,scale={width}:{height}[v1];
     color=black:s={width}x{height}:d={black_seconds}:r={fps}[vblack];
-    [1:v]trim={start_time2}:{duration2},setpts=PTS-STARTPTS,scale={width}:{height}[v2];
+    [1:v]trim={start_time2}:{video2.duration},setpts=PTS-STARTPTS,scale={width}:{height}[v2];
     [v1][vblack][v2]concat=n=3:v=1:a=0[outv]
     """
 
@@ -134,11 +125,38 @@ def stitch_videos(video1_path, video2_path, output_path, config):
 
     if result.returncode == 0:
         print(f"\n  ✓ Success! Segment alignment:")
-        print(f"    Frames {genuine_start}-{genuine_end}: Genuine user")
-        print(f"    Frames {black_start}-{black_end}: Black screen")
-        print(f"    Frames {impostor_start}-{impostor_end}: Impostor")
+        print(f"    Frames {bounds.genuine_start}-{bounds.genuine_end}: Genuine user")
+        print(f"    Frames {bounds.black_start}-{bounds.black_end}: Black screen")
+        print(f"    Frames {bounds.impostor_start}-{bounds.impostor_end}: Impostor")
     else:
         raise RuntimeError(f"FFmpeg error: {result.stderr}")
+
+
+def calculate_frame_boundaries(genuine_seconds, black_seconds, impostor_seconds, fps):
+    """Calculate frame boundaries for video stitching segments."""
+    # Calculate frame ranges
+    genuine_frames = int(genuine_seconds * fps)
+    black_frames = int(black_seconds * fps)
+    impostor_frames = int(impostor_seconds * fps)
+
+    # Calculate exact frame boundaries
+    genuine_start = 1
+    genuine_end = genuine_frames
+    black_start = genuine_end + 1
+    black_end = genuine_end + black_frames
+    impostor_start = black_end + 1
+    impostor_end = black_end + impostor_frames
+    total_frames = impostor_end
+
+    return FrameBoundaries(
+        genuine_start=genuine_start,
+        genuine_end=genuine_end,
+        black_start=black_start,
+        black_end=black_end,
+        impostor_start=impostor_start,
+        impostor_end=impostor_end,
+        total_frames=total_frames
+    )
 
 
 def validate_input_and_extract(arguments):
