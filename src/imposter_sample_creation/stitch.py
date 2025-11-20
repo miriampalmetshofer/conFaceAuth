@@ -141,8 +141,8 @@ def stitch_videos(video1_path, video2_path, output_path, config):
         raise RuntimeError(f"FFmpeg error: {result.stderr}")
 
 
-if __name__ == '__main__':
-    if len(sys.argv) < 4:
+def validate_input_and_extract(arguments):
+    if len(arguments) < 4:
         print("Usage: python stitch.py <video1> <video2> <output> [config_path]")
         print("\nArguments:")
         print("  video1       - Path to genuine user video")
@@ -157,12 +157,10 @@ if __name__ == '__main__':
         print("  - black_screen_seconds: Duration of black screen transition")
         print("  - impostor_seconds: Duration of impostor segment")
         sys.exit(1)
-
-    video1 = sys.argv[1]
-    video2 = sys.argv[2]
-    output = sys.argv[3]
-    config_path = sys.argv[4] if len(sys.argv) > 4 else None
-
+    video1 = arguments[1]
+    video2 = arguments[2]
+    output = arguments[3]
+    config_path = arguments[4] if len(arguments) > 4 else None
     # Validate input files exist
     if not os.path.exists(video1):
         print(f"Error: Video 1 not found: {video1}")
@@ -170,7 +168,6 @@ if __name__ == '__main__':
     if not os.path.exists(video2):
         print(f"Error: Video 2 not found: {video2}")
         sys.exit(1)
-
     # Load configuration
     try:
         config = load_config(config_path)
@@ -185,6 +182,12 @@ if __name__ == '__main__':
     except json.JSONDecodeError as e:
         print(f"Error: Invalid JSON in config file: {e}")
         sys.exit(1)
+
+    return video1, video2, output, config
+
+
+if __name__ == '__main__':
+    video1, video2, output, config = validate_input_and_extract(sys.argv)
 
     print(f"\n{'='*70}")
     print(f"Stitching videos")
