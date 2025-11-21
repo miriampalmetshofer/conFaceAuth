@@ -1,15 +1,15 @@
 import os
-import glob
 
 from face_auth.models import ParticipantInfo
 from face_auth.processing.video_discovery import VideoDiscovery
 from face_auth.processing.video_processor import VideoProcessor
+from face_auth.processing.video_parser import RegularVideoParser, EnrollmentVideoParser
 from face_auth.core.authenticator import ContinuousAuthenticator
-from face_auth.io.config_manager import ConfigManager
 from face_auth.core.embedder import Embedder
 from face_auth.detection import FaceDetector, FaceExtractor
-from face_auth.core.frame_processor import FrameProcessor
 from face_auth.core.constants import FACENET_INPUT_WIDTH, FACENET_INPUT_HEIGHT
+from face_auth.io.config_manager import ConfigManager
+from face_auth.core.frame_processor import FrameProcessor
 from face_auth.enrollment import (
     EnrollmentOrchestrator,
     VideoFrameExtractor,
@@ -27,51 +27,32 @@ from face_auth.enrollment import (
 from face_auth.io import EnrollmentLoader
 
 
-def find_enrollment_video(enrollment_base_path: str, participant: ParticipantInfo) -> str:
-    """Find and validate enrollment video for participant. Returns enrollment video path. Returns the first found video."""
+
+
+def setup_enrollment(participant: ParticipantInfo,
+                     enrollment_base_path: str,
+                     frames_per_direction: int,
+                     logger) -> str:
+    """Setup enrollment for participant. Returns enrollment folder path."""
     participant_enrollment_folder = os.path.join(enrollment_base_path, participant.device, participant.name)
 
-    if not os.path.exists(participant_enrollment_folder):
-        raise FileNotFoundError(
-            f"\n{'!' * 60}\n"
-            f"ERROR: Enrollment folder not found!\n"
-            f"Path: {participant_enrollment_folder}\n"
-            f"Participant: '{participant.name}' | Device: '{participant.device}'\n"
-            f"{'!' * 60}\n"
-        )
-
-    enrollment_video_pattern = os.path.join(participant_enrollment_folder, f"{participant.name}_enrollment_*4")
-    enrollment_videos = glob.glob(enrollment_video_pattern)
+    enrollment_discovery = VideoDiscovery(participant, EnrollmentVideoParser())
+    enrollment_videos = enrollment_discovery.discover(participant_enrollment_folder)
 
     if not enrollment_videos:
         raise FileNotFoundError(
             f"\n{'!' * 60}\n"
             f"ERROR: No enrollment video found!\n"
             f"Searched in: {participant_enrollment_folder}\n"
-            f"Expected pattern: {participant.name}_enrollment_*4\n"
+            f"Expected pattern: {participant.name}_enrollment_*\n"
             f"Participant: '{participant.name}' | Device: '{participant.device}'\n"
             f"{'!' * 60}\n"
         )
 
-    return enrollment_videos[0]
-
-
-def get_enrollment_folder_name(enrollment_video_path: str, enrollment_base_path: str,
-                               participant: ParticipantInfo) -> str:
-    """Derive enrollment folder path from video path."""
-    participant_enrollment_folder = os.path.join(enrollment_base_path, participant.device, participant.name)
-    enrollment_video_name = os.path.splitext(os.path.basename(enrollment_video_path))[0]
-
-    return os.path.join(participant_enrollment_folder, enrollment_video_name)
-
-
-def setup_enrollment(enrollment_base_path: str,
-                     participant: ParticipantInfo,
-                     frames_per_direction: int,
-                     logger) -> str:
-    """Setup enrollment for participant. Returns enrollment folder path."""
-    enrollment_video_path = find_enrollment_video(enrollment_base_path, participant)
-    enrollment_folder = get_enrollment_folder_name(enrollment_video_path, enrollment_base_path, participant)
+    enrollment_video = enrollment_videos[0]
+    participant_folder = os.path.join(enrollment_base_path, participant.device, participant.name)
+    video_name = os.path.splitext(os.path.basename(enrollment_video.path))[0]
+    enrollment_folder = os.path.join(participant_folder, video_name)
 
     enrollment_folder_is_already_filled = os.path.exists(enrollment_folder) and any(
         f.endswith(".jpg") for f in os.listdir(enrollment_folder))
@@ -79,7 +60,7 @@ def setup_enrollment(enrollment_base_path: str,
         logger.info(f"Skipping enrollment for {participant.name} ({participant.device}) — already exists")
     else:
         logger.info(f"=== ENROLLING: {participant.name} ({participant.device}) ===")
-        logger.info(f"Using enrollment video: {os.path.basename(enrollment_video_path)}")
+        logger.info(f"Using enrollment video: {enrollment_video.filename}")
 
         # Create enrollment orchestrator with all components
         frame_extractor = VideoFrameExtractor(FRAME_SAMPLING_INTERVAL)
@@ -101,7 +82,7 @@ def setup_enrollment(enrollment_base_path: str,
         )
 
         orchestrator.process_enrollment_video(
-            enrollment_video_path,
+            enrollment_video.path,
             frames_per_direction,
             enrollment_folder
         )
@@ -113,11 +94,13 @@ def process_participant(participant: ParticipantInfo, base_path: str,
                         enrollment_base_path: str, results_csv_path: str,
                         config: ConfigManager, logger):
     """Process all videos for a single participant on a device."""
-    video_discovery = VideoDiscovery(participant)
-    videos = video_discovery.discover_videos(base_path)
+    participant_video_folder = os.path.join(base_path, participant.device)
+
+    video_discovery = VideoDiscovery(participant, RegularVideoParser())
+    videos = video_discovery.discover(participant_video_folder)
 
     if not videos:
-        logger.info(f"No videos found for {participant.name} on {participant.device}")
+        logger.warn(f"No videos found for {participant.name} on {participant.device}")
         return
 
     logger.info(f"{'=' * 60}")
@@ -126,8 +109,8 @@ def process_participant(participant: ParticipantInfo, base_path: str,
     logger.info(f"{'=' * 60}")
 
     enrollment_folder = setup_enrollment(
-        enrollment_base_path,
         participant,
+        enrollment_base_path,
         config.get("enrollment_frames_per_direction"),
         logger
     )
