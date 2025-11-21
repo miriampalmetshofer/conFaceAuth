@@ -2,6 +2,7 @@ import os
 import glob
 
 from face_auth.models import ParticipantInfo
+from face_auth.processing.video_discovery import VideoDiscovery
 from face_auth.processing.video_processor import VideoProcessor
 from face_auth.core.authenticator import ContinuousAuthenticator
 from face_auth.io.config_manager import ConfigManager
@@ -24,14 +25,6 @@ from face_auth.enrollment import (
     SAMPLING_SEED,
 )
 from face_auth.io import EnrollmentLoader
-
-
-def discover_videos(base_path: str, participant: ParticipantInfo) -> list[str]:
-    """Discover video files for a participant and device."""
-    device_folder = os.path.join(base_path, participant.device)
-    video_pattern = os.path.join(device_folder, f"{participant.name}_*4")
-
-    return glob.glob(video_pattern)
 
 
 def find_enrollment_video(enrollment_base_path: str, participant: ParticipantInfo) -> str:
@@ -120,14 +113,16 @@ def process_participant(participant: ParticipantInfo, base_path: str,
                         enrollment_base_path: str, results_csv_path: str,
                         config: ConfigManager, logger):
     """Process all videos for a single participant on a device."""
-    video_files = discover_videos(base_path, participant)
-    if not video_files:
+    video_discovery = VideoDiscovery(participant)
+    video_infos = video_discovery.discover_videos(base_path)
+
+    if not video_infos:
         logger.info(f"No videos found for {participant.name} on {participant.device}")
         return
 
     logger.info(f"{'=' * 60}")
     logger.info(f"Participant: {participant.name} | Device: {participant.device}")
-    logger.info(f"Found {len(video_files)} video(s)")
+    logger.info(f"Found {len(video_infos)} video(s)")
     logger.info(f"{'=' * 60}")
 
     enrollment_folder = setup_enrollment(
@@ -148,9 +143,10 @@ def process_participant(participant: ParticipantInfo, base_path: str,
     enrollment_loader = EnrollmentLoader(embedder, face_detector, face_extractor)
     enrollment_embeddings = enrollment_loader.load_embeddings_from_folder(enrollment_folder)
 
-    for video_path in video_files:
-        video_filename = os.path.basename(video_path)
+    for video_info in video_infos:
+        video_filename = os.path.basename(video_info.path)
         logger.info(f"--- PROCESSING: {video_filename} ---")
+        logger.info(f"    Scenario: {video_info.scenario.value} | Date: {video_info.recording_date}")
 
         continuous_authenticator = ContinuousAuthenticator(
             enrollment_embeddings=enrollment_embeddings,
@@ -175,7 +171,7 @@ def process_participant(participant: ParticipantInfo, base_path: str,
         )
 
         processor.process_video(
-            video_path=video_path,
+            video_path=video_info.path,
             skip_frames=config.get("skip_frames"),
             results_csv_path=results_csv_path,
             participant=participant

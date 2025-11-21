@@ -1,4 +1,4 @@
-"""Data models for face authentication."""
+"""Shared data models."""
 from dataclasses import dataclass
 
 
