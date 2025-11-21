@@ -141,7 +141,7 @@ def process_participant(participant: ParticipantInfo, base_path: str,
     embedder = Embedder(model_name=config.get("embedder"))
 
     enrollment_loader = EnrollmentLoader(embedder, face_detector, face_extractor)
-    enrollment_embeddings = enrollment_loader.load_embeddings_from_folder(enrollment_folder)
+    enrollment_embeddings = enrollment_loader.load_embeddings(enrollment_folder)
 
     for video_info in video_infos:
         video_filename = os.path.basename(video_info.path)

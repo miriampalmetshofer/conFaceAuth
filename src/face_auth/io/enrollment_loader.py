@@ -29,52 +29,47 @@ class EnrollmentLoader:
         self.face_detector = face_detector
         self.face_extractor = face_extractor
 
-    def load_embeddings_from_folder(self, enrollment_folder: str) -> list[np.ndarray]:
-        """Load enrollment images and compute their embeddings.
+    def load_embeddings(self, enrollment_folder: str) -> list[np.ndarray]:
+        """Load enrollment images and compute their embeddings."""
+        self._validate_enrollment_folder(enrollment_folder)
 
-        Args:
-            enrollment_folder: Path to folder containing enrollment images
+        image_files = os.listdir(enrollment_folder)
+        logger.info(f"Found {len(image_files)} images in the enrollment folder")
 
-        Returns:
-            List of embedding vectors
+        embeddings = []
+        for filename in image_files:
+            image_path = os.path.join(enrollment_folder, filename)
+            embedding = self._get_enrollment_embedding(image_path)
+            if embedding is not None:
+                embeddings.append(embedding)
 
-        Raises:
-            FileNotFoundError: If enrollment folder doesn't exist or is empty
-        """
+        logger.info(f"Successfully computed {len(embeddings)} enrollment embeddings")
+
+        return embeddings
+
+    def _validate_enrollment_folder(self, enrollment_folder: str) -> None:
+        """Validate that enrollment folder exists and is not empty."""
         if not os.path.exists(enrollment_folder) or not os.listdir(enrollment_folder):
             raise FileNotFoundError(
                 f"No images found in the enrollment folder: {enrollment_folder}. "
                 f"Please ensure the folder exists and contains images."
             )
 
-        embeddings = []
-        image_files = os.listdir(enrollment_folder)
-        logger.info(f"Found {len(image_files)} images in the enrollment folder")
+    def _get_enrollment_embedding(self, image_path: str) -> np.ndarray | None:
+        """Process a single enrollment image and return its embedding."""
+        image = cv2.imread(image_path)
+        if image is None:
+            logger.warning(f"Could not read image {image_path}. Skipping")
+            return None
 
-        for filename in image_files:
-            image_path = os.path.join(enrollment_folder, filename)
-            image = cv2.imread(image_path)
+        detection_result = self.face_extractor.detect_and_extract(image, self.face_detector)
+        if detection_result is None:
+            logger.warning(f"No face detected in enrollment image {image_path}. Skipping")
+            return None
 
-            if image is None:
-                logger.warning(f"Could not read image {filename}. Skipping")
-                continue
+        embedding = self.embedder.get_embedding(detection_result.face_image)
+        if embedding is None:
+            logger.warning(f"Failed to compute embedding for {image_path}. Skipping")
+            return None
 
-            detection_result = self.face_extractor.detect_and_extract(
-                image,
-                self.face_detector
-            )
-
-            if detection_result is None:
-                logger.warning(f"No face detected in enrollment image {filename}. Skipping")
-                continue
-
-            embedding = self.embedder.get_embedding(detection_result.face_image)
-
-            if embedding is not None:
-                embeddings.append(embedding)
-            else:
-                logger.warning(f"Failed to compute embedding for {filename}. Skipping")
-
-        logger.info(f"Successfully computed {len(embeddings)} enrollment embeddings")
-
-        return embeddings
+        return embedding
