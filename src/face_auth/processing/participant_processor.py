@@ -9,7 +9,21 @@ from face_auth.core.embedder import Embedder
 from face_auth.detection import FaceDetector, FaceExtractor
 from face_auth.core.frame_processor import FrameProcessor
 from face_auth.core.constants import FACENET_INPUT_WIDTH, FACENET_INPUT_HEIGHT
-from face_auth.enrollment import service as enrollment_service
+from face_auth.enrollment import (
+    EnrollmentOrchestrator,
+    VideoFrameExtractor,
+    HeadPoseEstimator,
+    DirectionClassifier,
+    NormalDistributionSampler,
+    EnrollmentFrameSaver,
+    FRAME_SAMPLING_INTERVAL,
+    YAW_THRESHOLD,
+    PITCH_THRESHOLD,
+    DISTRIBUTION_MEAN_FRACTION,
+    DISTRIBUTION_STDDEV_FRACTION,
+    SAMPLING_SEED,
+)
+from face_auth.io import EnrollmentLoader
 
 
 def discover_videos(base_path: str, participant: ParticipantInfo) -> list[str]:
@@ -73,8 +87,31 @@ def setup_enrollment(enrollment_base_path: str,
     else:
         logger.info(f"=== ENROLLING: {participant.name} ({participant.device}) ===")
         logger.info(f"Using enrollment video: {os.path.basename(enrollment_video_path)}")
-        enrollment_frames = enrollment_service.get_enrollment_frames_for_video(enrollment_video_path, frames_per_direction)
-        enrollment_service.save_enrollment_frames_to_folder(enrollment_frames, enrollment_folder)
+
+        # Create enrollment orchestrator with all components
+        frame_extractor = VideoFrameExtractor(FRAME_SAMPLING_INTERVAL)
+        pose_estimator = HeadPoseEstimator()
+        direction_classifier = DirectionClassifier(YAW_THRESHOLD, PITCH_THRESHOLD)
+        frame_sampler = NormalDistributionSampler(
+            DISTRIBUTION_MEAN_FRACTION,
+            DISTRIBUTION_STDDEV_FRACTION,
+            SAMPLING_SEED
+        )
+        frame_saver = EnrollmentFrameSaver()
+
+        orchestrator = EnrollmentOrchestrator(
+            frame_extractor,
+            pose_estimator,
+            direction_classifier,
+            frame_sampler,
+            frame_saver
+        )
+
+        orchestrator.process_enrollment_video(
+            enrollment_video_path,
+            frames_per_direction,
+            enrollment_folder
+        )
 
     return enrollment_folder
 
@@ -107,9 +144,9 @@ def process_participant(participant: ParticipantInfo, base_path: str,
         target_height=FACENET_INPUT_HEIGHT
     )
     embedder = Embedder(model_name=config.get("embedder"))
-    enrollment_embeddings = enrollment_service.load_enrollment_embeddings(
-        enrollment_folder, embedder, face_detector, face_extractor
-    )
+
+    enrollment_loader = EnrollmentLoader(embedder, face_detector, face_extractor)
+    enrollment_embeddings = enrollment_loader.load_embeddings_from_folder(enrollment_folder)
 
     for video_path in video_files:
         video_filename = os.path.basename(video_path)

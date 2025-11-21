@@ -7,8 +7,7 @@ from face_auth.core import (
     FACENET_INPUT_HEIGHT
 )
 from face_auth.detection import FaceDetector, FaceExtractor
-from face_auth.io import ConfigManager
-from face_auth.enrollment import service as enrollment_service
+from face_auth.io import ConfigManager, EnrollmentLoader
 from face_auth.utils import setup_logging
 
 setup_logging()
@@ -26,11 +25,9 @@ embedder = Embedder(
     model_name=config.get("embedder")
 )
 
-enrollment_embeddings = enrollment_service.load_enrollment_embeddings(
-    config.get('enrollment').get("enrollment_folder"),
-    embedder,
-    face_detector,
-    face_extractor
+enrollment_loader = EnrollmentLoader(embedder, face_detector, face_extractor)
+enrollment_embeddings = enrollment_loader.load_embeddings_from_folder(
+    config.get('enrollment').get("enrollment_folder")
 )
 
 continuous_authenticator = ContinuousAuthenticator(
