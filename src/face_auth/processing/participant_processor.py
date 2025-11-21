@@ -114,15 +114,15 @@ def process_participant(participant: ParticipantInfo, base_path: str,
                         config: ConfigManager, logger):
     """Process all videos for a single participant on a device."""
     video_discovery = VideoDiscovery(participant)
-    video_infos = video_discovery.discover_videos(base_path)
+    videos = video_discovery.discover_videos(base_path)
 
-    if not video_infos:
+    if not videos:
         logger.info(f"No videos found for {participant.name} on {participant.device}")
         return
 
     logger.info(f"{'=' * 60}")
     logger.info(f"Participant: {participant.name} | Device: {participant.device}")
-    logger.info(f"Found {len(video_infos)} video(s)")
+    logger.info(f"Found {len(videos)} video(s)")
     logger.info(f"{'=' * 60}")
 
     enrollment_folder = setup_enrollment(
@@ -143,10 +143,9 @@ def process_participant(participant: ParticipantInfo, base_path: str,
     enrollment_loader = EnrollmentLoader(embedder, face_detector, face_extractor)
     enrollment_embeddings = enrollment_loader.load_embeddings(enrollment_folder)
 
-    for video_info in video_infos:
-        video_filename = os.path.basename(video_info.path)
-        logger.info(f"--- PROCESSING: {video_filename} ---")
-        logger.info(f"    Scenario: {video_info.scenario.value} | Date: {video_info.recording_date}")
+    for video in videos:
+        logger.info(f"--- PROCESSING: {video.filename} ---")
+        logger.info(f"    Scenario: {video.scenario.value} | Date: {video.recording_date}")
 
         continuous_authenticator = ContinuousAuthenticator(
             enrollment_embeddings=enrollment_embeddings,
@@ -171,7 +170,7 @@ def process_participant(participant: ParticipantInfo, base_path: str,
         )
 
         processor.process_video(
-            video_path=video_info.path,
+            video_path=video.path,
             skip_frames=config.get("skip_frames"),
             results_csv_path=results_csv_path,
             participant=participant
