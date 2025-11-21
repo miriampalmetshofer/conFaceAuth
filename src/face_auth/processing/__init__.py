@@ -5,12 +5,11 @@ from face_auth.processing.participant_processor import (
     setup_enrollment,
 )
 from face_auth.processing.video_discovery import VideoDiscovery
-from face_auth.processing.models import Video, EnrollmentVideo, Scenario
+from face_auth.processing.models import Video, EnrollmentVideo, Scenario, HeadRotation
 from face_auth.processing.video_parser import (
     VideoParser,
     RegularVideoParser,
     EnrollmentVideoParser,
-    register_video_parser,
 )
 
 __all__ = [
@@ -21,8 +20,8 @@ __all__ = [
     'Video',
     'EnrollmentVideo',
     'Scenario',
+    'HeadRotation',
     'VideoParser',
     'RegularVideoParser',
     'EnrollmentVideoParser',
-    'register_video_parser',
 ]

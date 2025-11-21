@@ -14,6 +14,11 @@ class Scenario(Enum):
     ANGLE = "angle"
     LIGHTING = "lighting"
 
+class HeadRotation(Enum):
+    """Head rotation directions for video scenarios."""
+    CLOCKWISE = "cw"
+    COUNTERCLOCKWISE = "ccw"
+
 
 @dataclass
 class Video:
@@ -32,5 +37,5 @@ class Video:
 @dataclass
 class EnrollmentVideo(Video):
     """Represents an enrollment video with variant information (e.g., 'cw', 'cww')."""
-    variant: str = ""
+    head_rotation: HeadRotation
 
