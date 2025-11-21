@@ -48,6 +48,7 @@ frame_processor = FrameProcessor(
 
 processor = VideoProcessor(
     frame_processor=frame_processor,
-    config=config.config
+    config=config.config,
+    debug_output_folder="debug/no_face_frames"
 )
 processor.process_live_stream(skip_frames=config.get("skip_frames"))

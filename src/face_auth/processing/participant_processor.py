@@ -170,7 +170,8 @@ def process_participant(participant: ParticipantInfo, base_path: str,
 
         processor = VideoProcessor(
             frame_processor=frame_processor,
-            config=config.config
+            config=config.config,
+            debug_output_folder="debug/no_face_frames"
         )
 
         processor.process_video(
