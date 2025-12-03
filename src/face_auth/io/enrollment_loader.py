@@ -1,6 +1,6 @@
-import os
 import cv2
 import numpy as np
+from pathlib import Path
 
 from face_auth.core.embedder import Embedder
 from face_auth.detection import FaceDetector, FaceExtractor
@@ -29,16 +29,15 @@ class EnrollmentLoader:
         self.face_detector = face_detector
         self.face_extractor = face_extractor
 
-    def load_embeddings(self, enrollment_folder: str) -> list[np.ndarray]:
+    def load_embeddings(self, enrollment_folder: Path) -> list[np.ndarray]:
         """Load enrollment images and compute their embeddings."""
         self._validate_enrollment_folder(enrollment_folder)
 
-        image_files = os.listdir(enrollment_folder)
+        image_files = list(enrollment_folder.iterdir())
         logger.info(f"Found {len(image_files)} images in the enrollment folder")
 
         embeddings = []
-        for filename in image_files:
-            image_path = os.path.join(enrollment_folder, filename)
+        for image_path in image_files:
             embedding = self._get_enrollment_embedding(image_path)
             if embedding is not None:
                 embeddings.append(embedding)
@@ -47,17 +46,17 @@ class EnrollmentLoader:
 
         return embeddings
 
-    def _validate_enrollment_folder(self, enrollment_folder: str) -> None:
+    def _validate_enrollment_folder(self, enrollment_folder: Path) -> None:
         """Validate that enrollment folder exists and is not empty."""
-        if not os.path.exists(enrollment_folder) or not os.listdir(enrollment_folder):
+        if not enrollment_folder.exists() or not any(enrollment_folder.iterdir()):
             raise FileNotFoundError(
                 f"No images found in the enrollment folder: {enrollment_folder}. "
                 f"Please ensure the folder exists and contains images."
             )
 
-    def _get_enrollment_embedding(self, image_path: str) -> np.ndarray | None:
+    def _get_enrollment_embedding(self, image_path: Path) -> np.ndarray | None:
         """Process a single enrollment image and return its embedding."""
-        image = cv2.imread(image_path)
+        image = cv2.imread(str(image_path))
         if image is None:
             logger.warning(f"Could not read image {image_path}. Skipping")
             return None

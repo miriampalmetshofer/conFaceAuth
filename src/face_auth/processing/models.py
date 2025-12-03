@@ -22,12 +22,17 @@ class HeadRotation(Enum):
 class Video:
     """Represents a video file with parsed metadata."""
     path: Path
-    scenario: Scenario
     recording_date: date
+
+@dataclass
+class ControlledStudyVideo(Video):
+    """Represents a video file with additional scenario."""
+    scenario: Scenario
 
 
 @dataclass
 class EnrollmentVideo(Video):
-    """Represents an enrollment video with variant information (e.g., 'cw', 'cww')."""
+    """Represents an enrollment video with head rotation information (e.g., 'cw', 'cww') and scenario."""
+    scenario: Scenario
     head_rotation: HeadRotation
 

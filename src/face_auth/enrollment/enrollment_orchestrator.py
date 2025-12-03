@@ -1,6 +1,7 @@
 from collections import defaultdict
 import cv2
 import numpy as np
+from pathlib import Path
 
 from face_auth.enrollment.models import EnrollmentFrames
 from face_auth.enrollment.video_frame_extractor import VideoFrameExtractor
@@ -41,9 +42,9 @@ class EnrollmentOrchestrator:
 
     def process_enrollment_video(
         self,
-        video_path: str,
+        video_path: Path,
         frames_per_direction: int,
-        output_folder: str
+        output_folder: Path
     ) -> EnrollmentFrames:
         """Process enrollment video and extract frames organized by direction.
         1. Extract frames from video

@@ -1,5 +1,4 @@
 """Save debug frames for diagnostic purposes."""
-import os
 from pathlib import Path
 import cv2
 import numpy as np
@@ -12,13 +11,13 @@ logger = get_logger(__name__)
 class DebugFrameSaver:
     """Saves frames where no face was detected for debugging."""
 
-    def __init__(self, output_folder: str):
+    def __init__(self, output_folder: Path):
         """Initialize debug frame saver.
 
         Args:
             output_folder: Directory to save debug frames
         """
-        self.output_folder = Path(output_folder)
+        self.output_folder = output_folder
         self._ensure_folder_exists()
 
     def _ensure_folder_exists(self) -> None:

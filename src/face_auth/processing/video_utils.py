@@ -1,10 +1,10 @@
 import cv2
 import subprocess
 import json
-import os
+from pathlib import Path
 
 
-def get_video_rotation_from_metadata(video_path) -> int:
+def get_video_rotation_from_metadata(video_path: Path) -> int:
     """
     Get the rotation angle from video metadata using ffprobe.
 
@@ -18,7 +18,7 @@ def get_video_rotation_from_metadata(video_path) -> int:
             '-v', 'quiet',
             '-print_format', 'json',
             '-show_streams',
-            video_path
+            str(video_path)
         ]
 
         result = subprocess.run(cmd, capture_output=True, text=True, timeout=10)
@@ -38,7 +38,7 @@ def get_video_rotation_from_metadata(video_path) -> int:
                     rotation_angle = int(rotation)
                     # Normalize to 0, 90, 180, 270
                     rotation_angle = rotation_angle % 360
-                    print(f"Detected rotation: {rotation_angle}° for {os.path.basename(video_path)}")
+                    print(f"Detected rotation: {rotation_angle}° for {video_path.name}")
                     return rotation_angle
                 except (ValueError, TypeError):
                     pass
@@ -50,12 +50,12 @@ def get_video_rotation_from_metadata(video_path) -> int:
                         try:
                             rotation_angle = int(float(rotation))
                             rotation_angle = (-rotation_angle) % 360  # Display matrix uses negative angles
-                            print(f"Detected rotation from display matrix: {rotation_angle}° for {os.path.basename(video_path)}")
+                            print(f"Detected rotation from display matrix: {rotation_angle}° for {video_path.name}")
                             return rotation_angle
                         except (ValueError, TypeError):
                             pass
 
-        print(f"No rotation metadata found for {os.path.basename(video_path)}, assuming 0°")
+        print(f"No rotation metadata found for {video_path.name}, assuming 0°")
         return 0
 
     except subprocess.TimeoutExpired:

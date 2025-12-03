@@ -1,5 +1,7 @@
 """Video processing service for authentication pipeline."""
 
+from pathlib import Path
+
 from face_auth.config.models import AuthenticationConfig
 from face_auth.core.embedder import Embedder
 from face_auth.detection import FaceDetector, FaceExtractor
@@ -73,7 +75,7 @@ class VideoProcessingService:
         # Build video processor
         video_processor = VideoProcessor(
             frame_processor=frame_processor,
-            debug_output_folder="debug/no_face_frames"
+            debug_output_folder=Path("debug/no_face_frames")
         )
 
         # Process video

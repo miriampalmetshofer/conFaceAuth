@@ -1,6 +1,6 @@
 import cv2
-import os
 from dataclasses import replace
+from pathlib import Path
 
 from face_auth.core.frame_processor import FrameProcessor
 from face_auth.io import DebugFrameSaver
@@ -14,7 +14,7 @@ logger = get_logger(__name__)
 class VideoProcessor:
     """Orchestrates video processing and face authentication pipeline."""
 
-    def __init__(self, frame_processor: FrameProcessor, debug_output_folder: str):
+    def __init__(self, frame_processor: FrameProcessor, debug_output_folder: Path):
         """Initialize video processor.
 
         Args:
@@ -24,16 +24,16 @@ class VideoProcessor:
         self.frame_processor = frame_processor
         self.debug_saver = DebugFrameSaver(debug_output_folder)
 
-    def process_video_frames(self, video_path: str, skip_frames: int) -> list:
+    def process_video_frames(self, video_path: Path, skip_frames: int) -> list:
         """Process video frames and return results without writing to file."""
         rotation_angle = get_video_rotation_from_metadata(video_path)
-        cap = cv2.VideoCapture(video_path)
+        cap = cv2.VideoCapture(str(video_path))
 
         self._log_video_info(cap)
 
         frame_count = 1
         results = []
-        video_name = os.path.splitext(os.path.basename(video_path))[0]
+        video_name = video_path.stem
 
         while cap.isOpened():
             ret, frame = cap.read()

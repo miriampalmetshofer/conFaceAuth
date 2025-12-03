@@ -4,7 +4,7 @@ from abc import ABC, abstractmethod
 from pathlib import Path
 from datetime import datetime
 
-from face_auth.processing.models import Video, EnrollmentVideo, Scenario, HeadRotation
+from face_auth.processing.models import Video, EnrollmentVideo, Scenario, HeadRotation, ControlledStudyVideo
 
 
 class VideoParser(ABC):
@@ -19,7 +19,7 @@ class VideoParser(ABC):
         """Parse the file and return a Video instance."""
 
 
-class UsageVideoParser(VideoParser):
+class ControlledStudyParser(VideoParser):
     """Parser for regular videos: {name}_{scenario}_{date}_{time}.mp4"""
 
     regex = re.compile(
@@ -36,9 +36,30 @@ class UsageVideoParser(VideoParser):
         scenario = Scenario(groups["scenario"].lower())
         datetime_obj = datetime.strptime(f"{groups['date']} {groups['time']}", "%Y-%m-%d %H-%M-%S")
 
-        return Video(
+        return ControlledStudyVideo(
             path=path,
             scenario=scenario,
+            recording_date=datetime_obj.date(),
+        )
+
+class InTheWildStudyParser(VideoParser):
+    """Parser for videos from the In the Wild study: {name}_{date}_{time}.mp4"""
+
+    regex = re.compile(
+        r"^(?P<name>[^_]+)_(?P<date>\d{4}-\d{2}-\d{2})_(?P<time>\d{2}-\d{2}-\d{2})$"
+    )
+
+    def matches(self, path: Path) -> bool:
+        return bool(self.regex.match(path.stem))
+
+    def parse(self, path: Path) -> Video:
+        match = self.regex.match(path.stem)
+        groups = match.groupdict()
+
+        datetime_obj = datetime.strptime(f"{groups['date']} {groups['time']}", "%Y-%m-%d %H-%M-%S")
+
+        return Video(
+            path=path,
             recording_date=datetime_obj.date(),
         )
 

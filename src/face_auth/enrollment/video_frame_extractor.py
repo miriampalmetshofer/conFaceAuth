@@ -1,5 +1,6 @@
 import cv2
 import numpy as np
+from pathlib import Path
 
 from face_auth.processing.video_utils import get_video_rotation_from_metadata, rotate_frame
 from face_auth.utils.logging_config import get_logger
@@ -18,7 +19,7 @@ class VideoFrameExtractor:
         """
         self.frame_interval = frame_interval
 
-    def extract_frames(self, video_path: str) -> list[np.ndarray]:
+    def extract_frames(self, video_path: Path) -> list[np.ndarray]:
         """Extract frames from video at regular intervals.
 
         Args:
