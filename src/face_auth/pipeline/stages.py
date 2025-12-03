@@ -5,7 +5,7 @@ from typing import List, Optional
 
 from face_auth.config.models import ParticipantConfig
 from face_auth.processing.video_discovery import VideoDiscovery
-from face_auth.processing.video_parser import RegularVideoParser
+from face_auth.processing.video_parser import UsageVideoParser
 from face_auth.processing.models import Video
 from face_auth.services.models import EnrollmentData, VideoResult
 from face_auth.services.enrollment_service import EnrollmentService
@@ -43,7 +43,7 @@ class VideoDiscoveryStage:
         logger.info(f"Discovering videos for {participant.name} on {device}")
 
         video_folder = os.path.join(self.base_path, device)
-        discovery = VideoDiscovery(participant, RegularVideoParser())
+        discovery = VideoDiscovery(participant, UsageVideoParser())
         videos = discovery.discover(video_folder)
 
         if not videos:

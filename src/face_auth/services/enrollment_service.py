@@ -1,8 +1,6 @@
 """Enrollment service for managing participant enrollment data."""
 
 import os
-from typing import List
-import numpy as np
 
 from face_auth.config.models import EnrollmentConfig, PathsConfig
 from face_auth.config.models import ParticipantConfig
