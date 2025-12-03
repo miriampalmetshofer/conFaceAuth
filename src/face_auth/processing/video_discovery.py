@@ -29,7 +29,7 @@ class VideoDiscovery:
         for video_path in video_paths:
             if self.parser.matches(video_path):
                 try:
-                    video = self.parser.parse(video_path, self.participant)
+                    video = self.parser.parse(video_path)
                     videos.append(video)
                 except ValueError as e:
                     logger.warning(f"Could not parse {video_path.name}: {e}")

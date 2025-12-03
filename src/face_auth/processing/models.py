@@ -4,8 +4,6 @@ from datetime import date
 from enum import Enum
 from pathlib import Path
 
-from face_auth.config.models import ParticipantConfig
-
 VIDEO_EXTENSIONS = ("mp4", "MP4")
 
 class Scenario(Enum):
@@ -24,7 +22,6 @@ class HeadRotation(Enum):
 class Video:
     """Represents a video file with parsed metadata."""
     path: Path
-    participant: ParticipantConfig
     scenario: Scenario
     recording_date: date
 
