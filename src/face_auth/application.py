@@ -16,7 +16,6 @@ from face_auth.pipeline import (
     VideoProcessingStage,
     ResultsPersistenceStage
 )
-from face_auth.models import ParticipantInfo
 from face_auth.utils.logging_config import get_logger
 
 logger = get_logger(__name__)
@@ -109,14 +108,12 @@ class FaceAuthApplication:
         Returns:
             True if processing succeeded, False otherwise
         """
-        participant = ParticipantInfo(name=participant_config.name, device=device)
-
         logger.info(f"{'=' * 60}")
-        logger.info(f"Participant: {participant.name} | Device: {device}")
+        logger.info(f"Participant: {participant_config.name} | Device: {device}")
         logger.info(f"{'=' * 60}")
 
         context = PipelineContext(
-            participant=participant,
+            participant=participant_config,
             device=device,
             config=self.config,
             enrollment_service=self.enrollment_service,
@@ -127,9 +124,9 @@ class FaceAuthApplication:
         success = self.pipeline.execute(context)
 
         if success:
-            logger.info(f"Successfully processed {participant.name} on {device}")
+            logger.info(f"Successfully processed {participant_config.name} on {device}")
         else:
-            logger.warning(f"Failed to process {participant.name} on {device}")
+            logger.warning(f"Failed to process {participant_config.name} on {device}")
 
         return success
 

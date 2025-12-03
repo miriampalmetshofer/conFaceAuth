@@ -5,7 +5,7 @@ from typing import List
 import numpy as np
 
 from face_auth.config.models import EnrollmentConfig, PathsConfig
-from face_auth.models import ParticipantInfo
+from face_auth.config.models import ParticipantConfig
 from face_auth.core.embedder import Embedder
 from face_auth.detection import FaceDetector, FaceExtractor
 from face_auth.processing.video_discovery import VideoDiscovery
@@ -58,7 +58,7 @@ class EnrollmentService:
 
     def ensure_enrollment(
         self,
-        participant: ParticipantInfo,
+        participant: ParticipantConfig,
         device: str
     ) -> EnrollmentData:
         """Ensure enrollment exists, create if needed.
@@ -82,7 +82,7 @@ class EnrollmentService:
             logger.info(f"=== ENROLLING: {participant.name} ({device}) ===")
             return self._create_enrollment(participant, device, enrollment_folder)
 
-    def _get_enrollment_folder(self, participant: ParticipantInfo, device: str) -> str:
+    def _get_enrollment_folder(self, participant: ParticipantConfig, device: str) -> str:
         """Get enrollment folder path for participant."""
         participant_folder = os.path.join(
             self.paths.enrollment_base_path,
@@ -121,7 +121,7 @@ class EnrollmentService:
 
     def _create_enrollment(
         self,
-        participant: ParticipantInfo,
+        participant: ParticipantConfig,
         device: str,
         enrollment_folder: str
     ) -> EnrollmentData:

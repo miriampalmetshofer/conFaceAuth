@@ -4,7 +4,7 @@ import os
 from abc import ABC, abstractmethod
 from face_auth.pipeline.context import PipelineContext
 from face_auth.processing.video_discovery import VideoDiscovery
-from face_auth.processing.video_parser import RegularVideoParser
+from face_auth.processing.video_parser import UsageVideoParser
 from face_auth.utils.logging_config import get_logger
 
 logger = get_logger(__name__)
@@ -31,7 +31,7 @@ class VideoDiscoveryStage(PipelineStage):
             context.device
         )
 
-        discovery = VideoDiscovery(context.participant, RegularVideoParser())
+        discovery = VideoDiscovery(context.participant, UsageVideoParser())
         videos = discovery.discover(video_folder)
 
         if not videos:
@@ -100,7 +100,8 @@ class ResultsPersistenceStage(PipelineStage):
 
         context.results_service.write_results(
             video_results=context.video_results,
-            participant=context.participant
+            participant=context.participant,
+            device=context.device
         )
 
         logger.info(f"Results written for {len(context.video_results)} video(s)")

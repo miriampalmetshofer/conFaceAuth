@@ -15,12 +15,12 @@ class Embedder:
         Raises:
             ValueError: If model_name is not supported
         """
-        if model_name == "FaceNet":
+        if model_name == "facenet":
             self._model = FaceNet()
         else:
             raise ValueError(
                 f"Unsupported embedding model: {model_name}. "
-                f"Supported models: ['FaceNet']"
+                f"Supported models: ['facenet']"
             )
 
     def get_embedding(self, face_rgb: np.ndarray) -> np.ndarray:

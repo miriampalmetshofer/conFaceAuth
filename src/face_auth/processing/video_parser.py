@@ -4,7 +4,7 @@ from abc import ABC, abstractmethod
 from pathlib import Path
 from datetime import datetime
 
-from face_auth.models import ParticipantInfo
+from face_auth.config.models import ParticipantConfig
 from face_auth.processing.models import Video, EnrollmentVideo, Scenario, HeadRotation
 
 
@@ -16,11 +16,11 @@ class VideoParser(ABC):
         """Return true if this parser can parse this file."""
 
     @abstractmethod
-    def parse(self, path: Path, participant: ParticipantInfo) -> Video:
+    def parse(self, path: Path, participant: ParticipantConfig) -> Video:
         """Parse the file and return a Video instance."""
 
 
-class RegularVideoParser(VideoParser):
+class UsageVideoParser(VideoParser):
     """Parser for regular videos: {name}_{scenario}_{date}_{time}.mp4"""
 
     regex = re.compile(
@@ -30,7 +30,7 @@ class RegularVideoParser(VideoParser):
     def matches(self, path: Path) -> bool:
         return bool(self.regex.match(path.stem))
 
-    def parse(self, path: Path, participant: ParticipantInfo) -> Video:
+    def parse(self, path: Path, participant: ParticipantConfig) -> Video:
         match = self.regex.match(path.stem)
         groups = match.groupdict()
 
@@ -55,7 +55,7 @@ class EnrollmentVideoParser(VideoParser):
     def matches(self, path: Path) -> bool:
         return bool(self.regex.match(path.stem))
 
-    def parse(self, path: Path, participant: ParticipantInfo) -> EnrollmentVideo:
+    def parse(self, path: Path, participant: ParticipantConfig) -> EnrollmentVideo:
         match = self.regex.match(path.stem)
         groups = match.groupdict()
 

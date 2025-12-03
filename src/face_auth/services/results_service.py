@@ -1,10 +1,9 @@
 """Results service for managing authentication results persistence."""
 
 from typing import List
-from face_auth.config.models import ApplicationConfig
-from face_auth.models import ParticipantInfo
+from face_auth.config.models import ApplicationConfig, ParticipantConfig
 from face_auth.io import ResultWriter
-from face_auth.services.video_processing_service import VideoResult
+from face_auth.services.models import VideoResult
 from face_auth.utils.logging_config import get_logger
 
 logger = get_logger(__name__)
@@ -25,7 +24,8 @@ class ResultsService:
     def write_results(
         self,
         video_results: List[VideoResult],
-        participant: ParticipantInfo
+        participant: ParticipantConfig,
+        device: str
     ):
         """Write video results to CSV file."""
         results_path = self.config.paths.get_results_path()
@@ -35,7 +35,8 @@ class ResultsService:
                 video_result.frame_results,
                 results_path,
                 video_result.video.path,
-                participant
+                participant,
+                device
             )
 
         logger.debug(f"Wrote results for {len(video_results)} video(s) to {results_path}")

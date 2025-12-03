@@ -1,9 +1,9 @@
 import os
 
-from face_auth.models import ParticipantInfo
+from face_auth.config.models import ParticipantConfig
 from face_auth.processing.video_discovery import VideoDiscovery
 from face_auth.processing.video_processor import VideoProcessor
-from face_auth.processing.video_parser import RegularVideoParser, EnrollmentVideoParser
+from face_auth.processing.video_parser import UsageVideoParser, EnrollmentVideoParser
 from face_auth.core.authenticator import ContinuousAuthenticator
 from face_auth.core.embedder import Embedder
 from face_auth.detection import FaceDetector, FaceExtractor
@@ -29,7 +29,7 @@ from face_auth.io import EnrollmentLoader
 
 
 
-def setup_enrollment(participant: ParticipantInfo,
+def setup_enrollment(participant: ParticipantConfig,
                      enrollment_base_path: str,
                      frames_per_direction: int,
                      logger) -> str:
@@ -90,13 +90,13 @@ def setup_enrollment(participant: ParticipantInfo,
     return enrollment_folder
 
 
-def process_participant(participant: ParticipantInfo, base_path: str,
+def process_participant(participant: ParticipantConfig, base_path: str,
                         enrollment_base_path: str, results_csv_path: str,
                         config: ConfigManager, logger):
     """Process all videos for a single participant on a device."""
     participant_video_folder = os.path.join(base_path, participant.device)
 
-    video_discovery = VideoDiscovery(participant, RegularVideoParser())
+    video_discovery = VideoDiscovery(participant, UsageVideoParser())
     videos = video_discovery.discover(participant_video_folder)
 
     if not videos:

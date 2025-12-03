@@ -11,12 +11,12 @@ class FaceDetector:
     """Detects faces in images and returns bounding boxes."""
 
     def __init__(self, detector_backend: str):
-        if detector_backend == "MTCNN":
+        if detector_backend == "mtcnn":
             self._detector = MTCNN()
         else:
             raise ValueError(
                 f"Unsupported detector backend: {detector_backend}. "
-                f"Supported backends: ['MTCNN']"
+                f"Supported backends: ['mtcnn']"
             )
 
     def detect(self, image_bgr: np.ndarray) -> Optional[BoundingBox]:

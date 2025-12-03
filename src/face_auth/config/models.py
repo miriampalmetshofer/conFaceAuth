@@ -88,11 +88,11 @@ class ModelConfig:
 
     def validate(self):
         """Validate model configuration."""
-        valid_detectors = ["opencv", "ssd", "dlib", "mtcnn", "retinaface", "mediapipe"]
+        valid_detectors = ["mtcnn"]
         if self.detector not in valid_detectors:
             raise ValueError(f"detector must be one of {valid_detectors}, got {self.detector}")
 
-        valid_embedders = ["VGG-Face", "Facenet", "Facenet512", "OpenFace", "DeepFace", "DeepID", "ArcFace", "Dlib"]
+        valid_embedders = ["facenet"]
         if self.embedder not in valid_embedders:
             raise ValueError(f"embedder must be one of {valid_embedders}, got {self.embedder}")
 
