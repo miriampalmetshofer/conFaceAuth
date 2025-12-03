@@ -88,13 +88,8 @@ class ModelConfig:
 
     def validate(self):
         """Validate model configuration."""
-        valid_detectors = ["mtcnn"]
-        if self.detector not in valid_detectors:
-            raise ValueError(f"detector must be one of {valid_detectors}, got {self.detector}")
-
-        valid_embedders = ["facenet"]
-        if self.embedder not in valid_embedders:
-            raise ValueError(f"embedder must be one of {valid_embedders}, got {self.embedder}")
+        # Validation is performed by FaceDetector and Embedder classes at runtime
+        pass
 
 
 @dataclass
