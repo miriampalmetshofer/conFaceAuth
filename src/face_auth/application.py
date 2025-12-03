@@ -9,8 +9,6 @@ from face_auth.services.enrollment_service import EnrollmentService
 from face_auth.services.video_processing_service import VideoProcessingService
 from face_auth.services.results_service import ResultsService
 from face_auth.pipeline import (
-    PipelineOrchestrator,
-    PipelineContext,
     VideoDiscoveryStage,
     EnrollmentStage,
     VideoProcessingStage,
@@ -32,7 +30,7 @@ class FaceAuthApplication:
         """
         self.config = config
         self._init_services()
-        self.pipeline = self._build_pipeline()
+        self._init_stages()
 
     def _init_services(self):
         """Initialize all services."""
@@ -58,15 +56,21 @@ class FaceAuthApplication:
         )
         self.results_service = ResultsService(config=self.config)
 
-    def _build_pipeline(self) -> PipelineOrchestrator:
-        """Build the processing pipeline with all stages."""
-        stages = [
-            VideoDiscoveryStage(),
-            EnrollmentStage(),
-            VideoProcessingStage(),
-            ResultsPersistenceStage()
-        ]
-        return PipelineOrchestrator(stages)
+    def _init_stages(self):
+        """Initialize all pipeline stages."""
+        self.video_discovery_stage = VideoDiscoveryStage(
+            base_path=self.config.paths.base_path
+        )
+        self.enrollment_stage = EnrollmentStage(
+            enrollment_service=self.enrollment_service
+        )
+        self.video_processing_stage = VideoProcessingStage(
+            video_processing_service=self.video_processing_service,
+            skip_frames=self.config.processing.skip_frames
+        )
+        self.results_persistence_stage = ResultsPersistenceStage(
+            results_service=self.results_service
+        )
 
     def run(self):
         """Run the face authentication application."""
@@ -112,23 +116,21 @@ class FaceAuthApplication:
         logger.info(f"Participant: {participant_config.name} | Device: {device}")
         logger.info(f"{'=' * 60}")
 
-        context = PipelineContext(
-            participant=participant_config,
-            device=device,
-            config=self.config,
-            enrollment_service=self.enrollment_service,
-            video_processing_service=self.video_processing_service,
-            results_service=self.results_service
-        )
+        try:
+            videos = self.video_discovery_stage.execute(participant_config, device)
 
-        success = self.pipeline.execute(context)
+            enrollment_data = self.enrollment_stage.execute(participant_config, device)
 
-        if success:
+            video_results = self.video_processing_stage.execute(videos, enrollment_data)
+
+            self.results_persistence_stage.execute(video_results, participant_config, device)
+
             logger.info(f"Successfully processed {participant_config.name} on {device}")
-        else:
-            logger.warning(f"Failed to process {participant_config.name} on {device}")
+            return True
 
-        return success
+        except Exception as e:
+            logger.error(f"Failed to process {participant_config.name} on {device}: {e}")
+            return False
 
     def _validate_prerequisites(self):
         """Validate prerequisites before starting processing."""

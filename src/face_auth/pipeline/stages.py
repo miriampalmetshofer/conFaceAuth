@@ -1,108 +1,174 @@
 """Pipeline stage implementations."""
 
 import os
-from abc import ABC, abstractmethod
-from face_auth.pipeline.context import PipelineContext
+from typing import List, Optional
+
+from face_auth.config.models import ParticipantConfig
 from face_auth.processing.video_discovery import VideoDiscovery
-from face_auth.processing.video_parser import UsageVideoParser
+from face_auth.processing.video_parser import RegularVideoParser
+from face_auth.processing.models import Video
+from face_auth.services.models import EnrollmentData, VideoResult
+from face_auth.services.enrollment_service import EnrollmentService
+from face_auth.services.video_processing_service import VideoProcessingService
+from face_auth.services.results_service import ResultsService
 from face_auth.utils.logging_config import get_logger
 
 logger = get_logger(__name__)
 
 
-class PipelineStage(ABC):
-    """Base class for all pipeline stages."""
-
-    @abstractmethod
-    def execute(self, context: PipelineContext) -> PipelineContext:
-        """Execute stage and return updated context."""
-        pass
-
-
-class VideoDiscoveryStage(PipelineStage):
+class VideoDiscoveryStage:
     """Stage 1: Discover videos for participant on device."""
 
-    def execute(self, context: PipelineContext) -> PipelineContext:
-        """Discover videos for participant."""
-        logger.info(f"Discovering videos for {context.participant.name} on {context.device}")
+    def __init__(self, base_path: str):
+        """Initialize with base path for video discovery.
 
-        video_folder = os.path.join(
-            context.config.paths.base_path,
-            context.device
-        )
+        Args:
+            base_path: Base directory path where device folders are located
+        """
+        self.base_path = base_path
 
-        discovery = VideoDiscovery(context.participant, UsageVideoParser())
+    def execute(self, participant: ParticipantConfig, device: str) -> List[Video]:
+        """Discover videos for participant on device.
+
+        Args:
+            participant: Participant configuration
+            device: Device identifier
+
+        Returns:
+            List of discovered videos
+
+        Raises:
+            FileNotFoundError: If no videos found
+        """
+        logger.info(f"Discovering videos for {participant.name} on {device}")
+
+        video_folder = os.path.join(self.base_path, device)
+        discovery = VideoDiscovery(participant, RegularVideoParser())
         videos = discovery.discover(video_folder)
 
         if not videos:
             raise FileNotFoundError(
-                f"No videos found for {context.participant.name} on {context.device} "
-                f"in {video_folder}"
+                f"No videos found for {participant.name} on {device} in {video_folder}"
             )
 
-        context.videos = videos
         logger.info(f"Found {len(videos)} video(s)")
-        return context
+        return videos
 
 
-class EnrollmentStage(PipelineStage):
+class EnrollmentStage:
     """Stage 2: Ensure enrollment exists or create it."""
 
-    def execute(self, context: PipelineContext) -> PipelineContext:
-        """Setup enrollment for participant."""
-        logger.info(f"Setting up enrollment for {context.participant.name}")
+    def __init__(self, enrollment_service: EnrollmentService):
+        """Initialize with enrollment service.
 
-        enrollment_data = context.enrollment_service.ensure_enrollment(
-            context.participant,
-            context.device
-        )
+        Args:
+            enrollment_service: Service for managing enrollments
+        """
+        self.enrollment_service = enrollment_service
 
-        context.enrollment_data = enrollment_data
+    def execute(self, participant: ParticipantConfig, device: str) -> EnrollmentData:
+        """Setup enrollment for participant.
+
+        Args:
+            participant: Participant configuration
+            device: Device identifier
+
+        Returns:
+            Enrollment data with embeddings
+        """
+        logger.info(f"Setting up enrollment for {participant.name}")
+
+        enrollment_data = self.enrollment_service.ensure_enrollment(participant, device)
+
         logger.info("Enrollment ready")
-        return context
+        return enrollment_data
 
 
-class VideoProcessingStage(PipelineStage):
+class VideoProcessingStage:
     """Stage 3: Process each video through authentication pipeline."""
 
-    def execute(self, context: PipelineContext) -> PipelineContext:
-        """Process all videos for participant."""
-        logger.info(f"Processing {len(context.videos)} video(s)")
+    def __init__(self, video_processing_service: VideoProcessingService, skip_frames: int):
+        """Initialize with video processing service and configuration.
 
-        for video in context.videos:
+        Args:
+            video_processing_service: Service for processing videos
+            skip_frames: Process every Nth frame
+        """
+        self.video_processing_service = video_processing_service
+        self.skip_frames = skip_frames
+
+    def execute(
+        self,
+        videos: List[Video],
+        enrollment_data: EnrollmentData
+    ) -> List[VideoResult]:
+        """Process all videos for participant.
+
+        Args:
+            videos: List of videos to process
+            enrollment_data: Enrollment data with embeddings
+
+        Returns:
+            List of video processing results
+
+        Raises:
+            RuntimeError: If all videos fail to process
+        """
+        logger.info(f"Processing {len(videos)} video(s)")
+
+        video_results = []
+        for video in videos:
             logger.info(f"--- PROCESSING: {video.filename} ---")
             logger.info(f"    Scenario: {video.scenario.value} | Date: {video.recording_date}")
 
             try:
-                video_result = context.video_processing_service.process_video(
+                video_result = self.video_processing_service.process_video(
                     video=video,
-                    enrollment_data=context.enrollment_data,
-                    skip_frames=context.config.processing.skip_frames
+                    enrollment_data=enrollment_data,
+                    skip_frames=self.skip_frames
                 )
-                context.video_results.append(video_result)
+                video_results.append(video_result)
                 logger.info(f"Successfully processed {video.filename}")
 
             except Exception as e:
                 logger.error(f"Failed to process {video.filename}: {e}")
 
-        if not context.video_results:
+        if not video_results:
             raise RuntimeError("All videos failed to process")
 
-        return context
+        return video_results
 
 
-class ResultsPersistenceStage(PipelineStage):
+class ResultsPersistenceStage:
     """Stage 4: Write results to storage."""
 
-    def execute(self, context: PipelineContext) -> PipelineContext:
-        """Write video results to CSV."""
+    def __init__(self, results_service: ResultsService):
+        """Initialize with results service.
+
+        Args:
+            results_service: Service for persisting results
+        """
+        self.results_service = results_service
+
+    def execute(
+        self,
+        video_results: List[VideoResult],
+        participant: ParticipantConfig,
+        device: str
+    ) -> None:
+        """Write video results to CSV.
+
+        Args:
+            video_results: List of video processing results
+            participant: Participant configuration
+            device: Device identifier
+        """
         logger.info("Writing results to file")
 
-        context.results_service.write_results(
-            video_results=context.video_results,
-            participant=context.participant,
-            device=context.device
+        self.results_service.write_results(
+            video_results=video_results,
+            participant=participant,
+            device=device
         )
 
-        logger.info(f"Results written for {len(context.video_results)} video(s)")
-        return context
+        logger.info(f"Results written for {len(video_results)} video(s)")
