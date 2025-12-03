@@ -10,7 +10,7 @@ from face_auth.core.frame_processor import FrameProcessor
 from face_auth.processing.video_processor import VideoProcessor
 from face_auth.processing.models import Video
 from face_auth.services.models import EnrollmentData, VideoResult
-from face_auth.utils.logging_config import get_logger
+from face_auth.config.logging_config import get_logger
 
 logger = get_logger(__name__)
 

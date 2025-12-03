@@ -1,8 +1,15 @@
 """Data models for enrollment."""
 from dataclasses import dataclass
-import numpy as np
-from face_auth.utils.enums import HeadDirection
+from enum import Enum
 
+import numpy as np
+
+class HeadDirection(Enum):
+    FRONT = "front"
+    LEFT = "left"
+    RIGHT = "right"
+    UP = "up"
+    DOWN = "down"
 
 @dataclass(frozen=True)
 class HeadPose:

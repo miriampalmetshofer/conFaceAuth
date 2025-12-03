@@ -4,18 +4,23 @@ import cv2
 import mediapipe as mp
 import numpy as np
 
-from face_auth.utils.enums import HeadDirection
-from face_auth.enrollment.models import HeadPose
-from face_auth.enrollment.constants import (
-    NOSE_TIP_LANDMARK,
-    CHIN_LANDMARK,
-    LEFT_EYE_CORNER_LANDMARK,
-    RIGHT_EYE_CORNER_LANDMARK,
-    LEFT_MOUTH_CORNER_LANDMARK,
-    RIGHT_MOUTH_CORNER_LANDMARK,
-    FACE_MODEL_POINTS,
-)
+from face_auth.enrollment.models import HeadPose, HeadDirection
 
+NOSE_TIP_LANDMARK = 1
+CHIN_LANDMARK = 152
+LEFT_EYE_CORNER_LANDMARK = 33
+RIGHT_EYE_CORNER_LANDMARK = 263
+LEFT_MOUTH_CORNER_LANDMARK = 61
+RIGHT_MOUTH_CORNER_LANDMARK = 291
+
+FACE_MODEL_POINTS = np.array([
+    [0.0, 0.0, 0.0],           # Nose tip
+    [0.0, -330.0, -65.0],      # Chin
+    [-225.0, 170.0, -135.0],   # Left eye corner
+    [225.0, 170.0, -135.0],    # Right eye corner
+    [-150.0, -150.0, -125.0],  # Left mouth corner
+    [150.0, -150.0, -125.0]    # Right mouth corner
+])
 
 class HeadPoseEstimator:
     """Estimates head pose angles from facial landmarks using MediaPipe."""

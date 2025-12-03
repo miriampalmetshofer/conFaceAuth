@@ -1,7 +1,7 @@
 import pandas as pd
 from pathlib import Path
 from typing import List
-from face_auth.utils.logging_config import get_logger
+from face_auth.config.logging_config import get_logger
 from face_auth.config.models import ParticipantConfig, ApplicationConfig
 from face_auth.core.models import FrameAuthenticationResult
 

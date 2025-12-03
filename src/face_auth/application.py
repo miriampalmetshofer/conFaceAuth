@@ -14,7 +14,7 @@ from face_auth.pipeline import (
     VideoProcessingStage,
     ResultsPersistenceStage
 )
-from face_auth.utils.logging_config import get_logger
+from face_auth.config.logging_config import get_logger
 
 logger = get_logger(__name__)
 

@@ -4,7 +4,7 @@ from pathlib import Path
 
 from face_auth.core.embedder import Embedder
 from face_auth.detection import FaceDetector, FaceExtractor
-from face_auth.utils.logging_config import get_logger
+from face_auth.config.logging_config import get_logger
 
 logger = get_logger(__name__)
 

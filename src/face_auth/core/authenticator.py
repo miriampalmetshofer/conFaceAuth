@@ -6,7 +6,7 @@ from face_auth.core.similarity_calculator import SimilarityCalculator
 from face_auth.core.percentile_filter import PercentileFilter
 from face_auth.core.temporal_window import TemporalWindow
 from face_auth.core.risk_scorer import RiskScorer
-from face_auth.utils.logging_config import get_logger
+from face_auth.config.logging_config import get_logger
 
 logger = get_logger(__name__)
 

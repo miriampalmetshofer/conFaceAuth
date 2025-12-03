@@ -11,7 +11,7 @@ from face_auth.services.models import EnrollmentData, VideoResult
 from face_auth.services.enrollment_service import EnrollmentService
 from face_auth.services.video_processing_service import VideoProcessingService
 from face_auth.services.results_service import ResultsService
-from face_auth.utils.logging_config import get_logger
+from face_auth.config.logging_config import get_logger
 
 logger = get_logger(__name__)
 
@@ -118,8 +118,7 @@ class VideoProcessingStage:
 
         video_results = []
         for video in videos:
-            logger.info(f"--- PROCESSING: {video.path.name} ---")
-            logger.info(f"    Scenario: {video.scenario.value} | Date: {video.recording_date}")
+            logger.info(f"--- PROCESSING: {video.path.name}  | Date: {video.recording_date} ---")
 
             try:
                 video_result = self.video_processing_service.process_video(

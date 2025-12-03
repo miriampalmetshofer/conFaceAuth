@@ -1,9 +1,8 @@
 """Face authentication system entry point."""
 
 import sys
-from face_auth.config import ConfigLoader
+from face_auth.config import ConfigLoader, setup_logging, get_logger
 from face_auth.application import FaceAuthApplication
-from face_auth.utils import setup_logging, get_logger
 
 
 def parse_cli_arguments() -> str:

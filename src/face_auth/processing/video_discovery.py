@@ -3,7 +3,7 @@ from pathlib import Path
 from face_auth.config.models import ParticipantConfig
 from face_auth.processing.models import Video, VIDEO_EXTENSIONS
 from face_auth.processing.video_parser import VideoParser
-from face_auth.utils.logging_config import get_logger
+from face_auth.config.logging_config import get_logger
 
 logger = get_logger(__name__)
 

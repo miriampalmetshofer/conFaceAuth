@@ -18,7 +18,7 @@ from face_auth.enrollment import (
 )
 from face_auth.enrollment.enrollment_loader import EnrollmentLoader
 from face_auth.services.models import EnrollmentData
-from face_auth.utils.logging_config import get_logger
+from face_auth.config.logging_config import get_logger
 
 logger = get_logger(__name__)
 

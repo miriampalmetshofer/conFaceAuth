@@ -3,13 +3,12 @@ import cv2
 import numpy as np
 from pathlib import Path
 
-from face_auth.enrollment.models import EnrollmentFrames
+from face_auth.enrollment.models import EnrollmentFrames, HeadDirection
 from face_auth.enrollment.video_frame_extractor import VideoFrameExtractor
 from face_auth.enrollment.direction_classifier import HeadPoseEstimator, DirectionClassifier
 from face_auth.enrollment.frame_sampler import NormalDistributionSampler
-from face_auth.enrollment.frame_saver import EnrollmentFrameSaver
-from face_auth.utils.enums import HeadDirection
-from face_auth.utils.logging_config import get_logger
+from face_auth.enrollment.enrollment_frame_saver import EnrollmentFrameSaver
+from face_auth.config.logging_config import get_logger
 
 logger = get_logger(__name__)
 

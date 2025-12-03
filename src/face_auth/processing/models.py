@@ -17,6 +17,9 @@ class HeadRotation(Enum):
     CLOCKWISE = "cw"
     COUNTERCLOCKWISE = "ccw"
 
+class Color(Enum):
+    RED = (0, 0, 255)
+    GREEN = (0, 255, 0)
 
 @dataclass
 class Video:
