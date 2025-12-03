@@ -1,5 +1,6 @@
 import cv2
 import os
+from dataclasses import replace
 
 from face_auth.core.frame_processor import FrameProcessor
 from face_auth.io import DebugFrameSaver
@@ -52,13 +53,9 @@ class VideoProcessor:
                     logger.info(f"Frame {frame_count}: Predicted State={auth_result.state.value}, "
                           f"Distance={auth_result.distance:.4f}, Risk Score={auth_result.risk_score:.4f}")
 
-                    results.append({
-                        'frame': frame_count,
-                        'predicted_state': auth_result.state.value,
-                        'distance': auth_result.distance,
-                        'risk_score': auth_result.risk_score,
-                        'face_detected': auth_result.face_detected
-                    })
+                    # Add frame number to result
+                    auth_result_with_frame = replace(auth_result, frame_index=frame_count)
+                    results.append(auth_result_with_frame)
 
             except Exception as e:
                 logger.error(f"Error processing frame {frame_count}: {e}")

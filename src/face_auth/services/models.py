@@ -1,10 +1,11 @@
 """Data models for services."""
 
 from dataclasses import dataclass
-from typing import List, Dict, Any
+from typing import List
 import numpy as np
 
 from face_auth.processing.models import Video
+from face_auth.core.models import FrameAuthenticationResult
 
 
 @dataclass
@@ -20,4 +21,4 @@ class VideoResult:
     """Container for video processing results."""
 
     video: Video
-    frame_results: List[Dict[str, Any]]
+    frame_results: List[FrameAuthenticationResult]

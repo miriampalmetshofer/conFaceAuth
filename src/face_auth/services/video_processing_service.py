@@ -1,7 +1,5 @@
 """Video processing service for authentication pipeline."""
 
-from typing import List, Dict, Any
-
 from face_auth.config.models import AuthenticationConfig
 from face_auth.core.embedder import Embedder
 from face_auth.detection import FaceDetector, FaceExtractor

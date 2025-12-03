@@ -20,3 +20,14 @@ class FrameAuthenticationResult:
     risk_score: float
     face_detected: bool
     bounding_box: Optional[BoundingBox] = None
+    frame_index: int = 0
+
+    def to_dict(self) -> dict:
+        """Convert to dictionary format for CSV output."""
+        return {
+            'frame': self.frame_index,
+            'predicted_state': self.state.value,
+            'distance': self.distance,
+            'risk_score': self.risk_score,
+            'face_detected': self.face_detected
+        }

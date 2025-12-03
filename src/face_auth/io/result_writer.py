@@ -1,7 +1,9 @@
 import os
 import pandas as pd
+from typing import List
 from face_auth.utils.logging_config import get_logger
 from face_auth.config.models import ParticipantConfig, ApplicationConfig
+from face_auth.core.models import FrameAuthenticationResult
 
 logger = get_logger(__name__)
 
@@ -12,9 +14,10 @@ class ResultWriter:
     def __init__(self, config: ApplicationConfig):
         self.config = config
 
-    def write_results(self, results: list, csv_path: str, video_path: str, participant: ParticipantConfig, device: str) -> None:
+    def write_results(self, results: List[FrameAuthenticationResult], csv_path: str, video_path: str, participant: ParticipantConfig, device: str) -> None:
         """Write authentication results to CSV with configuration metadata."""
-        df = pd.DataFrame(results)
+        results_dicts = [result.to_dict() for result in results]
+        df = pd.DataFrame(results_dicts)
 
         metadata = self._extract_metadata(video_path, participant, device)
         for key, value in metadata.items():
