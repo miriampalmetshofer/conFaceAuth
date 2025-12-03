@@ -1,6 +1,7 @@
 """Configuration loader for building typed config from JSON."""
 
 import json
+from pathlib import Path
 from typing import Any, Dict
 from face_auth.config.models import (
     ApplicationConfig,
@@ -61,8 +62,8 @@ class ConfigLoader:
     def _build_paths(self, data: Dict[str, Any]) -> PathsConfig:
         """Build PathsConfig from data."""
         return PathsConfig(
-            base_path=data['base_path'],
-            enrollment_base_path=data['enrollment_base_path'],
+            base_path=Path(data['base_path']),
+            enrollment_base_path=Path(data['enrollment_base_path']),
             results_file=data['results_file']
         )
 

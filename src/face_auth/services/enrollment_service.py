@@ -1,6 +1,6 @@
 """Enrollment service for managing participant enrollment data."""
 
-import os
+from pathlib import Path
 
 from face_auth.config.models import EnrollmentConfig, PathsConfig
 from face_auth.config.models import ParticipantConfig
@@ -80,13 +80,9 @@ class EnrollmentService:
             logger.info(f"=== ENROLLING: {participant.name} ({device}) ===")
             return self._create_enrollment(participant, device, enrollment_folder)
 
-    def _get_enrollment_folder(self, participant: ParticipantConfig, device: str) -> str:
+    def _get_enrollment_folder(self, participant: ParticipantConfig, device: str) -> Path:
         """Get enrollment folder path for participant."""
-        participant_folder = os.path.join(
-            self.paths.enrollment_base_path,
-            device,
-            participant.name
-        )
+        participant_folder = self.paths.enrollment_base_path / device / participant.name
 
         # Find enrollment video to determine folder name
         discovery = VideoDiscovery(participant, EnrollmentVideoParser())
@@ -103,17 +99,16 @@ class EnrollmentService:
             )
 
         enrollment_video = enrollment_videos[0]
-        video_name = os.path.splitext(os.path.basename(enrollment_video.path))[0]
-        return os.path.join(participant_folder, video_name)
+        video_name = enrollment_video.path.stem
+        return participant_folder / video_name
 
-    def _enrollment_exists(self, enrollment_folder: str) -> bool:
+    def _enrollment_exists(self, enrollment_folder: Path) -> bool:
         """Check if enrollment folder exists and contains images."""
-        if not os.path.exists(enrollment_folder):
+        if not enrollment_folder.exists():
             return False
 
         try:
-            files = os.listdir(enrollment_folder)
-            return any(f.endswith(".jpg") for f in files)
+            return any(enrollment_folder.glob("*.jpg"))
         except Exception:
             return False
 
@@ -121,7 +116,7 @@ class EnrollmentService:
         self,
         participant: ParticipantConfig,
         device: str,
-        enrollment_folder: str
+        enrollment_folder: Path
     ) -> EnrollmentData:
         """Create new enrollment.
 
@@ -137,11 +132,7 @@ class EnrollmentService:
             EnrollmentException: If enrollment creation fails
         """
         # Discover enrollment video
-        participant_folder = os.path.join(
-            self.paths.enrollment_base_path,
-            device,
-            participant.name
-        )
+        participant_folder = self.paths.enrollment_base_path / device / participant.name
         discovery = VideoDiscovery(participant, EnrollmentVideoParser())
         enrollment_videos = discovery.discover(participant_folder)
 
@@ -149,7 +140,7 @@ class EnrollmentService:
             raise EnrollmentException("No enrollment video found")
 
         enrollment_video = enrollment_videos[0]
-        logger.info(f"Using enrollment video: {enrollment_video.filename}")
+        logger.info(f"Using enrollment video: {enrollment_video.path.name}")
 
         # Build enrollment orchestrator
         orchestrator = self._build_enrollment_orchestrator()
@@ -164,7 +155,7 @@ class EnrollmentService:
         # Load and return
         return self._load_enrollment(enrollment_folder)
 
-    def _load_enrollment(self, folder: str) -> EnrollmentData:
+    def _load_enrollment(self, folder: Path) -> EnrollmentData:
         """Load existing enrollment from folder.
 
         Args:

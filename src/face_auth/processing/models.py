@@ -1,8 +1,8 @@
 """Data models for video processing."""
-import os
 from dataclasses import dataclass
 from datetime import date
 from enum import Enum
+from pathlib import Path
 
 from face_auth.config.models import ParticipantConfig
 
@@ -23,15 +23,10 @@ class HeadRotation(Enum):
 @dataclass
 class Video:
     """Represents a video file with parsed metadata."""
-    path: str
+    path: Path
     participant: ParticipantConfig
     scenario: Scenario
     recording_date: date
-
-    @property
-    def filename(self) -> str:
-        """Get the filename without directory path."""
-        return os.path.basename(self.path)
 
 
 @dataclass

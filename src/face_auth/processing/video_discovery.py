@@ -1,5 +1,3 @@
-import os
-import glob
 from pathlib import Path
 
 from face_auth.config.models import ParticipantConfig
@@ -18,31 +16,31 @@ class VideoDiscovery:
         self.participant = participant
         self.parser = parser
 
-    def discover(self, folder_path: str) -> list[Video]:
+    def discover(self, folder_path: Path) -> list[Video]:
         """Discover and parse videos for the participant using the configured parser.
 
         Args:
-            folder_path: Exact folder path to search for videos
+            folder_path: Folder path to search for videos
         """
-        video_paths = self._find_video_files(folder_path)
+        folder = folder_path
+        video_paths = self._find_video_files(folder)
 
         videos = []
         for video_path in video_paths:
-            path = Path(video_path)
-            if self.parser.matches(path):
+            if self.parser.matches(video_path):
                 try:
-                    video = self.parser.parse(path, self.participant)
+                    video = self.parser.parse(video_path, self.participant)
                     videos.append(video)
                 except ValueError as e:
-                    logger.warning(f"Could not parse {path.name}: {e}")
+                    logger.warning(f"Could not parse {video_path.name}: {e}")
 
         logger.info(f"Found {len(videos)} videos for {self.participant.name}")
         return videos
 
-    def _find_video_files(self, folder_path: str) -> list[str]:
+    def _find_video_files(self, folder: Path) -> list[Path]:
         """Find all video files matching the participant name pattern."""
         video_paths = []
         for ext in VIDEO_EXTENSIONS:
-            pattern = os.path.join(folder_path, f"{self.participant.name}_*.{ext}")
-            video_paths.extend(glob.glob(pattern))
+            pattern = f"{self.participant.name}_*.{ext}"
+            video_paths.extend(folder.glob(pattern))
         return video_paths

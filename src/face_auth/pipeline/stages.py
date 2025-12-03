@@ -1,7 +1,7 @@
 """Pipeline stage implementations."""
 
-import os
-from typing import List, Optional
+from pathlib import Path
+from typing import List
 
 from face_auth.config.models import ParticipantConfig
 from face_auth.processing.video_discovery import VideoDiscovery
@@ -19,7 +19,7 @@ logger = get_logger(__name__)
 class VideoDiscoveryStage:
     """Stage 1: Discover videos for participant on device."""
 
-    def __init__(self, base_path: str):
+    def __init__(self, base_path: Path):
         """Initialize with base path for video discovery.
 
         Args:
@@ -42,7 +42,7 @@ class VideoDiscoveryStage:
         """
         logger.info(f"Discovering videos for {participant.name} on {device}")
 
-        video_folder = os.path.join(self.base_path, device)
+        video_folder = self.base_path / device
         discovery = VideoDiscovery(participant, UsageVideoParser())
         videos = discovery.discover(video_folder)
 
@@ -118,7 +118,7 @@ class VideoProcessingStage:
 
         video_results = []
         for video in videos:
-            logger.info(f"--- PROCESSING: {video.filename} ---")
+            logger.info(f"--- PROCESSING: {video.path.name} ---")
             logger.info(f"    Scenario: {video.scenario.value} | Date: {video.recording_date}")
 
             try:
@@ -128,10 +128,10 @@ class VideoProcessingStage:
                     skip_frames=self.skip_frames
                 )
                 video_results.append(video_result)
-                logger.info(f"Successfully processed {video.filename}")
+                logger.info(f"Successfully processed {video.path.name}")
 
             except Exception as e:
-                logger.error(f"Failed to process {video.filename}: {e}")
+                logger.error(f"Failed to process {video.path.name}: {e}")
 
         if not video_results:
             raise RuntimeError("All videos failed to process")

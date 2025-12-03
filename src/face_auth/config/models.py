@@ -1,6 +1,7 @@
 """Configuration domain models."""
 
 from dataclasses import dataclass
+from pathlib import Path
 from typing import List
 import logging
 
@@ -9,13 +10,13 @@ import logging
 class PathsConfig:
     """File paths configuration."""
 
-    base_path: str
-    enrollment_base_path: str
+    base_path: Path
+    enrollment_base_path: Path
     results_file: str
 
-    def get_results_path(self) -> str:
+    def get_results_path(self) -> Path:
         """Get formatted results file path."""
-        return self.results_file.format(base_path=self.base_path)
+        return Path(self.results_file.format(base_path=self.base_path))
 
     def validate(self):
         """Validate paths configuration."""

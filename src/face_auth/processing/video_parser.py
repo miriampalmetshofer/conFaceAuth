@@ -38,7 +38,7 @@ class UsageVideoParser(VideoParser):
         datetime_obj = datetime.strptime(f"{groups['date']} {groups['time']}", "%Y-%m-%d %H-%M-%S")
 
         return Video(
-            path=str(path),
+            path=path,
             participant=participant,
             scenario=scenario,
             recording_date=datetime_obj.date(),
@@ -64,7 +64,7 @@ class EnrollmentVideoParser(VideoParser):
         datetime_obj = datetime.strptime(f"{groups['date']} {groups['time']}", "%Y-%m-%d %H-%M-%S")
 
         return EnrollmentVideo(
-            path=str(path),
+            path=path,
             participant=participant,
             scenario=scenario,
             head_rotation=head_rotation,

@@ -45,7 +45,6 @@ def main():
     logger.info(f"Loaded configuration from: {config_file}")
 
     try:
-        # Create and run application
         app = FaceAuthApplication(config)
         app.run()
 
