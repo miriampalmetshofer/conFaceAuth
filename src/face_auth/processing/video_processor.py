@@ -3,7 +3,7 @@ from dataclasses import replace
 from pathlib import Path
 
 from face_auth.core.frame_processor import FrameProcessor
-from face_auth.io import DebugFrameSaver
+from face_auth.processing.debug_frame_saver import DebugFrameSaver
 from face_auth.processing.video_utils import get_video_rotation_from_metadata, rotate_frame
 from face_auth.utils.logging_config import get_logger
 from face_auth.utils.enums import Color

@@ -5,6 +5,7 @@ from face_auth.enrollment.video_frame_extractor import VideoFrameExtractor
 from face_auth.enrollment.direction_classifier import HeadPoseEstimator, DirectionClassifier
 from face_auth.enrollment.frame_sampler import NormalDistributionSampler
 from face_auth.enrollment.frame_saver import EnrollmentFrameSaver
+from face_auth.enrollment.enrollment_loader import EnrollmentLoader
 from face_auth.enrollment.models import HeadPose, EnrollmentFrames
 from face_auth.enrollment.constants import (
     FRAME_SAMPLING_INTERVAL,
@@ -24,6 +25,7 @@ __all__ = [
     'DirectionClassifier',
     'NormalDistributionSampler',
     'EnrollmentFrameSaver',
+    'EnrollmentLoader',
     # Models
     'HeadPose',
     'EnrollmentFrames',

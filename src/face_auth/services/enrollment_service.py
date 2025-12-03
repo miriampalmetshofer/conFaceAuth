@@ -16,7 +16,7 @@ from face_auth.enrollment import (
     NormalDistributionSampler,
     EnrollmentFrameSaver
 )
-from face_auth.io import EnrollmentLoader
+from face_auth.enrollment.enrollment_loader import EnrollmentLoader
 from face_auth.services.models import EnrollmentData
 from face_auth.utils.logging_config import get_logger
 

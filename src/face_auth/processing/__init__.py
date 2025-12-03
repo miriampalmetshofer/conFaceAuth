@@ -7,6 +7,8 @@ from face_auth.processing.video_parser import (
     ControlledStudyParser,
     EnrollmentVideoParser,
 )
+from face_auth.processing.debug_frame_saver import DebugFrameSaver
+from face_auth.processing.result_writer import ResultWriter
 
 __all__ = [
     'VideoProcessor',
@@ -18,4 +20,6 @@ __all__ = [
     'VideoParser',
     'ControlledStudyParser',
     'EnrollmentVideoParser',
+    'DebugFrameSaver',
+    'ResultWriter',
 ]

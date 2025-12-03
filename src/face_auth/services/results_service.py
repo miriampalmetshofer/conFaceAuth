@@ -2,7 +2,7 @@
 
 from typing import List
 from face_auth.config.models import ApplicationConfig, ParticipantConfig
-from face_auth.io import ResultWriter
+from face_auth.processing.result_writer import ResultWriter
 from face_auth.services.models import VideoResult
 from face_auth.utils.logging_config import get_logger
 
