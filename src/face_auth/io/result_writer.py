@@ -2,6 +2,7 @@ import os
 import pandas as pd
 from face_auth.utils.logging_config import get_logger
 from face_auth.models import ParticipantInfo
+from face_auth.config.models import ApplicationConfig
 
 logger = get_logger(__name__)
 
@@ -9,14 +10,13 @@ logger = get_logger(__name__)
 class ResultWriter:
     """Handles writing authentication results to CSV files."""
 
-    def __init__(self, config: dict):
+    def __init__(self, config: ApplicationConfig):
         self.config = config
 
     def write_results(self, results: list, csv_path: str, video_path: str, participant: ParticipantInfo) -> None:
         """Write authentication results to CSV with configuration metadata."""
         df = pd.DataFrame(results)
 
-        # Add configuration metadata to each row
         metadata = self._extract_metadata(video_path, participant)
         for key, value in metadata.items():
             df[key] = value
@@ -27,18 +27,17 @@ class ResultWriter:
 
     def _extract_metadata(self, video_path: str, participant: ParticipantInfo) -> dict:
         """Extract relevant configuration fields for CSV output."""
-        metadata = {
+        return {
             "participant": participant.name,
             "device": participant.device,
             "video_path": video_path,
-            "skip_frames": self.config.get("skip_frames"),
-            "window_size": self.config.get("window_size"),
-            "threshold": self.config.get("threshold"),
-            "embedder": self.config.get("embedder"),
-            "detector": self.config.get("detector"),
-            "similarity_percentile": self.config.get("similarity_percentile"),
-            "enrollment_frames_per_direction": self.config.get("enrollment_frames_per_direction"),
-            "no_face_penalty": self.config.get("no_face_penalty"),
-            "alpha": self.config.get("alpha")
+            "skip_frames": self.config.processing.skip_frames,
+            "window_size": self.config.authentication.window_size,
+            "threshold": self.config.authentication.threshold,
+            "embedder": self.config.models.embedder,
+            "detector": self.config.models.detector,
+            "similarity_percentile": self.config.authentication.similarity_percentile,
+            "enrollment_frames_per_direction": self.config.enrollment.frames_per_direction,
+            "no_face_penalty": self.config.authentication.no_face_penalty,
+            "alpha": self.config.authentication.alpha
         }
-        return metadata

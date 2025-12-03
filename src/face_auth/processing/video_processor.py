@@ -2,8 +2,7 @@ import cv2
 import os
 
 from face_auth.core.frame_processor import FrameProcessor
-from face_auth.models import ParticipantInfo
-from face_auth.io import ResultWriter, DebugFrameSaver
+from face_auth.io import DebugFrameSaver
 from face_auth.processing.video_utils import get_video_rotation_from_metadata, rotate_frame
 from face_auth.utils.logging_config import get_logger
 from face_auth.utils.enums import Color
@@ -14,20 +13,18 @@ logger = get_logger(__name__)
 class VideoProcessor:
     """Orchestrates video processing and face authentication pipeline."""
 
-    def __init__(self, frame_processor: FrameProcessor, config: dict, debug_output_folder: str):
+    def __init__(self, frame_processor: FrameProcessor, debug_output_folder: str):
         """Initialize video processor.
 
         Args:
             frame_processor: FrameProcessor instance
-            config: Configuration dictionary
             debug_output_folder: Folder to save debug frames when no face detected
         """
         self.frame_processor = frame_processor
-        self.result_writer = ResultWriter(config)
         self.debug_saver = DebugFrameSaver(debug_output_folder)
 
-    def process_video(self, video_path: str, skip_frames: int, results_csv_path: str, participant: ParticipantInfo) -> None:
-        """Process a video file and authenticate faces in frames."""
+    def process_video_frames(self, video_path: str, skip_frames: int) -> list:
+        """Process video frames and return results without writing to file."""
         rotation_angle = get_video_rotation_from_metadata(video_path)
         cap = cv2.VideoCapture(video_path)
 
@@ -57,7 +54,7 @@ class VideoProcessor:
 
                     results.append({
                         'frame': frame_count,
-                        'predicted_state': auth_result.state.value,  # Convert enum to string
+                        'predicted_state': auth_result.state.value,
                         'distance': auth_result.distance,
                         'risk_score': auth_result.risk_score,
                         'face_detected': auth_result.face_detected
@@ -71,7 +68,8 @@ class VideoProcessor:
 
         cap.release()
         cv2.destroyAllWindows()
-        self.result_writer.write_results(results, results_csv_path, video_path, participant)
+
+        return results
 
     def process_live_stream(self, skip_frames: int = 30) -> None:
         """Process live webcam stream with face authentication.
