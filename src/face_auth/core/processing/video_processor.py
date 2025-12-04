@@ -1,7 +1,10 @@
+from typing import List
+
 import cv2
 from dataclasses import replace
 from pathlib import Path
 
+from face_auth.core.authentication import FrameAuthenticationResult
 from face_auth.core.authentication.frame_authenticator import FrameAuthenticator
 from face_auth.core.processing.debug_frame_saver import DebugFrameSaver
 from face_auth.core.processing.models import Color
@@ -14,24 +17,24 @@ logger = get_logger(__name__)
 class VideoProcessor:
     """Orchestrates video processing and face authentication pipeline."""
 
-    def __init__(self, frame_processor: FrameAuthenticator, debug_output_folder: Path):
+    def __init__(self, frame_authenticator: FrameAuthenticator, debug_output_folder: Path):
         """Initialize video processor.
 
         Args:
-            frame_processor: FrameProcessor instance
+            frame_authenticator: FrameProcessor instance
             debug_output_folder: Folder to save debug frames when no face detected
         """
-        self.frame_processor = frame_processor
+        self.frame_authenticator = frame_authenticator
         self.debug_saver = DebugFrameSaver(debug_output_folder)
 
-    def process_video_frames(self, video_path: Path, skip_frames: int) -> list:
+    def process_video_frames(self, video_path: Path, skip_frames: int) -> List[FrameAuthenticationResult]:
         """Process video frames and return results without writing to file."""
         rotation_angle = get_video_rotation_from_metadata(video_path)
         cap = cv2.VideoCapture(str(video_path))
 
         self._log_video_info(cap)
 
-        frame_count = 1
+        frame_index = 1
         results = []
         video_name = video_path.stem
 
@@ -43,25 +46,25 @@ class VideoProcessor:
             frame = rotate_frame(frame, rotation_angle)
 
             try:
-                if frame_count == 1 or frame_count % skip_frames == 0:
-                    auth_result = self.frame_processor.authenticate_frame(frame)
+                if frame_index == 1 or frame_index % skip_frames == 0:
+                    auth_result = self.frame_authenticator.authenticate(frame)
 
                     if not auth_result.face_detected:
-                        logger.warning(f"No face detected at frame {frame_count}")
-                        self.debug_saver.save_frame(frame, frame_count, video_name)
+                        logger.warning(f"No face detected at frame {frame_index}")
+                        self.debug_saver.save_frame(frame, frame_index, video_name)
 
-                    logger.info(f"Frame {frame_count}: Predicted State={auth_result.state.value}, "
+                    logger.info(f"Frame {frame_index}: Predicted State={auth_result.state.value}, "
                           f"Distance={auth_result.distance:.4f}, Risk Score={auth_result.risk_score:.4f}")
 
                     # Add frame number to result
-                    auth_result_with_frame = replace(auth_result, frame_index=frame_count)
+                    auth_result_with_frame = replace(auth_result, frame_index=frame_index)
                     results.append(auth_result_with_frame)
 
             except Exception as e:
-                logger.error(f"Error processing frame {frame_count}: {e}")
+                logger.error(f"Error processing frame {frame_index}: {e}")
                 raise e
 
-            frame_count += 1
+            frame_index += 1
 
         cap.release()
         cv2.destroyAllWindows()
@@ -84,7 +87,7 @@ class VideoProcessor:
         cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
 
         frame_count = 0
-        threshold = self.frame_processor.continuous_authenticator.threshold
+        threshold = self.frame_authenticator.continuous_authenticator.threshold
 
         # Store last authentication result to persist display
         last_auth_result = None
@@ -98,7 +101,7 @@ class VideoProcessor:
             try:
                 # Authenticate only on skip_frames interval
                 if frame_count % skip_frames == 0:
-                    last_auth_result = self.frame_processor.authenticate_frame(frame)
+                    last_auth_result = self.frame_authenticator.authenticate(frame)
 
                 # Display last authentication result on every frame
                 if last_auth_result is not None:

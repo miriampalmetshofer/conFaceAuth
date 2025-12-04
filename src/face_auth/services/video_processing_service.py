@@ -54,7 +54,7 @@ class VideoProcessingService:
         Returns:
             VideoResult with frame-by-frame authentication results
         """
-        # Build authenticator for this video
+        # Build continuous authenticator for this video
         authenticator = ContinuousAuthenticator(
             enrollment_embeddings=enrollment_data.embeddings,
             window_size=self.config.window_size,
@@ -63,8 +63,8 @@ class VideoProcessingService:
             alpha=self.config.alpha
         )
 
-        # Build frame processor
-        frame_processor = FrameAuthenticator(
+        # Build frame authenticator
+        frame_authenticator = FrameAuthenticator(
             detector=self.detector,
             extractor=self.extractor,
             embedder=self.embedder,
@@ -74,7 +74,7 @@ class VideoProcessingService:
 
         # Build video processor
         video_processor = VideoProcessor(
-            frame_processor=frame_processor,
+            frame_authenticator=frame_authenticator,
             debug_output_folder=Path("debug/no_face_frames")
         )
 

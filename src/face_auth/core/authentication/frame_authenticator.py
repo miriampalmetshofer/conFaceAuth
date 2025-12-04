@@ -33,7 +33,7 @@ class FrameAuthenticator:
         self._authenticator = authenticator
         self._no_face_penalty = no_face_penalty
 
-    def authenticate_frame(self, frame_bgr: np.ndarray) -> FrameAuthenticationResult:
+    def authenticate(self, frame_bgr: np.ndarray) -> FrameAuthenticationResult:
         """Process frame and return authentication result.
 
         Args:
