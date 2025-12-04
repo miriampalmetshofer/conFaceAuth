@@ -1,6 +1,7 @@
 """Data models for services."""
 
 from dataclasses import dataclass
+from pathlib import Path
 from typing import List
 import numpy as np
 
@@ -12,7 +13,7 @@ from face_auth.core.models import FrameAuthenticationResult
 class EnrollmentData:
     """Container for enrollment data."""
 
-    folder: str
+    folder: Path
     embeddings: List[np.ndarray]
 
 

@@ -8,7 +8,8 @@ from face_auth.config.models import (
     ModelConfig,
     ProcessingConfig,
     LoggingConfig,
-    ParticipantConfig
+    ParticipantConfig,
+    ProcessingContext
 )
 from face_auth.config.loader import ConfigLoader
 from face_auth.config.logging_config import setup_logging, get_logger
@@ -22,6 +23,7 @@ __all__ = [
     'ProcessingConfig',
     'LoggingConfig',
     'ParticipantConfig',
+    'ProcessingContext',
     'ConfigLoader',
     'setup_logging',
     'get_logger'

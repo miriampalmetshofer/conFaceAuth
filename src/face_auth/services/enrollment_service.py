@@ -2,8 +2,7 @@
 
 from pathlib import Path
 
-from face_auth.config.models import EnrollmentConfig, PathsConfig
-from face_auth.config.models import ParticipantConfig
+from face_auth.config.models import EnrollmentConfig, PathsConfig, ProcessingContext
 from face_auth.core.embedder import Embedder
 from face_auth.detection import FaceDetector, FaceExtractor
 from face_auth.processing.video_discovery import VideoDiscovery
@@ -56,14 +55,12 @@ class EnrollmentService:
 
     def ensure_enrollment(
         self,
-        participant: ParticipantConfig,
-        device: str
+        context: ProcessingContext
     ) -> EnrollmentData:
         """Ensure enrollment exists, create if needed.
 
         Args:
-            participant: Participant information
-            device: Device identifier
+            context: Processing context with participant and device
 
         Returns:
             EnrollmentData with folder path and embeddings
@@ -71,21 +68,21 @@ class EnrollmentService:
         Raises:
             EnrollmentException: If enrollment cannot be created or loaded
         """
-        enrollment_folder = self._get_enrollment_folder(participant, device)
+        enrollment_folder = self._get_enrollment_folder(context)
 
         if self._enrollment_exists(enrollment_folder):
-            logger.info(f"Loading existing enrollment for {participant.name} ({device})")
+            logger.info(f"Loading existing enrollment for {context.participant.name} ({context.device})")
             return self._load_enrollment(enrollment_folder)
         else:
-            logger.info(f"=== ENROLLING: {participant.name} ({device}) ===")
-            return self._create_enrollment(participant, device, enrollment_folder)
+            logger.info(f"=== ENROLLING: {context.participant.name} ({context.device}) ===")
+            return self._create_enrollment(context, enrollment_folder)
 
-    def _get_enrollment_folder(self, participant: ParticipantConfig, device: str) -> Path:
+    def _get_enrollment_folder(self, context: ProcessingContext) -> Path:
         """Get enrollment folder path for participant."""
-        participant_folder = self.paths.enrollment_base_path / device / participant.name
+        participant_folder = self.paths.enrollment_base_path / context.device / context.participant.name
 
         # Find enrollment video to determine folder name
-        discovery = VideoDiscovery(participant, EnrollmentVideoParser())
+        discovery = VideoDiscovery(context.participant, EnrollmentVideoParser())
         enrollment_videos = discovery.discover(participant_folder)
 
         if not enrollment_videos:
@@ -93,8 +90,8 @@ class EnrollmentService:
                 f"\n{'!' * 60}\n"
                 f"ERROR: No enrollment video found!\n"
                 f"Searched in: {participant_folder}\n"
-                f"Expected pattern: {participant.name}_enrollment_*\n"
-                f"Participant: '{participant.name}' | Device: '{device}'\n"
+                f"Expected pattern: {context.participant.name}_enrollment_*\n"
+                f"Participant: '{context.participant.name}' | Device: '{device}'\n"
                 f"{'!' * 60}\n"
             )
 
@@ -114,15 +111,13 @@ class EnrollmentService:
 
     def _create_enrollment(
         self,
-        participant: ParticipantConfig,
-        device: str,
+        context: ProcessingContext,
         enrollment_folder: Path
     ) -> EnrollmentData:
         """Create new enrollment.
 
         Args:
-            participant: Participant information
-            device: Device identifier
+            context: Processing context with participant and device
             enrollment_folder: Path to enrollment folder
 
         Returns:
@@ -132,8 +127,8 @@ class EnrollmentService:
             EnrollmentException: If enrollment creation fails
         """
         # Discover enrollment video
-        participant_folder = self.paths.enrollment_base_path / device / participant.name
-        discovery = VideoDiscovery(participant, EnrollmentVideoParser())
+        participant_folder = self.paths.enrollment_base_path / context.device / context.participant.name
+        discovery = VideoDiscovery(context.participant, EnrollmentVideoParser())
         enrollment_videos = discovery.discover(participant_folder)
 
         if not enrollment_videos:

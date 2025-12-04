@@ -139,6 +139,23 @@ class ParticipantConfig:
 
 
 @dataclass
+class ProcessingContext:
+    """Context for processing a participant on a specific device."""
+
+    participant: ParticipantConfig
+    device: str
+    pool: str
+
+    def validate(self):
+        """Validate processing context."""
+        if not self.device:
+            raise ValueError("device cannot be empty")
+        if not self.pool:
+            raise ValueError("pool cannot be empty")
+        self.participant.validate()
+
+
+@dataclass
 class ApplicationConfig:
     """Root configuration object containing all sub-configurations."""
 

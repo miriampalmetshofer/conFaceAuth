@@ -2,7 +2,7 @@ import pandas as pd
 from pathlib import Path
 from typing import List
 from face_auth.config.logging_config import get_logger
-from face_auth.config.models import ParticipantConfig, ApplicationConfig
+from face_auth.config.models import ProcessingContext, ApplicationConfig
 from face_auth.core.models import FrameAuthenticationResult
 
 logger = get_logger(__name__)
@@ -14,12 +14,12 @@ class ResultWriter:
     def __init__(self, config: ApplicationConfig):
         self.config = config
 
-    def write_results(self, results: List[FrameAuthenticationResult], csv_path: Path, video_path: Path, participant: ParticipantConfig, device: str) -> None:
+    def write_results(self, results: List[FrameAuthenticationResult], csv_path: Path, video_path: Path, context: ProcessingContext) -> None:
         """Write authentication results to CSV with configuration metadata."""
         results_dicts = [result.to_dict() for result in results]
         df = pd.DataFrame(results_dicts)
 
-        metadata = self._extract_metadata(video_path, participant, device)
+        metadata = self._extract_metadata(video_path, context)
         for key, value in metadata.items():
             df[key] = value
 
@@ -27,11 +27,12 @@ class ResultWriter:
         logger.info(f"{'Appending' if file_exists else 'Creating'} results to {csv_path}")
         df.to_csv(csv_path, mode='a', header=not file_exists, index=False)
 
-    def _extract_metadata(self, video_path: Path, participant: ParticipantConfig, device: str) -> dict:
+    def _extract_metadata(self, video_path: Path, context: ProcessingContext) -> dict:
         """Extract relevant configuration fields for CSV output."""
         return {
-            "participant": participant.name,
-            "device": device,
+            "participant": context.participant.name,
+            "device": context.device,
+            "pool": context.pool,
             "video_path": video_path,
             "skip_frames": self.config.processing.skip_frames,
             "window_size": self.config.authentication.window_size,

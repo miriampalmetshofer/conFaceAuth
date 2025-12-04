@@ -3,7 +3,7 @@
 from pathlib import Path
 from typing import List
 
-from face_auth.config.models import ParticipantConfig
+from face_auth.config.models import ProcessingContext
 from face_auth.processing.video_discovery import VideoDiscovery
 from face_auth.processing.video_parser import ControlledStudyParser
 from face_auth.processing.models import Video
@@ -27,12 +27,11 @@ class VideoDiscoveryStage:
         """
         self.base_path = base_path
 
-    def execute(self, participant: ParticipantConfig, device: str) -> List[Video]:
+    def execute(self, context: ProcessingContext) -> List[Video]:
         """Discover videos for participant on device.
 
         Args:
-            participant: Participant configuration
-            device: Device identifier
+            context: Processing context with participant and device
 
         Returns:
             List of discovered videos
@@ -40,15 +39,15 @@ class VideoDiscoveryStage:
         Raises:
             FileNotFoundError: If no videos found
         """
-        logger.info(f"Discovering videos for {participant.name} on {device}")
+        logger.info(f"Discovering videos for {context.participant.name} on {context.device}")
 
-        video_folder = self.base_path / device
-        discovery = VideoDiscovery(participant, ControlledStudyParser())
+        video_folder = self.base_path / context.device
+        discovery = VideoDiscovery(context.participant, ControlledStudyParser())
         videos = discovery.discover(video_folder)
 
         if not videos:
             raise FileNotFoundError(
-                f"No videos found for {participant.name} on {device} in {video_folder}"
+                f"No videos found for {context.participant.name} on {context.device} in {video_folder}"
             )
 
         logger.info(f"Found {len(videos)} video(s)")
@@ -66,19 +65,18 @@ class EnrollmentStage:
         """
         self.enrollment_service = enrollment_service
 
-    def execute(self, participant: ParticipantConfig, device: str) -> EnrollmentData:
+    def execute(self, context: ProcessingContext) -> EnrollmentData:
         """Setup enrollment for participant.
 
         Args:
-            participant: Participant configuration
-            device: Device identifier
+            context: Processing context with participant and device
 
         Returns:
             Enrollment data with embeddings
         """
-        logger.info(f"Setting up enrollment for {participant.name}")
+        logger.info(f"Setting up enrollment for {context.participant.name}")
 
-        enrollment_data = self.enrollment_service.ensure_enrollment(participant, device)
+        enrollment_data = self.enrollment_service.ensure_enrollment(context)
 
         logger.info("Enrollment ready")
         return enrollment_data
@@ -152,22 +150,19 @@ class ResultsPersistenceStage:
     def execute(
         self,
         video_results: List[VideoResult],
-        participant: ParticipantConfig,
-        device: str
+        context: ProcessingContext
     ) -> None:
         """Write video results to CSV.
 
         Args:
             video_results: List of video processing results
-            participant: Participant configuration
-            device: Device identifier
+            context: Processing context with participant and device
         """
         logger.info("Writing results to file")
 
         self.results_service.write_results(
             video_results=video_results,
-            participant=participant,
-            device=device
+            context=context
         )
 
         logger.info(f"Results written for {len(video_results)} video(s)")

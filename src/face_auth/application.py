@@ -1,7 +1,7 @@
 """Face authentication application orchestrator."""
 
 import os
-from face_auth.config.models import ApplicationConfig, ParticipantConfig
+from face_auth.config.models import ApplicationConfig, ProcessingContext
 from face_auth.core.embedder import Embedder
 from face_auth.detection import FaceDetector, FaceExtractor
 from face_auth.core.constants import FACENET_INPUT_WIDTH, FACENET_INPUT_HEIGHT
@@ -86,7 +86,12 @@ class FaceAuthApplication:
 
         for device in self.config.processing.devices:
             for participant_config in self.config.participants:
-                success = self._process_participant(participant_config, device)
+                context = ProcessingContext(
+                    participant=participant_config,
+                    device=device,
+                    pool=self.config.pool
+                )
+                success = self._process_participant(context)
                 if success:
                     total_success += 1
                 else:
@@ -100,36 +105,34 @@ class FaceAuthApplication:
 
     def _process_participant(
         self,
-        participant_config: ParticipantConfig,
-        device: str
+        context: ProcessingContext
     ) -> bool:
         """Process single participant on device.
 
         Args:
-            participant_config: Participant configuration
-            device: Device identifier
+            context: Processing context with participant and device
 
         Returns:
             True if processing succeeded, False otherwise
         """
         logger.info(f"{'=' * 60}")
-        logger.info(f"Participant: {participant_config.name} | Device: {device}")
+        logger.info(f"Participant: {context.participant.name} | Device: {context.device}")
         logger.info(f"{'=' * 60}")
 
         try:
-            videos = self.video_discovery_stage.execute(participant_config, device)
+            videos = self.video_discovery_stage.execute(context)
 
-            enrollment_data = self.enrollment_stage.execute(participant_config, device)
+            enrollment_data = self.enrollment_stage.execute(context)
 
             video_results = self.video_processing_stage.execute(videos, enrollment_data)
 
-            self.results_persistence_stage.execute(video_results, participant_config, device)
+            self.results_persistence_stage.execute(video_results, context)
 
-            logger.info(f"Successfully processed {participant_config.name} on {device}")
+            logger.info(f"Successfully processed {context.participant.name} on {context.device}")
             return True
 
         except Exception as e:
-            logger.error(f"Failed to process {participant_config.name} on {device}: {e}")
+            logger.error(f"Failed to process {context.participant.name} on {context.device}: {e}")
             return False
 
     def _validate_prerequisites(self):
