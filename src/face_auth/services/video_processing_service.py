@@ -3,12 +3,12 @@
 from pathlib import Path
 
 from face_auth.config.models import AuthenticationConfig
-from face_auth.core.embedder import Embedder
-from face_auth.detection import FaceDetector, FaceExtractor
-from face_auth.core.authenticator import ContinuousAuthenticator
-from face_auth.core.frame_processor import FrameProcessor
-from face_auth.processing.video_processor import VideoProcessor
-from face_auth.processing.models import Video
+from face_auth.core.authentication.embedder import Embedder
+from face_auth.core.detection import FaceDetector, FaceExtractor
+from face_auth.core.authentication.continuous_authenticator import ContinuousAuthenticator
+from face_auth.core.authentication.frame_authenticator import FrameAuthenticator
+from face_auth.core.processing.video_processor import VideoProcessor
+from face_auth.core.processing.models import Video
 from face_auth.services.models import EnrollmentData, VideoResult
 from face_auth.config.logging_config import get_logger
 
@@ -64,7 +64,7 @@ class VideoProcessingService:
         )
 
         # Build frame processor
-        frame_processor = FrameProcessor(
+        frame_processor = FrameAuthenticator(
             detector=self.detector,
             extractor=self.extractor,
             embedder=self.embedder,

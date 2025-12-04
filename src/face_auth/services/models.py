@@ -5,8 +5,8 @@ from pathlib import Path
 from typing import List
 import numpy as np
 
-from face_auth.processing.models import Video
-from face_auth.core.models import FrameAuthenticationResult
+from face_auth.core.processing.models import Video
+from face_auth.core.authentication.models import FrameAuthenticationResult
 
 
 @dataclass

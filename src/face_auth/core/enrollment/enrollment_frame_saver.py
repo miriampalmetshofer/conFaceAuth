@@ -3,7 +3,7 @@ import cv2
 import numpy as np
 
 from face_auth.config.logging_config import get_logger
-from face_auth.enrollment.models import HeadDirection
+from face_auth.core.enrollment import HeadDirection
 
 logger = get_logger(__name__)
 

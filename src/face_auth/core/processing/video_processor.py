@@ -2,10 +2,10 @@ import cv2
 from dataclasses import replace
 from pathlib import Path
 
-from face_auth.core.frame_processor import FrameProcessor
-from face_auth.processing.debug_frame_saver import DebugFrameSaver
-from face_auth.processing.models import Color
-from face_auth.processing.video_utils import get_video_rotation_from_metadata, rotate_frame
+from face_auth.core.authentication.frame_authenticator import FrameAuthenticator
+from face_auth.core.processing.debug_frame_saver import DebugFrameSaver
+from face_auth.core.processing.models import Color
+from face_auth.core.processing.video_utils import get_video_rotation_from_metadata, rotate_frame
 from face_auth.config.logging_config import get_logger
 
 logger = get_logger(__name__)
@@ -14,7 +14,7 @@ logger = get_logger(__name__)
 class VideoProcessor:
     """Orchestrates video processing and face authentication pipeline."""
 
-    def __init__(self, frame_processor: FrameProcessor, debug_output_folder: Path):
+    def __init__(self, frame_processor: FrameAuthenticator, debug_output_folder: Path):
         """Initialize video processor.
 
         Args:

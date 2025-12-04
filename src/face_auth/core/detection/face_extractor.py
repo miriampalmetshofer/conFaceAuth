@@ -3,8 +3,8 @@ from typing import Optional
 import cv2
 import numpy as np
 
-from face_auth.detection.models import BoundingBox, DetectionResult
-from face_auth.detection.face_detector import FaceDetector
+from face_auth.core.detection.models import BoundingBox, DetectionResult
+from face_auth.core.detection.face_detector import FaceDetector
 
 
 class FaceExtractor:

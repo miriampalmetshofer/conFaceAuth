@@ -4,7 +4,7 @@ import cv2
 import mediapipe as mp
 import numpy as np
 
-from face_auth.enrollment.models import HeadPose, HeadDirection
+from face_auth.core.enrollment import HeadPose, HeadDirection
 
 NOSE_TIP_LANDMARK = 1
 CHIN_LANDMARK = 152

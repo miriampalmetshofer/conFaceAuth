@@ -4,7 +4,7 @@ import cv2
 import numpy as np
 from mtcnn import MTCNN
 
-from face_auth.detection.models import BoundingBox
+from face_auth.core.detection.models import BoundingBox
 
 
 class FaceDetector:

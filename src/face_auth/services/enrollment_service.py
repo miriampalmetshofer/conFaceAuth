@@ -3,11 +3,11 @@
 from pathlib import Path
 
 from face_auth.config.models import EnrollmentConfig, PathsConfig, ProcessingContext
-from face_auth.core.embedder import Embedder
-from face_auth.detection import FaceDetector, FaceExtractor
-from face_auth.processing.video_discovery import VideoDiscovery
-from face_auth.processing.video_parser import EnrollmentVideoParser
-from face_auth.enrollment import (
+from face_auth.core.authentication.embedder import Embedder
+from face_auth.core.detection import FaceDetector, FaceExtractor
+from face_auth.core.processing.video_discovery import VideoDiscovery
+from face_auth.core.processing.video_parser import EnrollmentVideoParser
+from face_auth.core.enrollment import (
     EnrollmentVideoProcessor,
     VideoFrameExtractor,
     HeadPoseEstimator,
@@ -15,7 +15,7 @@ from face_auth.enrollment import (
     NormalDistributionSampler,
     EnrollmentFrameSaver
 )
-from face_auth.enrollment.enrollment_loader import EnrollmentLoader
+from face_auth.core.enrollment import EnrollmentLoader
 from face_auth.services.models import EnrollmentData
 from face_auth.config.logging_config import get_logger
 
@@ -53,7 +53,7 @@ class EnrollmentService:
         self.extractor = face_extractor
         self.embedder = embedder
 
-    def ensure_enrollment(
+    def get_enrollment(
         self,
         context: ProcessingContext
     ) -> EnrollmentData:
@@ -91,7 +91,7 @@ class EnrollmentService:
                 f"ERROR: No enrollment video found!\n"
                 f"Searched in: {participant_folder}\n"
                 f"Expected pattern: {context.participant.name}_enrollment_*\n"
-                f"Participant: '{context.participant.name}' | Device: '{device}'\n"
+                f"Participant: '{context.participant.name}' | Device: '{context.device}'\n"
                 f"{'!' * 60}\n"
             )
 

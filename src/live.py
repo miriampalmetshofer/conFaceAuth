@@ -6,9 +6,9 @@ from face_auth.core import (
     FACENET_INPUT_WIDTH,
     FACENET_INPUT_HEIGHT
 )
-from face_auth.detection import FaceDetector, FaceExtractor
+from face_auth.core.detection import FaceDetector, FaceExtractor
 from face_auth.io import ConfigManager
-from face_auth.enrollment.enrollment_loader import EnrollmentLoader
+from face_auth.enrollment import EnrollmentLoader
 from face_auth.utils import setup_logging
 
 setup_logging()

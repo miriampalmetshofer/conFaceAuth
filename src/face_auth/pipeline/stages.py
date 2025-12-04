@@ -4,9 +4,9 @@ from pathlib import Path
 from typing import List
 
 from face_auth.config.models import ProcessingContext
-from face_auth.processing.video_discovery import VideoDiscovery
-from face_auth.processing.video_parser import ControlledStudyParser
-from face_auth.processing.models import Video
+from face_auth.core.processing.video_discovery import VideoDiscovery
+from face_auth.core.processing.video_parser import ControlledStudyParser
+from face_auth.core.processing.models import Video
 from face_auth.services.models import EnrollmentData, VideoResult
 from face_auth.services.enrollment_service import EnrollmentService
 from face_auth.services.video_processing_service import VideoProcessingService
@@ -76,7 +76,7 @@ class EnrollmentStage:
         """
         logger.info(f"Setting up enrollment for {context.participant.name}")
 
-        enrollment_data = self.enrollment_service.ensure_enrollment(context)
+        enrollment_data = self.enrollment_service.get_enrollment(context)
 
         logger.info("Enrollment ready")
         return enrollment_data

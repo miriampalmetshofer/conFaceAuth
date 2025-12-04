@@ -3,12 +3,10 @@ import cv2
 import numpy as np
 from pathlib import Path
 
-from face_auth.enrollment.models import EnrollmentFrames, HeadDirection
-from face_auth.enrollment.video_frame_extractor import VideoFrameExtractor
-from face_auth.enrollment.direction_classifier import HeadPoseEstimator, DirectionClassifier
-from face_auth.enrollment.frame_sampler import NormalDistributionSampler
-from face_auth.enrollment.enrollment_frame_saver import EnrollmentFrameSaver
+from face_auth.core.enrollment import EnrollmentFrames, VideoFrameExtractor, HeadPoseEstimator, DirectionClassifier, \
+    NormalDistributionSampler, EnrollmentFrameSaver
 from face_auth.config.logging_config import get_logger
+from face_auth.core.enrollment.models import HeadDirection
 
 logger = get_logger(__name__)
 
@@ -17,12 +15,12 @@ class EnrollmentVideoProcessor:
     """Processes enrollment videos to extract and classify frames by head direction."""
 
     def __init__(
-        self,
-        frame_extractor: VideoFrameExtractor,
-        pose_estimator: HeadPoseEstimator,
-        direction_classifier: DirectionClassifier,
-        frame_sampler: NormalDistributionSampler,
-        frame_saver: EnrollmentFrameSaver
+            self,
+            frame_extractor: VideoFrameExtractor,
+            pose_estimator: HeadPoseEstimator,
+            direction_classifier: DirectionClassifier,
+            frame_sampler: NormalDistributionSampler,
+            frame_saver: EnrollmentFrameSaver
     ):
         """Initialize enrollment orchestrator.
 
@@ -40,10 +38,10 @@ class EnrollmentVideoProcessor:
         self.frame_saver = frame_saver
 
     def process_enrollment_video(
-        self,
-        video_path: Path,
-        frames_per_direction: int,
-        output_folder: Path
+            self,
+            video_path: Path,
+            frames_per_direction: int,
+            output_folder: Path
     ) -> EnrollmentFrames:
         """Process enrollment video and extract frames organized by direction.
         1. Extract frames from video
@@ -75,8 +73,8 @@ class EnrollmentVideoProcessor:
         return EnrollmentFrames(frames_by_direction=sampled_frames)
 
     def _classify_frames_by_direction(
-        self,
-        frames: list[np.ndarray]
+            self,
+            frames: list[np.ndarray]
     ) -> dict[HeadDirection, list[np.ndarray]]:
         """Classify frames by head direction.
 
@@ -107,9 +105,9 @@ class EnrollmentVideoProcessor:
         return dict(frames_by_direction)
 
     def _sample_frames_per_direction(
-        self,
-        frames_by_direction: dict[HeadDirection, list[np.ndarray]],
-        frames_per_direction: int
+            self,
+            frames_by_direction: dict[HeadDirection, list[np.ndarray]],
+            frames_per_direction: int
     ) -> dict[HeadDirection, list[np.ndarray]]:
         """Sample frames for each direction.
 

@@ -3,7 +3,7 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Optional
 
-from face_auth.detection.models import BoundingBox
+from face_auth.core.detection import BoundingBox
 
 
 class AuthenticationState(Enum):

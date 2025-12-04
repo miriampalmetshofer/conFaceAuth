@@ -2,9 +2,9 @@
 
 import os
 from face_auth.config.models import ApplicationConfig, ProcessingContext
-from face_auth.core.embedder import Embedder
-from face_auth.detection import FaceDetector, FaceExtractor
-from face_auth.core.constants import FACENET_INPUT_WIDTH, FACENET_INPUT_HEIGHT
+from face_auth.core.authentication.embedder import Embedder
+from face_auth.core.detection import FaceDetector, FaceExtractor
+from face_auth.core.authentication.constants import FACENET_INPUT_WIDTH, FACENET_INPUT_HEIGHT
 from face_auth.services.enrollment_service import EnrollmentService
 from face_auth.services.video_processing_service import VideoProcessingService
 from face_auth.services.results_service import ResultsService

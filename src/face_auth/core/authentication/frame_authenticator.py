@@ -1,13 +1,13 @@
 """Frame processing for face authentication."""
 import numpy as np
 
-from face_auth.core.models import FrameAuthenticationResult, AuthenticationState
-from face_auth.detection import FaceDetector, FaceExtractor
-from face_auth.core.embedder import Embedder
-from face_auth.core.authenticator import ContinuousAuthenticator
+from face_auth.core.authentication.models import FrameAuthenticationResult, AuthenticationState
+from face_auth.core.detection import FaceDetector, FaceExtractor
+from face_auth.core.authentication.embedder import Embedder
+from face_auth.core.authentication.continuous_authenticator import ContinuousAuthenticator
 
 
-class FrameProcessor:
+class FrameAuthenticator:
     """Processes individual frames for face authentication."""
 
     def __init__(
