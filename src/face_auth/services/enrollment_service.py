@@ -8,7 +8,7 @@ from face_auth.detection import FaceDetector, FaceExtractor
 from face_auth.processing.video_discovery import VideoDiscovery
 from face_auth.processing.video_parser import EnrollmentVideoParser
 from face_auth.enrollment import (
-    EnrollmentOrchestrator,
+    EnrollmentVideoProcessor,
     VideoFrameExtractor,
     HeadPoseEstimator,
     DirectionClassifier,
@@ -137,17 +137,13 @@ class EnrollmentService:
         enrollment_video = enrollment_videos[0]
         logger.info(f"Using enrollment video: {enrollment_video.path.name}")
 
-        # Build enrollment orchestrator
-        orchestrator = self._build_enrollment_orchestrator()
-
-        # Process enrollment video
-        orchestrator.process_enrollment_video(
+        processor = self._build_enrollment_video_processor()
+        processor.process_enrollment_video(
             enrollment_video.path,
             self.config.frames_per_direction,
             enrollment_folder
         )
 
-        # Load and return
         return self._load_enrollment(enrollment_folder)
 
     def _load_enrollment(self, folder: Path) -> EnrollmentData:
@@ -169,9 +165,9 @@ class EnrollmentService:
         except Exception as e:
             raise EnrollmentException(f"Failed to load enrollment: {e}")
 
-    def _build_enrollment_orchestrator(self) -> EnrollmentOrchestrator:
-        """Build enrollment orchestrator with configured components."""
-        return EnrollmentOrchestrator(
+    def _build_enrollment_video_processor(self) -> EnrollmentVideoProcessor:
+        """Build enrollment video processor with configured components."""
+        return EnrollmentVideoProcessor(
             frame_extractor=VideoFrameExtractor(self.config.frame_sampling_interval),
             pose_estimator=HeadPoseEstimator(),
             direction_classifier=DirectionClassifier(

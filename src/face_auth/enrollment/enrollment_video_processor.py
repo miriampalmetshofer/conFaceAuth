@@ -13,8 +13,8 @@ from face_auth.config.logging_config import get_logger
 logger = get_logger(__name__)
 
 
-class EnrollmentOrchestrator:
-    """Coordinates enrollment frame extraction and processing."""
+class EnrollmentVideoProcessor:
+    """Processes enrollment videos to extract and classify frames by head direction."""
 
     def __init__(
         self,
