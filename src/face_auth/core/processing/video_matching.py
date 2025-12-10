@@ -37,36 +37,31 @@ class VideoMatchingStrategy(ABC):
 
 
 class ScenarioMatchingStrategy(VideoMatchingStrategy):
-    """Match videos by scenario (easy, angle, lighting)."""
+    """Match videos by scenario (easy, angle, lighting) for controlled study."""
 
     def match(self, all_videos: List[ControlledStudyVideo], genuine_user_name: str) -> List[ImposterSamplePair]:
         """Match genuine user videos with imposter videos of same scenario.
 
         Args:
-            all_videos: All discovered videos
+            all_videos: All discovered videos (must be ControlledStudyVideo)
             genuine_user_name: Name of the genuine user
 
         Returns:
-            List of ImposterSamplePair objects, one per genuine video
+            List of ImposterSamplePair objects
         """
         genuine_videos, imposter_videos = self.separate_genuine_and_imposter(all_videos, genuine_user_name)
 
         # Match each genuine video with imposters of same scenario
         pairs = []
         for genuine_video in genuine_videos:
-
             matching_imposters = [
                 video for video in imposter_videos
                 if video.scenario == genuine_video.scenario
             ]
 
             if not matching_imposters:
-                # Debug: show what imposters exist
-                imposter_scenarios = {f"{v.participant.name} ({v.scenario.value})" for v in imposter_videos}
                 logger.warning(
                     f"No matching imposters found for {genuine_video.path.name} "
-                    f"(scenario: {genuine_video.scenario.value}). "
-                    f"Available imposters: {', '.join(sorted(imposter_scenarios)) if imposter_scenarios else 'none'}"
                 )
             else:
                 for matching_imposter in matching_imposters:
@@ -78,6 +73,40 @@ class ScenarioMatchingStrategy(VideoMatchingStrategy):
                         f"Matched {genuine_video.path.name} ({genuine_video.scenario.value}) "
                         f"with {matching_imposter.path.name}"
                     )
+
+        return pairs
+
+
+class AllVideosMatchingStrategy(VideoMatchingStrategy):
+    """Match all imposter videos with each genuine video for in-the-wild study."""
+
+    def match(self, all_videos: List[Video], genuine_user_name: str) -> List[ImposterSamplePair]:
+        """Match genuine user videos with all available imposter videos.
+
+        Args:
+            all_videos: All discovered videos
+            genuine_user_name: Name of the genuine user
+
+        Returns:
+            List of ImposterSamplePair objects
+        """
+        genuine_videos, imposter_videos = self.separate_genuine_and_imposter(all_videos, genuine_user_name)
+
+        # Match each genuine video with ALL imposters
+        pairs = []
+        for genuine_video in genuine_videos:
+            if not imposter_videos:
+                logger.warning(f"No imposter videos available for {genuine_video.path.name}")
+                continue
+
+            for imposter_video in imposter_videos:
+                pairs.append(ImposterSamplePair(
+                    genuine_video=genuine_video,
+                    imposter_video=imposter_video
+                ))
+                logger.info(
+                    f"Matched {genuine_video.path.name} with {imposter_video.path.name}"
+                )
 
         return pairs
 

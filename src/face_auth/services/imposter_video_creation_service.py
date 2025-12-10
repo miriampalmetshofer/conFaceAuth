@@ -65,11 +65,10 @@ class ImposterVideoCreationService:
             )
 
     def _build_output_file_name(self, pair: ImposterSamplePair) -> str:
-        scenario_suffix = ""
-        if isinstance(pair.genuine_video, ControlledStudyVideo):
-            scenario_suffix = f"_{pair.genuine_video.scenario.value}"
-
-        return f"{pair.genuine_video.participant.name}{scenario_suffix}_vs_{pair.imposter_video.participant.name}.mp4"
+        """Build unique output filename using full video names to prevent collisions."""
+        genuine_stem = pair.genuine_video.path.stem
+        imposter_stem = pair.imposter_video.path.stem
+        return f"{genuine_stem}_vs_{imposter_stem}.mp4"
 
     def cleanup(self) -> None:
         """Clean up temporary directory for specific participant and device.

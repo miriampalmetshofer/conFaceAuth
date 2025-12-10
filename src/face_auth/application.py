@@ -6,7 +6,7 @@ from face_auth.core.authentication.embedder import Embedder
 from face_auth.core.detection import FaceDetector, FaceExtractor
 from face_auth.core.authentication.constants import FACENET_INPUT_WIDTH, FACENET_INPUT_HEIGHT
 from face_auth.core.processing.video_parser import VideoParser, ControlledStudyParser, InTheWildStudyParser
-from face_auth.core.processing.video_matching import ScenarioMatchingStrategy
+from face_auth.core.processing.video_matching import VideoMatchingStrategy, ScenarioMatchingStrategy, AllVideosMatchingStrategy
 from face_auth.services.enrollment_service import EnrollmentService
 from face_auth.services.video_processing_service import VideoProcessingService
 from face_auth.services.imposter_video_creation_service import ImposterVideoCreationService
@@ -75,6 +75,15 @@ class FaceAuthApplication:
         else:
             raise ValueError(f"Unknown pool type: {self.config.pool}")
 
+    def _get_matching_strategy_for_pool(self) -> VideoMatchingStrategy:
+        """Select appropriate matching strategy based on pool type."""
+        if self.config.pool == "controlled_study":
+            return ScenarioMatchingStrategy()
+        elif self.config.pool == "in_the_wild":
+            return AllVideosMatchingStrategy()
+        else:
+            raise ValueError(f"Unknown pool type: {self.config.pool}")
+
     def _init_stages(self):
         """Initialize all pipeline stages."""
         self.video_discovery_stage = VideoDiscoveryStage(
@@ -82,7 +91,7 @@ class FaceAuthApplication:
             parser=self._get_parser_for_pool()
         )
         self.video_matching_stage = VideoMatchingStage(
-            matching_strategy=ScenarioMatchingStrategy()
+            matching_strategy=self._get_matching_strategy_for_pool()
         )
         self.imposter_video_creation_stage = ImposterVideoCreationStage(
             imposter_creation_service=self.imposter_creation_service
@@ -180,6 +189,9 @@ class FaceAuthApplication:
         logger.info(f"{'=' * 60}")
 
         try:
+            # Get enrollment data
+            enrollment_data = self.enrollment_stage.execute(context)
+
             # Match genuine user videos with imposter videos
             imposter_data_for_stitching = self.video_matching_stage.execute(
                 all_videos,
@@ -188,9 +200,6 @@ class FaceAuthApplication:
 
             # Create imposter videos
             imposter_videos = self.imposter_video_creation_stage.execute(imposter_data_for_stitching, context)
-
-            # Get enrollment data
-            enrollment_data = self.enrollment_stage.execute(context)
 
             # Process imposter videos
             video_results = self.video_processing_stage.execute(imposter_videos, enrollment_data)
