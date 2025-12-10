@@ -4,7 +4,10 @@ from datetime import date
 from enum import Enum
 from pathlib import Path
 
+from face_auth.config import Participant
+
 VIDEO_EXTENSIONS = ("mp4", "MP4")
+
 
 class Scenario(Enum):
     """Video recording scenarios."""
@@ -12,20 +15,25 @@ class Scenario(Enum):
     ANGLE = "angle"
     LIGHTING = "lighting"
 
+
 class HeadRotation(Enum):
     """Head rotation directions for video scenarios."""
     CLOCKWISE = "cw"
     COUNTERCLOCKWISE = "ccw"
 
+
 class Color(Enum):
     RED = (0, 0, 255)
     GREEN = (0, 255, 0)
+
 
 @dataclass
 class Video:
     """Represents a video file with parsed metadata."""
     path: Path
     recording_date: date
+    participant: Participant
+
 
 @dataclass
 class ControlledStudyVideo(Video):
@@ -39,3 +47,9 @@ class EnrollmentVideo(Video):
     scenario: Scenario
     head_rotation: HeadRotation
 
+
+@dataclass
+class ImposterSamplePair:
+    """Pair of genuine user video with matching imposter videos for stitching."""
+    genuine_video: Video
+    imposter_video: Video

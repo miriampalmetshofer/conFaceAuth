@@ -35,6 +35,14 @@
     "sampling_seed": 42
   },
 
+  "imposter_creation": {
+    "fps": 25,
+    "genuine_user_seconds": 3.0,
+    "black_screen_seconds": 0.5,
+    "impostor_seconds": 3.0,
+    "temp_output_path": "data/temp_imposter_videos"
+  },
+
   "logging": {
     "level": "INFO",
     "format": "%(asctime)s - %(name)s - %(levelname)s - %(message)s"

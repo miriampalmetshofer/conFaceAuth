@@ -2,30 +2,30 @@ from pathlib import Path
 from typing import List
 
 from face_auth.config.logging_config import get_logger
-from face_auth.config.models import ProcessingContext
 from face_auth.core.processing.models import Video
 from face_auth.core.processing.video_discovery import VideoDiscovery
-from face_auth.core.processing.video_parser import ControlledStudyParser
+from face_auth.core.processing.video_parser import ControlledStudyParser, VideoParser
 
 logger = get_logger(__name__)
 
 
 class VideoDiscoveryStage:
-    """Stage 1: Discover videos for participant on device."""
+    """Stage 1: Discover all videos on device."""
 
-    def __init__(self, base_path: Path):
+    def __init__(self, base_path: Path, parser: VideoParser):
         """Initialize with base path for video discovery.
 
         Args:
             base_path: Base directory path where device folders are located
         """
         self.base_path = base_path
+        self.parser = parser
 
-    def execute(self, context: ProcessingContext) -> List[Video]:
-        """Discover videos for participant on device.
+    def execute(self, device: str) -> List[Video]:
+        """Discover all videos on device.
 
         Args:
-            context: Processing context with participant and device
+            device: Device name (folder name within base_path)
 
         Returns:
             List of discovered videos
@@ -33,15 +33,15 @@ class VideoDiscoveryStage:
         Raises:
             FileNotFoundError: If no videos found
         """
-        logger.info(f"Discovering videos for {context.participant.name} on {context.device}")
+        logger.info(f"Discovering videos on {device}")
 
-        video_folder = self.base_path / context.device
-        discovery = VideoDiscovery(context.participant, ControlledStudyParser())
+        video_folder = self.base_path / device
+        discovery = VideoDiscovery(self.parser)
         videos = discovery.discover(video_folder)
 
         if not videos:
             raise FileNotFoundError(
-                f"No videos found for {context.participant.name} on {context.device} in {video_folder}"
+                f"No videos found on {device} in {video_folder}"
             )
 
         logger.info(f"Found {len(videos)} video(s)")

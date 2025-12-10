@@ -109,6 +109,30 @@ class ProcessingConfig:
 
 
 @dataclass
+class StitchConfig:
+    """Imposter video creation configuration."""
+
+    fps: int
+    genuine_user_seconds: float
+    black_screen_seconds: float
+    impostor_seconds: float
+    temp_output_path: str
+
+    def validate(self):
+        """Validate imposter creation configuration."""
+        if self.fps <= 0:
+            raise ValueError(f"fps must be positive, got {self.fps}")
+        if self.genuine_user_seconds <= 0:
+            raise ValueError(f"genuine_user_seconds must be positive, got {self.genuine_user_seconds}")
+        if self.black_screen_seconds < 0:
+            raise ValueError(f"black_screen_seconds cannot be negative, got {self.black_screen_seconds}")
+        if self.impostor_seconds <= 0:
+            raise ValueError(f"impostor_seconds must be positive, got {self.impostor_seconds}")
+        if not self.temp_output_path:
+            raise ValueError("temp_output_path cannot be empty")
+
+
+@dataclass
 class LoggingConfig:
     """Logging configuration."""
 
@@ -127,7 +151,7 @@ class LoggingConfig:
 
 
 @dataclass
-class ParticipantConfig:
+class Participant:
     """Participant configuration."""
 
     name: str
@@ -142,7 +166,7 @@ class ParticipantConfig:
 class ProcessingContext:
     """Context for processing a participant on a specific device."""
 
-    participant: ParticipantConfig
+    participant: Participant
     device: str
     pool: str
 
@@ -160,12 +184,13 @@ class ApplicationConfig:
     """Root configuration object containing all sub-configurations."""
 
     pool: str
-    participants: List[ParticipantConfig]
+    participants: List[Participant]
     paths: PathsConfig
     authentication: AuthenticationConfig
     enrollment: EnrollmentConfig
     models: ModelConfig
     processing: ProcessingConfig
+    imposter_creation: StitchConfig
     logging: LoggingConfig
 
     def validate(self):
@@ -182,6 +207,7 @@ class ApplicationConfig:
         self.enrollment.validate()
         self.models.validate()
         self.processing.validate()
+        self.imposter_creation.validate()
         self.logging.validate()
 
         # Validate all participants

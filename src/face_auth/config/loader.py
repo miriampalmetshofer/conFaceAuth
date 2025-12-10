@@ -10,8 +10,9 @@ from face_auth.config.models import (
     EnrollmentConfig,
     ModelConfig,
     ProcessingConfig,
+    StitchConfig,
     LoggingConfig,
-    ParticipantConfig
+    Participant
 )
 
 
@@ -52,12 +53,13 @@ class ConfigLoader:
             enrollment=self._build_enrollment(data['enrollment']),
             models=self._build_models(data['models']),
             processing=self._build_processing(data['processing']),
-            logging=self._build_logging(data.get('logging', {}))
+            imposter_creation=self._build_imposter_creation(data['imposter_creation']),
+            logging=self._build_logging(data.get('logging', {})),
         )
 
-    def _build_participants(self, data: list) -> list[ParticipantConfig]:
+    def _build_participants(self, data: list) -> list[Participant]:
         """Build list of ParticipantConfig from data."""
-        return [ParticipantConfig(name=p['name']) for p in data]
+        return [Participant(name=p['name']) for p in data]
 
     def _build_paths(self, data: Dict[str, Any]) -> PathsConfig:
         """Build PathsConfig from data."""
@@ -101,6 +103,16 @@ class ConfigLoader:
         return ProcessingConfig(
             skip_frames=int(data['skip_frames']),
             devices=data['devices']
+        )
+
+    def _build_imposter_creation(self, data: Dict[str, Any]) -> StitchConfig:
+        """Build StitchConfig from data."""
+        return StitchConfig(
+            fps=int(data['fps']),
+            genuine_user_seconds=float(data['genuine_user_seconds']),
+            black_screen_seconds=float(data['black_screen_seconds']),
+            impostor_seconds=float(data['impostor_seconds']),
+            temp_output_path=data['temp_output_path']
         )
 
     def _build_logging(self, data: Dict[str, Any]) -> LoggingConfig:

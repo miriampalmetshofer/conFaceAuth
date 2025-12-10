@@ -4,7 +4,8 @@ from abc import ABC, abstractmethod
 from pathlib import Path
 from datetime import datetime
 
-from face_auth.processing.models import Video, EnrollmentVideo, Scenario, HeadRotation, ControlledStudyVideo
+from face_auth.config import Participant
+from face_auth.core.processing.models import Video, EnrollmentVideo, Scenario, HeadRotation, ControlledStudyVideo
 
 
 class VideoParser(ABC):
@@ -40,6 +41,7 @@ class ControlledStudyParser(VideoParser):
             path=path,
             scenario=scenario,
             recording_date=datetime_obj.date(),
+            participant=Participant(groups["name"]),
         )
 
 class InTheWildStudyParser(VideoParser):
@@ -61,6 +63,7 @@ class InTheWildStudyParser(VideoParser):
         return Video(
             path=path,
             recording_date=datetime_obj.date(),
+            participant=Participant(groups["name"]),
         )
 
 
@@ -87,4 +90,5 @@ class EnrollmentVideoParser(VideoParser):
             scenario=scenario,
             head_rotation=head_rotation,
             recording_date=datetime_obj.date(),
+            participant=Participant(groups["name"]),
         )

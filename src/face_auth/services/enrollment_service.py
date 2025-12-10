@@ -82,7 +82,8 @@ class EnrollmentService:
         participant_folder = self.paths.enrollment_base_path / context.device / context.participant.name
 
         # Find enrollment video to determine folder name
-        discovery = VideoDiscovery(context.participant, EnrollmentVideoParser())
+        # TODO: check why we have two VideoDiscovery in this file
+        discovery = VideoDiscovery(EnrollmentVideoParser())
         enrollment_videos = discovery.discover(participant_folder)
 
         if not enrollment_videos:
@@ -128,7 +129,7 @@ class EnrollmentService:
         """
         # Discover enrollment video
         participant_folder = self.paths.enrollment_base_path / context.device / context.participant.name
-        discovery = VideoDiscovery(context.participant, EnrollmentVideoParser())
+        discovery = VideoDiscovery(EnrollmentVideoParser())
         enrollment_videos = discovery.discover(participant_folder)
 
         if not enrollment_videos:
