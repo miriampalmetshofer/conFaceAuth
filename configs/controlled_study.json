@@ -22,7 +22,7 @@
     "window_size": 5,
     "similarity_percentile": 0.90,
     "alpha": 1.0,
-    "no_face_penalty": 1.0
+    "no_face_penalty": 1.5
   },
 
   "enrollment": {
