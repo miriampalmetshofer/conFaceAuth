@@ -36,10 +36,10 @@
   },
 
   "imposter_creation": {
-    "fps": 25,
-    "genuine_user_seconds": 3.0,
-    "black_screen_seconds": 0.5,
-    "impostor_seconds": 3.0,
+    "fps": 30,
+    "genuine_user_seconds": 300,
+    "black_screen_seconds": 3,
+    "impostor_seconds": 300,
     "temp_output_path": "data/temp_imposter_videos"
   },
 
@@ -49,6 +49,7 @@
   },
 
   "participants": [
+    {"name": "gudrun"},
     {"name": "miriam"}
   ]
 }
