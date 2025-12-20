@@ -18,7 +18,7 @@
   },
 
   "authentication": {
-    "threshold": 0.8,
+    "threshold": 0.95,
     "window_size": 5,
     "similarity_percentile": 0.90,
     "alpha": 1.0,
@@ -37,9 +37,9 @@
 
   "imposter_creation": {
     "fps": 30,
-    "genuine_user_seconds": 300,
+    "genuine_user_seconds": 180,
     "black_screen_seconds": 3,
-    "impostor_seconds": 300,
+    "impostor_seconds": 180,
     "temp_output_path": "data/temp_imposter_videos"
   },
 
