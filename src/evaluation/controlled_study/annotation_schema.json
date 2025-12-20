@@ -1,0 +1,12 @@
+{
+  "list_fields": [],
+  "single_choice_fields": [
+    "device",
+    "scenario"
+  ],
+  "metadata_fields": [
+    "video_filename",
+    "user",
+    "timestamp"
+  ]
+}
