@@ -49,7 +49,7 @@ class VideoStitcher:
 
         # Validate video durations match
         duration_diff = abs(genuine_info.duration - imposter_info.duration)
-        if duration_diff > 0.5:
+        if duration_diff > 1:
             raise ValueError(
                 f"Video duration mismatch: genuine={genuine_info.duration:.2f}s, "
                 f"imposter={imposter_info.duration:.2f}s (diff={duration_diff:.2f}s)"
