@@ -31,6 +31,31 @@ def parse_imposter_video_filename(video_path: str) -> tuple[Optional[str], Optio
     return genuine_user, imposter_user
 
 
+def parse_scenario_from_filename(video_path: str) -> Optional[str]:
+    """Parse scenario from video filename.
+
+    Args:
+        video_path: Path like 'data/temp/.../miriam_angle_2025-10-29_11-20-10_vs_gudrun_angle_2025-12-04_12-42-43.mp4'
+
+    Returns:
+        Scenario name (e.g., 'angle', 'easy', 'lighting') or None if not found
+    """
+    filename = Path(video_path).stem
+
+    if '_vs_' not in filename:
+        return None
+
+    # Take the first part before '_vs_'
+    parts = filename.split('_vs_')[0].split('_')
+
+    # Pattern: {user}_{scenario}_{date}_{time}
+    # So scenario should be at index 1
+    if len(parts) >= 2:
+        return parts[1]
+
+    return None
+
+
 def calculate_segment_boundaries(fps: int, genuine_seconds: float,
                                  black_seconds: float, imposter_seconds: float) -> VideoBoundaries:
     """Calculate frame boundaries for video segments.
@@ -143,8 +168,15 @@ def add_grouping_columns(df: pd.DataFrame, grouping_dimensions: list[str],
     Returns:
         DataFrame with grouping columns added
     """
+    df = df.copy()
+
     if annotations_df is not None:
         df = merge_annotations(df, annotations_df)
+
+    # Extract scenario from video path if not already present
+    if 'scenario' in grouping_dimensions and 'scenario' not in df.columns:
+        df['scenario'] = df['video_path'].apply(parse_scenario_from_filename)
+        print(f"Extracted 'scenario' column from video filenames")
 
     # Verify all grouping dimensions exist
     missing_dims = [dim for dim in grouping_dimensions if dim not in df.columns]
