@@ -8,6 +8,125 @@ from pathlib import Path
 from evaluation.shared.models import GroupedMetrics, SegmentAnalysis
 
 
+__all__ = [
+    'create_risk_score_timeline',
+    'create_scenario_aggregated_timeline',
+    'save_interactive_plot',
+    'create_grouped_comparison_plot',
+    'create_device_breakdown_plot',
+    'create_segment_comparison_plot',
+    'create_state_distribution_pie',
+    'create_risk_score_histogram',
+    'create_distance_histogram'
+]
+
+
+def create_scenario_aggregated_timeline(df: pd.DataFrame, threshold: float) -> go.Figure:
+    """Create aggregated risk score timeline by scenario (average across all videos per scenario).
+
+    Args:
+        df: Results dataframe with 'scenario' column
+        threshold: Authentication threshold
+
+    Returns:
+        Plotly figure with three lines (one per scenario: easy, angle, lighting)
+    """
+    if 'scenario' not in df.columns:
+        raise ValueError("DataFrame must contain 'scenario' column for scenario aggregation")
+
+    fig = go.Figure()
+
+    # Define scenario colors
+    scenario_colors = {
+        'easy': '#2ecc71',      # Green
+        'angle': '#f39c12',     # Orange
+        'lighting': '#9b59b6'   # Purple
+    }
+
+    # Get unique scenarios
+    scenarios = df['scenario'].unique()
+
+    for scenario in sorted(scenarios):
+        scenario_data = df[df['scenario'] == scenario].copy()
+
+        # Group by frame and calculate mean risk score
+        aggregated = scenario_data.groupby('frame').agg({
+            'risk_score': 'mean',
+            'distance': 'mean',
+            'segment_type': 'first'  # Assuming same frame has same segment_type
+        }).reset_index()
+
+        # Create hover text
+        hover_text = [
+            f"<b>Scenario: {scenario.title()}</b><br>"
+            f"Frame: {row['frame']}<br>"
+            f"Avg Risk Score: {row['risk_score']:.4f}<br>"
+            f"Avg Distance: {row['distance']:.4f}<br>"
+            f"Segment: {row.get('segment_type', 'N/A').title()}"
+            for _, row in aggregated.iterrows()
+        ]
+
+        # Add line trace
+        fig.add_trace(go.Scatter(
+            x=aggregated['frame'],
+            y=aggregated['risk_score'],
+            mode='lines',
+            name=f'{scenario.title()} Scenario',
+            line=dict(width=3, color=scenario_colors.get(scenario, '#95a5a6')),
+            hovertemplate='%{text}<extra></extra>',
+            text=hover_text,
+            showlegend=True
+        ))
+
+    # Add threshold line
+    fig.add_trace(go.Scatter(
+        x=[df['frame'].min(), df['frame'].max()],
+        y=[threshold, threshold],
+        mode='lines',
+        name='Threshold',
+        line=dict(color='black', width=3, dash='dash'),
+        hovertemplate=f'Threshold: {threshold}<extra></extra>',
+        showlegend=True
+    ))
+
+    # Update layout
+    fig.update_layout(
+        title={
+            'text': 'Average Risk Score Over Time by Scenario<br><sub>Averaged across all videos per scenario | Click legend to show/hide | Hover for details</sub>',
+            'x': 0.5,
+            'xanchor': 'center'
+        },
+        xaxis_title='Frame',
+        yaxis_title='Average Risk Score',
+        hovermode='closest',
+        legend=dict(
+            yanchor="top",
+            y=0.99,
+            xanchor="left",
+            x=1.01,
+            bgcolor="rgba(255, 255, 255, 0.9)",
+            bordercolor="Gray",
+            borderwidth=2,
+            font=dict(size=11)
+        ),
+        template='plotly_white',
+        height=700,
+        margin=dict(r=250, t=100)
+    )
+
+    # Add grid
+    fig.update_xaxes(showgrid=True, gridwidth=1, gridcolor='LightGray')
+    fig.update_yaxes(showgrid=True, gridwidth=1, gridcolor='LightGray')
+
+    # Add range slider
+    fig.update_xaxes(
+        rangeslider=dict(visible=True, thickness=0.05),
+        type='linear'
+    )
+
+    return fig
+
+
 def create_risk_score_timeline(df: pd.DataFrame, threshold: float,
                                segment_boundaries: dict = None) -> go.Figure:
     """Create interactive line plot of risk scores over time with hover-based video info.

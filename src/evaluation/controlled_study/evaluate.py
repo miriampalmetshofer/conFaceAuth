@@ -12,6 +12,7 @@ from evaluation.shared.metrics import (
 )
 from evaluation.shared.visualizer import (
     create_risk_score_timeline,
+    create_scenario_aggregated_timeline,
     save_interactive_plot,
     create_grouped_comparison_plot,
     create_device_breakdown_plot
@@ -73,12 +74,19 @@ def main():
     # Generate visualizations
     output_files = []
 
-    # Interactive risk score timeline
+    # Interactive risk score timeline (all videos)
     threshold = results_df['threshold'].iloc[0]
     fig_timeline = create_risk_score_timeline(results_df, threshold)
     output_files.append(
         save_interactive_plot(fig_timeline, config.output_path, 'risk_score_timeline.html')
     )
+
+    # Scenario aggregated timeline
+    if 'scenario' in results_df.columns:
+        fig_scenario_timeline = create_scenario_aggregated_timeline(results_df, threshold)
+        output_files.append(
+            save_interactive_plot(fig_scenario_timeline, config.output_path, 'scenario_aggregated_timeline.html')
+        )
 
     # Device comparison plot
     if device_metrics.groups:
