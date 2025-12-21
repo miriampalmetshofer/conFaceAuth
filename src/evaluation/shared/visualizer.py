@@ -82,7 +82,7 @@ def create_risk_score_timeline(df: pd.DataFrame, threshold: float,
             for _, row in video_data.iterrows()
         ]
 
-        # Add line trace
+        # Add line trace (hidden by default, but clickable in legend)
         fig.add_trace(go.Scatter(
             x=video_data['frame'],
             y=video_data['risk_score'],
@@ -91,7 +91,8 @@ def create_risk_score_timeline(df: pd.DataFrame, threshold: float,
             line=dict(width=2, color=colors[idx % len(colors)]),
             hovertemplate='%{text}<extra></extra>',
             text=hover_text,
-            showlegend=True
+            showlegend=True,
+            visible='legendonly'  # Hidden by default, but appears in legend
         ))
 
     # Add threshold line
@@ -124,10 +125,13 @@ def create_risk_score_timeline(df: pd.DataFrame, threshold: float,
                 hoverinfo='skip'
             ))
 
+    # Count number of video traces (exclude threshold and segment legends)
+    num_video_traces = len(videos)
+
     # Update layout for better interactivity
     fig.update_layout(
         title={
-            'text': 'Risk Score Over Time by Video<br><sub>Click legend items to show/hide videos | Double-click to isolate | Hover for details</sub>',
+            'text': 'Risk Score Over Time by Video<br><sub>Videos hidden by default - Click legend items to show individual videos | Use buttons to show/hide all | Hover for details</sub>',
             'x': 0.5,
             'xanchor': 'center'
         },
@@ -146,6 +150,30 @@ def create_risk_score_timeline(df: pd.DataFrame, threshold: float,
             itemclick="toggle",  # Click to toggle visibility
             itemdoubleclick="toggleothers"  # Double-click to isolate
         ),
+        updatemenus=[
+            dict(
+                type="buttons",
+                direction="left",
+                buttons=[
+                    dict(
+                        args=[{"visible": [True] * num_video_traces + [True] + ([True] * 3 if 'segment_type' in df.columns else [])}],
+                        label="Show All Videos",
+                        method="update"
+                    ),
+                    dict(
+                        args=[{"visible": ['legendonly'] * num_video_traces + [True] + ([True] * 3 if 'segment_type' in df.columns else [])}],
+                        label="Hide All Videos",
+                        method="update"
+                    )
+                ],
+                pad={"r": 10, "t": 10},
+                showactive=False,
+                x=0.0,
+                xanchor="left",
+                y=1.12,
+                yanchor="top"
+            )
+        ],
         template='plotly_white',
         height=700,
         margin=dict(r=250, t=100)  # Extra margin for legend and title
