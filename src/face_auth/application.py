@@ -1,24 +1,7 @@
 """Face authentication application orchestrator."""
 
-import os
-from face_auth.config.models import ApplicationConfig, ProcessingContext, StitchConfig
-from face_auth.core.authentication.embedder import Embedder
-from face_auth.core.detection import FaceDetector, FaceExtractor
-from face_auth.core.authentication.constants import FACENET_INPUT_WIDTH, FACENET_INPUT_HEIGHT
-from face_auth.core.processing.video_parser import VideoParser, ControlledStudyParser, InTheWildStudyParser
-from face_auth.core.processing.video_matching import VideoMatchingStrategy, ScenarioMatchingStrategy, AllVideosMatchingStrategy
-from face_auth.services.enrollment_service import EnrollmentService
-from face_auth.services.video_processing_service import VideoProcessingService
-from face_auth.services.imposter_video_creation_service import ImposterVideoCreationService
-from face_auth.services.results_service import ResultsService
-from face_auth.pipeline import (
-    VideoDiscoveryStage,
-    VideoMatchingStage,
-    ImposterVideoCreationStage,
-    EnrollmentStage,
-    VideoProcessingStage,
-    ResultsPersistenceStage
-)
+from face_auth.config.models import ApplicationConfig, ProcessingContext
+from face_auth.factories import PipelineFactory, ResultsFileValidator
 from face_auth.config.logging_config import get_logger
 
 logger = get_logger(__name__)
@@ -34,78 +17,18 @@ class FaceAuthApplication:
             config: Application configuration
         """
         self.config = config
-        self._init_services()
-        self._init_stages()
+        self._init_components()
 
-    def _init_services(self):
-        """Initialize all services."""
-        self.face_detector = FaceDetector(detector_backend=self.config.models.detector)
-        self.embedder = Embedder(model_name=self.config.models.embedder)
-        self.face_extractor = FaceExtractor(
-            target_width=FACENET_INPUT_WIDTH,
-            target_height=FACENET_INPUT_HEIGHT
-        )
-
-        self.enrollment_service = EnrollmentService(
-            config=self.config.enrollment,
-            paths_config=self.config.paths,
-            face_detector=self.face_detector,
-            face_extractor=self.face_extractor,
-            embedder=self.embedder
-        )
-        self.video_processing_service = VideoProcessingService(
-            config=self.config.authentication,
-            face_detector=self.face_detector,
-            face_extractor=self.face_extractor,
-            embedder=self.embedder
-        )
-
-        self.imposter_creation_service = ImposterVideoCreationService(
-            stitch_config=self.config.imposter_creation,
-        )
-
-        self.results_service = ResultsService(config=self.config)
-
-    def _get_parser_for_pool(self) -> VideoParser:
-        """Select appropriate parser based on pool type."""
-        if self.config.pool == "controlled_study":
-            return ControlledStudyParser()
-        elif self.config.pool == "in_the_wild":
-            return InTheWildStudyParser()
-        else:
-            raise ValueError(f"Unknown pool type: {self.config.pool}")
-
-    def _get_matching_strategy_for_pool(self) -> VideoMatchingStrategy:
-        """Select appropriate matching strategy based on pool type."""
-        if self.config.pool == "controlled_study":
-            return ScenarioMatchingStrategy()
-        elif self.config.pool == "in_the_wild":
-            return AllVideosMatchingStrategy()
-        else:
-            raise ValueError(f"Unknown pool type: {self.config.pool}")
-
-    def _init_stages(self):
-        """Initialize all pipeline stages."""
-        self.video_discovery_stage = VideoDiscoveryStage(
-            base_path=self.config.paths.base_path,
-            parser=self._get_parser_for_pool()
-        )
-        self.video_matching_stage = VideoMatchingStage(
-            matching_strategy=self._get_matching_strategy_for_pool()
-        )
-        self.imposter_video_creation_stage = ImposterVideoCreationStage(
-            imposter_creation_service=self.imposter_creation_service
-        )
-        self.enrollment_stage = EnrollmentStage(
-            enrollment_service=self.enrollment_service
-        )
-        self.video_processing_stage = VideoProcessingStage(
-            video_processing_service=self.video_processing_service,
-            skip_frames=self.config.processing.skip_frames
-        )
-        self.results_persistence_stage = ResultsPersistenceStage(
-            results_service=self.results_service
-        )
+    def _init_components(self):
+        """Initialize pipeline stages using factory."""
+        pipeline_factory = PipelineFactory(config=self.config)
+        self.video_discovery_stage = pipeline_factory.create_video_discovery_stage()
+        self.video_matching_stage = pipeline_factory.create_video_matching_stage()
+        self.imposter_video_creation_stage = pipeline_factory.create_imposter_video_creation_stage()
+        self.enrollment_stage = pipeline_factory.create_enrollment_stage()
+        self.video_processing_stage = pipeline_factory.create_video_processing_stage()
+        self.results_persistence_stage = pipeline_factory.create_results_persistence_stage()
+        self.cleanup_stage = pipeline_factory.create_cleanup_stage()
 
     def run(self):
         """Run the face authentication application."""
@@ -217,32 +140,13 @@ class FaceAuthApplication:
         finally:
             # Always cleanup temp directory
             try:
-                self.imposter_creation_service.cleanup()
+                self.cleanup_stage.execute()
             except Exception as e:
                 logger.warning(f"Failed to cleanup temp directory: {e}")
 
     def _validate_prerequisites(self):
         """Validate prerequisites before starting processing."""
-        results_path = self.config.paths.get_results_path()
-
-        if os.path.exists(results_path):
-            logger.warning(f"Results file already exists: {results_path}")
-            print("  1. Delete the file and start fresh")
-            print("  2. Append to the existing file")
-            print("  3. Cancel execution")
-            choice = input("\nChoice (1, 2, or 3): ").strip()
-
-            if choice == '1':
-                os.remove(results_path)
-                logger.info("File deleted")
-            elif choice == '2':
-                logger.info("Will append to existing file")
-            elif choice == '3':
-                logger.info("Execution cancelled")
-                raise RuntimeError("User cancelled execution")
-            else:
-                logger.error(f"Invalid choice: {choice}")
-                raise RuntimeError("Invalid choice")
+        ResultsFileValidator.validate(self.config.paths.get_results_path())
 
     def _log_configuration(self):
         """Log key configuration information."""
