@@ -1,12 +1,14 @@
 """Enrollment service for managing participant enrollment data."""
 
 from pathlib import Path
+from typing import List
 
 from face_auth.config.models import EnrollmentConfig, PathsConfig, ProcessingContext
 from face_auth.core.authentication.embedder import Embedder
 from face_auth.core.detection import FaceDetector, FaceExtractor
 from face_auth.core.processing.video_discovery import VideoDiscovery
 from face_auth.core.processing.video_parser import EnrollmentVideoParser
+from face_auth.core.processing.models import EnrollmentVideo, Scenario, HeadRotation
 from face_auth.core.enrollment import (
     EnrollmentVideoProcessor,
     VideoFrameExtractor,
@@ -96,9 +98,26 @@ class EnrollmentService:
                 f"{'!' * 60}\n"
             )
 
-        enrollment_video = enrollment_videos[0]
+        enrollment_video = self._select_best_enrollment_video(enrollment_videos)
         video_name = enrollment_video.path.stem
         return participant_folder / video_name
+
+    def _select_best_enrollment_video(self, videos: List[EnrollmentVideo]) -> EnrollmentVideo:
+        """Select the best enrollment video, prioritizing 'easy' 'cw' videos.
+
+        Args:
+            videos: List of enrollment videos
+
+        Returns:
+            Best enrollment video (prioritizes easy scenario + clockwise rotation)
+        """
+        for video in videos:
+            if video.scenario == Scenario.EASY and video.head_rotation == HeadRotation.CLOCKWISE:
+                logger.info(f"Selected preferred enrollment video: {video.path.name} (easy, cw)")
+                return video
+
+        logger.info(f"No 'easy cw' video found, using: {videos[0].path.name}")
+        return videos[0]
 
     def _enrollment_exists(self, enrollment_folder: Path) -> bool:
         """Check if enrollment folder exists and contains images."""
@@ -135,7 +154,7 @@ class EnrollmentService:
         if not enrollment_videos:
             raise EnrollmentException("No enrollment video found")
 
-        enrollment_video = enrollment_videos[0]
+        enrollment_video = self._select_best_enrollment_video(enrollment_videos)
         logger.info(f"Using enrollment video: {enrollment_video.path.name}")
 
         processor = self._build_enrollment_video_processor()
