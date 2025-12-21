@@ -227,13 +227,22 @@ class FaceAuthApplication:
 
         if os.path.exists(results_path):
             logger.warning(f"Results file already exists: {results_path}")
-            confirm = input("Do you want to delete this file and continue? (y/N): ").strip().lower()
-            if confirm == 'y':
+            print("  1. Delete the file and start fresh")
+            print("  2. Append to the existing file")
+            print("  3. Cancel execution")
+            choice = input("\nChoice (1, 2, or 3): ").strip()
+
+            if choice == '1':
                 os.remove(results_path)
                 logger.info("File deleted")
+            elif choice == '2':
+                logger.info("Will append to existing file")
+            elif choice == '3':
+                logger.info("Execution cancelled")
+                raise RuntimeError("User cancelled execution")
             else:
-                logger.info("File NOT deleted. Stopping execution")
-                raise RuntimeError("Cannot proceed with existing results file")
+                logger.error(f"Invalid choice: {choice}")
+                raise RuntimeError("Invalid choice")
 
     def _log_configuration(self):
         """Log key configuration information."""
