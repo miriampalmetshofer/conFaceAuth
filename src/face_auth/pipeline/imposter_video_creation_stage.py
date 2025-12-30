@@ -38,7 +38,8 @@ class ImposterVideoCreationStage:
 
         imposter_videos = []
 
-        for pair in pairs:
+        for i, pair in enumerate(pairs, 1):
+            logger.info(f"Creating imposter video {i}/{len(pairs)}: {pair.genuine_video.path.name} + {pair.imposter_video.path.name}")
             video = self.imposter_creation_service.create(pair)
             imposter_videos.append(video)
 
