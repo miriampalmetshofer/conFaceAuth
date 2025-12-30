@@ -8,7 +8,7 @@ from face_auth.core.detection import FaceDetector, FaceExtractor
 from face_auth.core.authentication.continuous_authenticator import ContinuousAuthenticator
 from face_auth.core.authentication.frame_authenticator import FrameAuthenticator
 from face_auth.core.processing.video_processor import VideoProcessor
-from face_auth.core.processing.models import Video
+from face_auth.core.processing.models import ComposedVideo
 from face_auth.services.models import EnrollmentData, VideoResult
 from face_auth.config.logging_config import get_logger
 
@@ -40,7 +40,7 @@ class VideoProcessingService:
 
     def process_video(
         self,
-        video: Video,
+        video: ComposedVideo,
         enrollment_data: EnrollmentData,
         skip_frames: int
     ) -> VideoResult:
@@ -78,10 +78,10 @@ class VideoProcessingService:
             debug_output_folder=Path("debug/no_face_frames")
         )
 
-        # Process video
-        frame_results = video_processor.process_video_frames(
-            video_path=video.path,
-            skip_frames=skip_frames
+        frame_results = video_processor.process_frame_iterators(
+                iterators=video.iterators,
+                video_name=video.path.name,
+                skip_frames=skip_frames
         )
 
         return VideoResult(

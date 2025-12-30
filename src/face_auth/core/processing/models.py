@@ -3,9 +3,11 @@ from dataclasses import dataclass
 from datetime import date
 from enum import Enum
 from pathlib import Path
+from typing import List, TYPE_CHECKING
 
 from face_auth.config import Participant
 from face_auth.config.models import Scenario, HeadRotation
+from face_auth.core.processing.frame_iterators import FrameIterator
 
 VIDEO_EXTENSIONS = ("mp4", "MP4")
 
@@ -41,3 +43,9 @@ class ImposterSamplePair:
     """Pair of genuine user video with matching imposter videos for stitching."""
     genuine_video: Video
     imposter_video: Video
+
+
+@dataclass
+class ComposedVideo(Video):
+    """Virtual video composed from multiple frame iterators without physical file."""
+    iterators: List['FrameIterator']

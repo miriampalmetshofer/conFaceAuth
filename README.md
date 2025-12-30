@@ -56,10 +56,10 @@ Make sure to execute commands from the `src` folder.
 
 ### Prerequisites
 - Python 3.7+
-- **ffmpeg/ffprobe** (for automatic video rotation detection)
-  - macOS: `brew install ffmpeg`
-  - Linux: `sudo apt-get install ffmpeg`
-  - Windows: Download from [ffmpeg.org](https://ffmpeg.org/download.html)
+- **ffprobe** (for automatic video rotation detection)
+  - macOS: `brew install ffmpeg` (includes ffprobe)
+  - Linux: `sudo apt-get install ffmpeg` (includes ffprobe)
+  - Windows: Download from [ffmpeg.org](https://ffmpeg.org/download.html) (includes ffprobe)
 
 ### Setup
 

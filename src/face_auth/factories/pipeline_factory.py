@@ -16,8 +16,7 @@ from face_auth.pipeline import (
     ImposterVideoCreationStage,
     EnrollmentStage,
     VideoProcessingStage,
-    ResultsPersistenceStage,
-    CleanupStage
+    ResultsPersistenceStage
 )
 
 
@@ -117,12 +116,6 @@ class PipelineFactory:
         """Create results persistence stage."""
         return ResultsPersistenceStage(
             results_service=self._create_results_service()
-        )
-
-    def create_cleanup_stage(self) -> CleanupStage:
-        """Create cleanup stage."""
-        return CleanupStage(
-            imposter_creation_service=self._create_imposter_creation_service()
         )
 
     def _get_parser_for_pool(self) -> VideoParser:

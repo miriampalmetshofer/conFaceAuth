@@ -11,7 +11,7 @@ logger = get_logger(__name__)
 
 
 class ImposterVideoCreationStage:
-    """Stage 3: Create imposter videos by stitching genuine and imposter samples."""
+    """Stage 3: Create composed imposter videos using frame iterators."""
 
     def __init__(self, imposter_creation_service: ImposterVideoCreationService):
         """Initialize with imposter creation service.
@@ -22,17 +22,14 @@ class ImposterVideoCreationStage:
         self.imposter_creation_service = imposter_creation_service
 
     def execute(self, pairs: List[ImposterSamplePair], context: ProcessingContext) -> List[Video]:
-        """Create imposter videos from pairs.
+        """Create composed imposter videos from pairs.
 
         Args:
             pairs: List of imposter sample pairs
             context: Processing context for participant and device
 
         Returns:
-            List of successfully created imposter videos
-
-        Raises:
-            RuntimeError: If all stitching operations fail
+            List of successfully created composed videos (with frame iterators)
         """
         logger.info(f"Creating imposter videos from {len(pairs)} pair(s)")
 

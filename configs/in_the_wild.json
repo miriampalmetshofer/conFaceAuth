@@ -41,10 +41,7 @@
 
   "imposter_creation": {
     "fps": 30,
-    "genuine_user_seconds": 300,
-    "black_screen_seconds": 3,
-    "impostor_seconds": 300,
-    "temp_output_path": "data/temp_imposter_videos"
+    "black_screen_seconds": 3
   },
 
   "logging": {

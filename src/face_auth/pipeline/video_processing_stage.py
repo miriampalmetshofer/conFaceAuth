@@ -1,7 +1,7 @@
 from typing import List
 
 from face_auth.config.logging_config import get_logger
-from face_auth.core.processing.models import Video
+from face_auth.core.processing.models import Video, ComposedVideo
 from face_auth.services.models import EnrollmentData, VideoResult
 from face_auth.services.video_processing_service import VideoProcessingService
 
@@ -23,7 +23,7 @@ class VideoProcessingStage:
 
     def execute(
         self,
-        videos: List[Video],
+        videos: List[ComposedVideo],
         enrollment_data: EnrollmentData
     ) -> List[VideoResult]:
         """Process all videos for participant.

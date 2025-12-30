@@ -8,7 +8,7 @@ from face_auth.core.authentication import FrameAuthenticationResult
 from face_auth.core.authentication.frame_authenticator import FrameAuthenticator
 from face_auth.core.processing.debug_frame_saver import DebugFrameSaver
 from face_auth.core.processing.models import Color
-from face_auth.core.processing.video_utils import get_video_rotation_from_metadata, rotate_frame
+from face_auth.core.processing.frame_iterators import FrameIterator
 from face_auth.config.logging_config import get_logger
 
 logger = get_logger(__name__)
@@ -27,46 +27,55 @@ class VideoProcessor:
         self.frame_authenticator = frame_authenticator
         self.debug_saver = DebugFrameSaver(debug_output_folder)
 
-    def process_video_frames(self, video_path: Path, skip_frames: int) -> List[FrameAuthenticationResult]:
-        """Process video frames and return results without writing to file."""
-        rotation_angle = get_video_rotation_from_metadata(video_path)
-        cap = cv2.VideoCapture(str(video_path))
+    def process_frame_iterators(
+        self,
+        iterators: List[FrameIterator],
+        video_name: str,
+        skip_frames: int
+    ) -> List[FrameAuthenticationResult]:
+        """Process frames from multiple iterators sequentially.
 
-        self._log_video_info(cap)
+        Args:
+            iterators: List of frame iterators to process
+            video_name: Name for debugging/logging
+            skip_frames: Process every Nth frame
 
+        Returns:
+            List of frame authentication results
+        """
         frame_index = 1
         results = []
-        video_name = video_path.stem
 
-        while cap.isOpened():
-            ret, frame = cap.read()
-            if not ret:
-                break
+        logger.info(f"Processing {len(iterators)} iterator(s) for {video_name}")
 
-            frame = rotate_frame(frame, rotation_angle)
+        for iterator_idx, iterator in enumerate(iterators, 1):
+            logger.debug(f"Processing iterator {iterator_idx}/{len(iterators)}")
+            source_name = iterator.get_source_name()
 
-            try:
-                if frame_index == 1 or frame_index % skip_frames == 0:
-                    auth_result = self.frame_authenticator.authenticate(frame)
+            for frame in iterator:
+                try:
+                    if frame_index == 1 or frame_index % skip_frames == 0:
+                        auth_result = self.frame_authenticator.authenticate(frame)
 
-                    if not auth_result.face_detected:
-                        logger.warning(f"No face detected at frame {frame_index}")
-                        self.debug_saver.save_frame(frame, frame_index, video_name)
+                        if not auth_result.face_detected:
+                            logger.warning(f"No face detected at frame {frame_index}")
+                            self.debug_saver.save_frame(frame, frame_index, source_name)
 
-                    logger.info(f"Frame {frame_index}: Predicted State={auth_result.state.value}, "
-                          f"Distance={auth_result.distance:.4f}, Risk Score={auth_result.risk_score:.4f}")
+                        logger.info(
+                            f"Frame {frame_index}: Predicted State={auth_result.state.value}, "
+                            f"Distance={auth_result.distance:.4f}, Risk Score={auth_result.risk_score:.4f}"
+                        )
 
-                    # Add frame number to result
-                    auth_result_with_frame = replace(auth_result, frame_index=frame_index)
-                    results.append(auth_result_with_frame)
+                        # Add frame number to result
+                        auth_result_with_frame = replace(auth_result, frame_index=frame_index)
+                        results.append(auth_result_with_frame)
 
-            except Exception as e:
-                logger.error(f"Error processing frame {frame_index}: {e}")
-                raise e
+                except Exception as e:
+                    logger.error(f"Error processing frame {frame_index}: {e}")
+                    raise e
 
-            frame_index += 1
+                frame_index += 1
 
-        cap.release()
         cv2.destroyAllWindows()
 
         return results

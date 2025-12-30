@@ -28,7 +28,6 @@ class FaceAuthApplication:
         self.enrollment_stage = pipeline_factory.create_enrollment_stage()
         self.video_processing_stage = pipeline_factory.create_video_processing_stage()
         self.results_persistence_stage = pipeline_factory.create_results_persistence_stage()
-        self.cleanup_stage = pipeline_factory.create_cleanup_stage()
 
     def run(self):
         """Run the face authentication application."""
@@ -136,13 +135,6 @@ class FaceAuthApplication:
         except Exception as e:
             logger.error(f"Failed to process {context.participant.name} on {context.device}: {e}")
             return False
-
-        finally:
-            # Always cleanup temp directory
-            try:
-                self.cleanup_stage.execute()
-            except Exception as e:
-                logger.warning(f"Failed to cleanup temp directory: {e}")
 
     def _validate_prerequisites(self):
         """Validate prerequisites before starting processing."""

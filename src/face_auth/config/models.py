@@ -144,23 +144,16 @@ class StitchConfig:
     """Imposter video creation configuration."""
 
     fps: int
-    genuine_user_seconds: float
+    genuine_user_seconds: float|None
     black_screen_seconds: float
-    impostor_seconds: float
-    temp_output_path: str
+    impostor_seconds: float|None
 
     def validate(self):
         """Validate imposter creation configuration."""
         if self.fps <= 0:
             raise ValueError(f"fps must be positive, got {self.fps}")
-        if self.genuine_user_seconds <= 0:
-            raise ValueError(f"genuine_user_seconds must be positive, got {self.genuine_user_seconds}")
         if self.black_screen_seconds < 0:
             raise ValueError(f"black_screen_seconds cannot be negative, got {self.black_screen_seconds}")
-        if self.impostor_seconds <= 0:
-            raise ValueError(f"impostor_seconds must be positive, got {self.impostor_seconds}")
-        if not self.temp_output_path:
-            raise ValueError("temp_output_path cannot be empty")
 
 
 @dataclass

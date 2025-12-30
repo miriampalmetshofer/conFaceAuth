@@ -1,80 +1,104 @@
-"""Service for creating imposter videos through stitching."""
+"""Service for creating composed imposter videos using frame iterators."""
 
+import cv2
 from pathlib import Path
+from typing import List
 
 from face_auth.config.logging_config import get_logger
 from face_auth.config.models import StitchConfig
-from face_auth.core.processing.models import Video, ControlledStudyVideo, ImposterSamplePair
-from face_auth.core.imposter_sample_creation.video_stitcher import VideoStitcher
+from face_auth.core.processing.models import Video, ControlledStudyVideo, ImposterSamplePair, ComposedVideo
+from face_auth.core.processing.frame_iterators import FrameIterator, VideoFrameIterator, BlackFrameGenerator
 
 logger = get_logger(__name__)
 
 
 class ImposterVideoCreationService:
-    """Service for creating imposter videos by stitching genuine and imposter samples."""
+    """Service for creating composed imposter videos using frame iterators."""
 
     def __init__(self, stitch_config: StitchConfig):
         """Initialize with stitching configuration.
 
         Args:
-            stitch_config: Configuration for video stitching
             stitch_config: Configuration for imposter creation
         """
-        self.stitcher = VideoStitcher(stitch_config)
-        self.stitch_config = stitch_config
+        self.config = stitch_config
 
-    def create(
-            self,
-            pair: ImposterSamplePair
-    ) -> Video:
-        """Create single imposter video by stitching.
+    def create(self, pair: ImposterSamplePair) -> ComposedVideo:
+        """Create composed imposter video from frame iterators.
 
         Args:
             pair: Containing genuine and imposter sample
 
         Returns:
-            Created imposter video object
+            ComposedVideo with frame iterators (no physical file)
         """
-        output_dir = Path(self.stitch_config.temp_output_path)
-        output_dir.mkdir(parents=True, exist_ok=True)
-
-        output_filename = self._build_output_file_name(pair)
-        output_path = output_dir / output_filename
-
-        logger.debug(f"Creating imposter video: {output_filename}")
-
-        self.stitcher.stitch(
-            pair.genuine_video.path,
-            pair.imposter_video.path,
-            output_path
+        logger.debug(
+            f"Creating composed video: {pair.genuine_video.path.name} + "
+            f"{pair.imposter_video.path.name}"
         )
 
-        # Return video with same type as genuine video
-        if isinstance(pair.genuine_video, ControlledStudyVideo):
-            return ControlledStudyVideo(
-                path=output_path,
-                recording_date=pair.genuine_video.recording_date,
-                participant=pair.genuine_video.participant,
-                scenario=pair.genuine_video.scenario
-            )
-        else:
-            return Video(
-                path=output_path,
-                recording_date=pair.genuine_video.recording_date,
-                participant=pair.genuine_video.participant
-            )
+        # Get video dimensions from genuine video
+        width, height = self._get_video_dimensions(pair.genuine_video.path)
 
-    def _build_output_file_name(self, pair: ImposterSamplePair) -> str:
-        """Build unique output filename using full video names to prevent collisions."""
+        # Build iterator list
+        iterators: List[FrameIterator] = [
+            # 1. Genuine video (entire video or first N seconds)
+            VideoFrameIterator(
+                video_path=pair.genuine_video.path,
+                start_second=0,
+                duration_seconds=self.config.genuine_user_seconds
+            ),
+            # 2. Black frames
+            BlackFrameGenerator(
+                width=width,
+                height=height,
+                num_frames=int(self.config.black_screen_seconds * self.config.fps)
+            ),
+            # 3. Imposter video (entire video or last N seconds)
+            VideoFrameIterator(
+                video_path=pair.imposter_video.path,
+                start_second=0,
+                duration_seconds=self.config.impostor_seconds
+            )
+        ]
+
+        total_frames = sum(it.get_frame_count() for it in iterators)
+        logger.debug(
+            f"Composed video will have {total_frames} frames "
+            f"({iterators[0].get_frame_count()} genuine + "
+            f"{iterators[1].get_frame_count()} black + "
+            f"{iterators[2].get_frame_count()} imposter)"
+        )
+
+        # Create virtual path for composed video
+        virtual_path = self._build_virtual_path(pair)
+
+        return ComposedVideo(
+            path=virtual_path,
+            recording_date=pair.genuine_video.recording_date,
+            participant=pair.genuine_video.participant,
+            iterators=iterators
+        )
+
+    def _get_video_dimensions(self, video_path: Path) -> tuple[int, int]:
+        """Get video width and height."""
+        cap = cv2.VideoCapture(str(video_path))
+        width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+        height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+        cap.release()
+        return width, height
+
+    def _get_video_duration(self, video_path: Path) -> float:
+        """Get video duration in seconds."""
+        cap = cv2.VideoCapture(str(video_path))
+        fps = cap.get(cv2.CAP_PROP_FPS)
+        frame_count = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+        cap.release()
+        return frame_count / fps if fps > 0 else 0
+
+    def _build_virtual_path(self, pair: ImposterSamplePair) -> Path:
+        """Build virtual path for composed video (for identification only)."""
         genuine_stem = pair.genuine_video.path.stem
         imposter_stem = pair.imposter_video.path.stem
-        return f"{genuine_stem}_vs_{imposter_stem}.mp4"
-
-    def cleanup(self) -> None:
-        """Clean up temporary directory for specific participant and device.
-        """
-        output_dir = Path(self.stitch_config.temp_output_path)
-        if output_dir.exists():
-            import shutil
-            shutil.rmtree(output_dir)
-            logger.debug(f"Cleaned up temporary directory: {output_dir}")
+        filename = f"{genuine_stem}_vs_{imposter_stem}.composed"
+        return Path(f"<composed>/{filename}")

@@ -5,7 +5,6 @@ from face_auth.pipeline.video_discovery_stage import VideoDiscoveryStage
 from face_auth.pipeline.video_matching_stage import VideoMatchingStage
 from face_auth.pipeline.imposter_video_creation_stage import ImposterVideoCreationStage
 from face_auth.pipeline.video_processing_stage import VideoProcessingStage
-from face_auth.pipeline.cleanup_stage import CleanupStage
 
 __all__ = [
     'VideoDiscoveryStage',
@@ -13,8 +12,7 @@ __all__ = [
     'ImposterVideoCreationStage',
     'EnrollmentStage',
     'VideoProcessingStage',
-    'ResultsPersistenceStage',
-    'CleanupStage'
+    'ResultsPersistenceStage'
 ]
 
 

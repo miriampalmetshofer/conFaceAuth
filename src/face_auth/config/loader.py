@@ -120,10 +120,9 @@ class ConfigLoader:
         """Build StitchConfig from data."""
         return StitchConfig(
             fps=int(data['fps']),
-            genuine_user_seconds=float(data['genuine_user_seconds']),
+            genuine_user_seconds=float(data['genuine_user_seconds']) if 'genuine_user_seconds' in data else None,
             black_screen_seconds=float(data['black_screen_seconds']),
-            impostor_seconds=float(data['impostor_seconds']),
-            temp_output_path=data['temp_output_path']
+            impostor_seconds=float(data['impostor_seconds']) if 'impostor_seconds' in data else None,
         )
 
     def _build_logging(self, data: Dict[str, Any]) -> LoggingConfig:
