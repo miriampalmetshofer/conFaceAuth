@@ -70,21 +70,32 @@ class EnrollmentService:
         Raises:
             EnrollmentException: If enrollment cannot be created or loaded
         """
-        enrollment_folder = self._get_enrollment_folder(context)
+        enrollment_videos = self._discover_enrollment_videos(context)
+
+        enrollment_video = self._select_best_enrollment_video(enrollment_videos)
+
+        enrollment_folder = self._get_enrollment_folder(context, enrollment_video)
 
         if self._enrollment_exists(enrollment_folder):
             logger.info(f"Loading existing enrollment for {context.participant.name} ({context.device})")
             return self._load_enrollment(enrollment_folder)
         else:
             logger.info(f"=== ENROLLING: {context.participant.name} ({context.device}) ===")
-            return self._create_enrollment(context, enrollment_folder)
+            return self._create_enrollment(enrollment_video, enrollment_folder)
 
-    def _get_enrollment_folder(self, context: ProcessingContext) -> Path:
-        """Get enrollment folder path for participant."""
+    def _discover_enrollment_videos(self, context: ProcessingContext) -> List[EnrollmentVideo]:
+        """Discover enrollment videos for participant.
+
+        Args:
+            context: Processing context with participant and device
+
+        Returns:
+            List of enrollment videos found
+
+        Raises:
+            EnrollmentException: If no enrollment videos found
+        """
         participant_folder = self.paths.enrollment_base_path / context.device / context.participant.name
-
-        # Find enrollment video to determine folder name
-        # TODO: check why we have two VideoDiscovery in this file
         discovery = VideoDiscovery(EnrollmentVideoParser())
         enrollment_videos = discovery.discover(participant_folder)
 
@@ -98,7 +109,19 @@ class EnrollmentService:
                 f"{'!' * 60}\n"
             )
 
-        enrollment_video = self._select_best_enrollment_video(enrollment_videos)
+        return enrollment_videos
+
+    def _get_enrollment_folder(self, context: ProcessingContext, enrollment_video: EnrollmentVideo) -> Path:
+        """Get enrollment folder path from video.
+
+        Args:
+            context: Processing context with participant and device
+            enrollment_video: Selected enrollment video
+
+        Returns:
+            Path to enrollment folder
+        """
+        participant_folder = self.paths.enrollment_base_path / context.device / context.participant.name
         video_name = enrollment_video.path.stem
         return participant_folder / video_name
 
@@ -131,13 +154,13 @@ class EnrollmentService:
 
     def _create_enrollment(
         self,
-        context: ProcessingContext,
+        enrollment_video: EnrollmentVideo,
         enrollment_folder: Path
     ) -> EnrollmentData:
-        """Create new enrollment.
+        """Create new enrollment from given video.
 
         Args:
-            context: Processing context with participant and device
+            enrollment_video: Selected enrollment video to process
             enrollment_folder: Path to enrollment folder
 
         Returns:
@@ -146,15 +169,6 @@ class EnrollmentService:
         Raises:
             EnrollmentException: If enrollment creation fails
         """
-        # Discover enrollment video
-        participant_folder = self.paths.enrollment_base_path / context.device / context.participant.name
-        discovery = VideoDiscovery(EnrollmentVideoParser())
-        enrollment_videos = discovery.discover(participant_folder)
-
-        if not enrollment_videos:
-            raise EnrollmentException("No enrollment video found")
-
-        enrollment_video = self._select_best_enrollment_video(enrollment_videos)
         logger.info(f"Using enrollment video: {enrollment_video.path.name}")
 
         processor = self._build_enrollment_video_processor()
