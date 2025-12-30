@@ -41,7 +41,9 @@
   },
   "imposter_creation": {
     "fps": 30,
-    "black_screen_seconds": 3
+    "genuine_user_seconds": 180,
+    "black_screen_seconds": 3,
+    "impostor_seconds": 180
   },
   "logging": {
     "level": "INFO",

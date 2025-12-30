@@ -1,22 +1,20 @@
 {
   "pool": "in_the_wild",
-
   "paths": {
     "base_path": "data/in_the_wild",
     "enrollment_base_path": "data/enrollments",
     "results_file": "{base_path}/results.csv"
   },
-
   "models": {
     "detector": "mtcnn",
     "embedder": "facenet"
   },
-
   "processing": {
     "skip_frames": 30,
-    "devices": ["mobile"]
+    "devices": [
+      "mobile"
+    ]
   },
-
   "authentication": {
     "threshold": 0.95,
     "window_size": 5,
@@ -24,11 +22,13 @@
     "alpha": 1.0,
     "no_face_penalty": 1.5
   },
-
   "enrollment": {
-     "enrollment_video_preference": {
+    "enrollment_video_preference": {
       "scenario": "easy",
-      "rotations": ["cw", "ccw"]
+      "rotations": [
+        "cw",
+        "ccw"
+      ]
     },
     "frames_per_direction": 5,
     "frame_sampling_interval": 5,
@@ -38,18 +38,19 @@
     "distribution_stddev_fraction": 0.25,
     "sampling_seed": 42
   },
-
   "imposter_creation": {
     "fps": 30,
-    "black_screen_seconds": 3
+    "genuine_user_seconds": 300,
+    "black_screen_seconds": 3,
+    "impostor_seconds": 300
   },
-
   "logging": {
     "level": "INFO",
     "format": "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
   },
-
   "participants": [
-        {"name": "gudrun"}
+    {
+      "name": "gudrun"
+    }
   ]
 }
