@@ -8,11 +8,14 @@ from face_auth.config.models import (
     PathsConfig,
     AuthenticationConfig,
     EnrollmentConfig,
+    EnrollmentVideoPreference,
     ModelConfig,
     ProcessingConfig,
     StitchConfig,
     LoggingConfig,
-    Participant
+    Participant,
+    Scenario,
+    HeadRotation
 )
 
 
@@ -82,6 +85,7 @@ class ConfigLoader:
     def _build_enrollment(self, data: Dict[str, Any]) -> EnrollmentConfig:
         """Build EnrollmentConfig from data."""
         return EnrollmentConfig(
+            enrollment_video_preference=self._build_enrollment_video_preference(data['enrollment_video_preference']),
             frames_per_direction=int(data['frames_per_direction']),
             frame_sampling_interval=int(data['frame_sampling_interval']),
             yaw_threshold=float(data['yaw_threshold']),
@@ -89,6 +93,13 @@ class ConfigLoader:
             distribution_mean_fraction=float(data['distribution_mean_fraction']),
             distribution_stddev_fraction=float(data['distribution_stddev_fraction']),
             sampling_seed=int(data['sampling_seed'])
+        )
+
+    def _build_enrollment_video_preference(self, data: Dict[str, Any]) -> EnrollmentVideoPreference:
+        """Build EnrollmentVideoPreference from data."""
+        return EnrollmentVideoPreference(
+            scenario=Scenario(data['scenario']),
+            rotations=[HeadRotation(rot) for rot in data['rotations']]
         )
 
     def _build_models(self, data: Dict[str, Any]) -> ModelConfig:

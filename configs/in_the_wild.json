@@ -26,6 +26,10 @@
   },
 
   "enrollment": {
+     "enrollment_video_preference": {
+      "scenario": "easy",
+      "rotations": ["cw", "ccw"]
+    },
     "frames_per_direction": 5,
     "frame_sampling_interval": 5,
     "yaw_threshold": 15.0,

@@ -14,23 +14,16 @@ class EnrollmentFrameSaver:
     def save_frames(
         self,
         frames_by_direction: dict[HeadDirection, list[np.ndarray]],
-        output_folder: Path
+        output_folder: Path,
+        video_stem: str
     ) -> None:
-        """Save frames to folder organized by direction.
-
-        Args:
-            frames_by_direction: Dictionary mapping directions to frame lists
-            output_folder: Path to output folder (will be created)
-
-        Raises:
-            FileExistsError: If output folder already exists
-        """
-        output_folder.mkdir(parents=True, exist_ok=False)
+        """Save frames to folder organized by direction."""
+        output_folder.mkdir(parents=True, exist_ok=True)
 
         total_saved = 0
         for direction, frames_list in frames_by_direction.items():
             for i, frame in enumerate(frames_list):
-                frame_filename = f"{direction.value}_{i:03d}.jpg"
+                frame_filename = f"{video_stem}_{direction.value}_{i:03d}.jpg"
                 frame_path = output_folder / frame_filename
                 cv2.imwrite(str(frame_path), frame)
                 total_saved += 1

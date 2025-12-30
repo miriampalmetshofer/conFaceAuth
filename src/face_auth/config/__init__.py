@@ -5,11 +5,14 @@ from face_auth.config.models import (
     PathsConfig,
     AuthenticationConfig,
     EnrollmentConfig,
+    EnrollmentVideoPreference,
     ModelConfig,
     ProcessingConfig,
     LoggingConfig,
     Participant,
-    ProcessingContext
+    ProcessingContext,
+    Scenario,
+    HeadRotation
 )
 from face_auth.config.loader import ConfigLoader
 from face_auth.config.logging_config import setup_logging, get_logger
@@ -19,11 +22,14 @@ __all__ = [
     'PathsConfig',
     'AuthenticationConfig',
     'EnrollmentConfig',
+    'EnrollmentVideoPreference',
     'ModelConfig',
     'ProcessingConfig',
     'LoggingConfig',
     'Participant',
     'ProcessingContext',
+    'Scenario',
+    'HeadRotation',
     'ConfigLoader',
     'setup_logging',
     'get_logger'

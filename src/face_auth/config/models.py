@@ -3,7 +3,21 @@
 from dataclasses import dataclass
 from pathlib import Path
 from typing import List
+from enum import Enum
 import logging
+
+
+class Scenario(Enum):
+    """Video recording scenarios."""
+    EASY = "easy"
+    ANGLE = "angle"
+    LIGHTING = "lighting"
+
+
+class HeadRotation(Enum):
+    """Head rotation directions for video scenarios."""
+    CLOCKWISE = "cw"
+    COUNTERCLOCKWISE = "ccw"
 
 
 @dataclass
@@ -53,9 +67,25 @@ class AuthenticationConfig:
 
 
 @dataclass
+class EnrollmentVideoPreference:
+    """Preference for enrollment video selection."""
+
+    scenario: Scenario
+    rotations: List[HeadRotation]
+
+    def validate(self):
+        """Validate enrollment video preference."""
+        if not self.scenario:
+            raise ValueError("scenario cannot be empty")
+        if not self.rotations:
+            raise ValueError("rotations list cannot be empty")
+
+
+@dataclass
 class EnrollmentConfig:
     """Enrollment parameters configuration."""
 
+    enrollment_video_preference: EnrollmentVideoPreference
     frames_per_direction: int
     frame_sampling_interval: int
     yaw_threshold: float
@@ -66,6 +96,7 @@ class EnrollmentConfig:
 
     def validate(self):
         """Validate enrollment parameters."""
+        self.enrollment_video_preference.validate()
         if self.frames_per_direction <= 0:
             raise ValueError(f"frames_per_direction must be positive, got {self.frames_per_direction}")
         if self.frame_sampling_interval <= 0:

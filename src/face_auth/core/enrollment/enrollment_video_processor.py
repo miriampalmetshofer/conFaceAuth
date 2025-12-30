@@ -67,7 +67,7 @@ class EnrollmentVideoProcessor:
             frames_per_direction
         )
 
-        self.frame_saver.save_frames(sampled_frames, output_folder)
+        self.frame_saver.save_frames(sampled_frames, output_folder, video_path.stem)
 
         logger.info("Enrollment video processing complete")
         return EnrollmentFrames(frames_by_direction=sampled_frames)

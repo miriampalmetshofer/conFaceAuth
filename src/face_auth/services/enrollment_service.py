@@ -3,7 +3,7 @@
 from pathlib import Path
 from typing import List
 
-from face_auth.config.models import EnrollmentConfig, PathsConfig, ProcessingContext
+from face_auth.config.models import EnrollmentConfig, PathsConfig, ProcessingContext, EnrollmentVideoPreference
 from face_auth.core.authentication.embedder import Embedder
 from face_auth.core.detection import FaceDetector, FaceExtractor
 from face_auth.core.processing.video_discovery import VideoDiscovery
@@ -70,18 +70,21 @@ class EnrollmentService:
         Raises:
             EnrollmentException: If enrollment cannot be created or loaded
         """
-        enrollment_videos = self._discover_enrollment_videos(context)
+        discovered_videos = self._discover_enrollment_videos(context)
 
-        enrollment_video = self._select_best_enrollment_video(enrollment_videos)
+        selected_videos = self._select_enrollment_videos(
+            discovered_videos,
+            self.config.enrollment_video_preference
+        )
 
-        enrollment_folder = self._get_enrollment_folder(context, enrollment_video)
+        enrollment_folder = self._get_enrollment_folder(context, selected_videos)
 
         if self._enrollment_exists(enrollment_folder):
             logger.info(f"Loading existing enrollment for {context.participant.name} ({context.device})")
             return self._load_enrollment(enrollment_folder)
         else:
             logger.info(f"=== ENROLLING: {context.participant.name} ({context.device}) ===")
-            return self._create_enrollment(enrollment_video, enrollment_folder)
+            return self._create_enrollment(selected_videos, enrollment_folder)
 
     def _discover_enrollment_videos(self, context: ProcessingContext) -> List[EnrollmentVideo]:
         """Discover enrollment videos for participant.
@@ -111,36 +114,62 @@ class EnrollmentService:
 
         return enrollment_videos
 
-    def _get_enrollment_folder(self, context: ProcessingContext, enrollment_video: EnrollmentVideo) -> Path:
-        """Get enrollment folder path from video.
+    def _get_enrollment_folder(self, context: ProcessingContext, enrollment_videos: List[EnrollmentVideo]) -> Path:
+        """Get enrollment folder path from videos.
 
         Args:
             context: Processing context with participant and device
-            enrollment_video: Selected enrollment video
+            enrollment_videos: Selected enrollment videos
 
         Returns:
             Path to enrollment folder
         """
         participant_folder = self.paths.enrollment_base_path / context.device / context.participant.name
-        video_name = enrollment_video.path.stem
+        # Use first video's stem as folder name (all should be from same scenario/date)
+        video_name = enrollment_videos[0].path.stem
         return participant_folder / video_name
 
-    def _select_best_enrollment_video(self, videos: List[EnrollmentVideo]) -> EnrollmentVideo:
-        """Select the best enrollment video, prioritizing 'easy' 'cw' videos.
+    def _select_enrollment_videos(
+        self,
+        available_videos: List[EnrollmentVideo],
+        preference: EnrollmentVideoPreference
+    ) -> List[EnrollmentVideo]:
+        """Select enrollment videos based on configured preference.
 
         Args:
-            videos: List of enrollment videos
+            available_videos: List of all available enrollment videos
+            preference: Configuration specifying scenario and rotations to use
 
         Returns:
-            Best enrollment video (prioritizes easy scenario + clockwise rotation)
-        """
-        for video in videos:
-            if video.scenario == Scenario.EASY and video.head_rotation == HeadRotation.CLOCKWISE:
-                logger.info(f"Selected preferred enrollment video: {video.path.name} (easy, cw)")
-                return video
+            List of selected enrollment videos matching preference
 
-        logger.info(f"No 'easy cw' video found, using: {videos[0].path.name}")
-        return videos[0]
+        Raises:
+            EnrollmentException: If any required video is missing
+        """
+        # Filter videos matching the preferred scenario
+        scenario_videos = [v for v in available_videos if v.scenario == preference.scenario]
+
+        if not scenario_videos:
+            raise EnrollmentException(
+                f"No enrollment videos found for scenario '{preference.scenario.value}'"
+            )
+
+        # Find videos for each required rotation
+        selected_videos = []
+        for rotation in preference.rotations:
+            matching = [v for v in scenario_videos if v.head_rotation == rotation]
+            if not matching:
+                raise EnrollmentException(
+                    f"Required rotation '{rotation.value}' not found for scenario '{preference.scenario.value}'"
+                )
+            selected_videos.append(matching[0])  # Use first match
+
+        logger.info(
+            f"Selected {len(selected_videos)} enrollment video(s): "
+            f"{', '.join([v.path.name for v in selected_videos])}"
+        )
+
+        return selected_videos
 
     def _enrollment_exists(self, enrollment_folder: Path) -> bool:
         """Check if enrollment folder exists and contains images."""
@@ -154,13 +183,13 @@ class EnrollmentService:
 
     def _create_enrollment(
         self,
-        enrollment_video: EnrollmentVideo,
+        enrollment_videos: List[EnrollmentVideo],
         enrollment_folder: Path
     ) -> EnrollmentData:
-        """Create new enrollment from given video.
+        """Create new enrollment from given videos.
 
         Args:
-            enrollment_video: Selected enrollment video to process
+            enrollment_videos: Selected enrollment videos to process
             enrollment_folder: Path to enrollment folder
 
         Returns:
@@ -169,14 +198,20 @@ class EnrollmentService:
         Raises:
             EnrollmentException: If enrollment creation fails
         """
-        logger.info(f"Using enrollment video: {enrollment_video.path.name}")
+        logger.info(
+            f"Processing {len(enrollment_videos)} enrollment video(s): "
+            f"{', '.join([v.path.name for v in enrollment_videos])}"
+        )
 
         processor = self._build_enrollment_video_processor()
-        processor.process_enrollment_video(
-            enrollment_video.path,
-            self.config.frames_per_direction,
-            enrollment_folder
-        )
+
+        for video in enrollment_videos:
+            logger.info(f"Processing video: {video.path.name}")
+            processor.process_enrollment_video(
+                video.path,
+                self.config.frames_per_direction,
+                enrollment_folder
+            )
 
         return self._load_enrollment(enrollment_folder)
 
