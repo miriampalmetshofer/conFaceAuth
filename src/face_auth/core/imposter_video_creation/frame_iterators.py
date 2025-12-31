@@ -38,37 +38,27 @@ class VideoFrameIterator(FrameIterator):
     def __init__(
         self,
         video_path: Path,
-        start_second: float = 0,
-        duration_seconds: Optional[float] = None
+        duration_seconds: float,
+        fps: float,
+        start_second: float = 0
     ):
         """Initialize video frame iterator.
 
         Args:
             video_path: Path to video file
+            duration_seconds: Duration to read in seconds
+            fps: Frames per second (from config, already validated)
             start_second: Start time in seconds (default: 0, beginning of video)
-            duration_seconds: Duration to read in seconds (None = until end)
         """
         self.video_path = video_path
         self.start_second = start_second
         self.duration_seconds = duration_seconds
+        self.fps = fps
         self.rotation_angle = get_video_rotation_from_metadata(video_path)
 
-        # Get video info to calculate frame count
-        cap = cv2.VideoCapture(str(video_path))
-        self.fps = cap.get(cv2.CAP_PROP_FPS)
-        self.total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
-        self.total_duration = self.total_frames / self.fps if self.fps > 0 else 0
-        cap.release()
-
-        # Calculate frame boundaries
+        # Calculate frame boundaries using config FPS
         self.start_frame = int(start_second * self.fps)
-        if duration_seconds is not None:
-            self.end_frame = min(
-                self.start_frame + int(duration_seconds * self.fps),
-                self.total_frames
-            )
-        else:
-            self.end_frame = self.total_frames
+        self.end_frame = self.start_frame + int(duration_seconds * self.fps)
 
         logger.debug(
             f"VideoFrameIterator: {video_path.name}, "

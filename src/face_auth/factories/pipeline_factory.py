@@ -9,6 +9,7 @@ from face_auth.core.processing.video_matching import VideoMatchingStrategy, Scen
 from face_auth.services.enrollment_service import EnrollmentService
 from face_auth.services.video_processing_service import VideoProcessingService
 from face_auth.services.imposter_video_creation_service import ImposterVideoCreationService
+from face_auth.services.video_validation_service import VideoValidationService
 from face_auth.services.results_service import ResultsService
 from face_auth.pipeline import (
     VideoDiscoveryStage,
@@ -76,6 +77,12 @@ class PipelineFactory:
             stitch_config=self.config.imposter_creation
         )
 
+    def _create_video_validator(self) -> VideoValidationService:
+        """Create video validator."""
+        return VideoValidationService(
+            expected_fps=self.config.imposter_creation.fps
+        )
+
     def _create_results_service(self) -> ResultsService:
         """Create results service."""
         return ResultsService(config=self.config)
@@ -96,7 +103,9 @@ class PipelineFactory:
     def create_imposter_video_creation_stage(self) -> ImposterVideoCreationStage:
         """Create imposter video creation stage."""
         return ImposterVideoCreationStage(
-            imposter_creation_service=self._create_imposter_creation_service()
+            imposter_creation_service=self._create_imposter_creation_service(),
+            video_validator=self._create_video_validator(),
+            stitch_config=self.config.imposter_creation
         )
 
     def create_enrollment_stage(self) -> EnrollmentStage:

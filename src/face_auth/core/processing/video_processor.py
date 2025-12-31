@@ -6,9 +6,9 @@ from pathlib import Path
 
 from face_auth.core.authentication import FrameAuthenticationResult
 from face_auth.core.authentication.frame_authenticator import FrameAuthenticator
+from face_auth.core.imposter_video_creation import FrameIterator
 from face_auth.core.processing.debug_frame_saver import DebugFrameSaver
 from face_auth.core.processing.models import Color
-from face_auth.core.processing.frame_iterators import FrameIterator
 from face_auth.config.logging_config import get_logger
 
 logger = get_logger(__name__)

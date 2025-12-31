@@ -3,11 +3,11 @@ from dataclasses import dataclass
 from datetime import date
 from enum import Enum
 from pathlib import Path
-from typing import List, TYPE_CHECKING
+from typing import List
 
 from face_auth.config import Participant
 from face_auth.config.models import Scenario, HeadRotation
-from face_auth.core.processing.frame_iterators import FrameIterator
+from face_auth.core.imposter_video_creation import FrameIterator
 
 VIDEO_EXTENSIONS = ("mp4", "MP4")
 
