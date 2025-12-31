@@ -3,8 +3,8 @@
 from typing import List
 
 from face_auth.config.logging_config import get_logger
-from face_auth.config.models import ProcessingContext, StitchConfig
-from face_auth.core.processing.models import ImposterSamplePair, Video
+from face_auth.config.models import StitchConfig
+from face_auth.core.processing.models import ImposterSamplePair, ComposedVideo
 from face_auth.services.imposter_video_creation_service import ImposterVideoCreationService
 from face_auth.services.video_validation_service import VideoValidationService
 
@@ -27,7 +27,7 @@ class ImposterVideoCreationStage:
         self.video_validator = video_validator
         self.stitch_config = stitch_config
 
-    def execute(self, pairs: List[ImposterSamplePair], context: ProcessingContext) -> List[Video]:
+    def execute(self, pairs: List[ImposterSamplePair]) -> List[ComposedVideo]:
         """Create composed imposter videos from pairs.
 
         Args:
@@ -49,7 +49,8 @@ class ImposterVideoCreationStage:
 
         imposter_videos = []
         for i, pair in enumerate(pairs, 1):
-            logger.info(f"Creating imposter video {i}/{len(pairs)}: {pair.genuine_video.path.name} + {pair.imposter_video.path.name}")
+            logger.info(
+                f"Creating imposter video {i}/{len(pairs)}: {pair.genuine_video.path.name} + {pair.imposter_video.path.name}")
             video = self.imposter_creation_service.create(pair)
             imposter_videos.append(video)
 
