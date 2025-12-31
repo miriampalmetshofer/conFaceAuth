@@ -197,6 +197,7 @@ def create_risk_score_timeline(df: pd.DataFrame, threshold: float,
             f"Distance: {row['distance']:.4f}<br>"
             f"State: {row['predicted_state']}<br>"
             f"Face Detected: {row['face_detected']}"
+                    + (f"<br>Device: {row.get('device', 'N/A')}" if 'device' in video_data.columns else "")
             + (f"<br>Segment: {row.get('segment_type', 'N/A').title()}" if 'segment_type' in video_data.columns else "")
             for _, row in video_data.iterrows()
         ]
