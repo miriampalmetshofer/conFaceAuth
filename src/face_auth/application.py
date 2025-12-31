@@ -117,7 +117,8 @@ class FaceAuthApplication:
             # Match genuine user videos with imposter videos
             imposter_data_for_stitching = self.video_matching_stage.execute(
                 all_videos,
-                context.participant
+                context.participant,
+                self.config.participants
             )
 
             # Create imposter videos

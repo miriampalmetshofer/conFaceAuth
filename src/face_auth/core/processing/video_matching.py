@@ -2,6 +2,7 @@
 from abc import ABC, abstractmethod
 from typing import Protocol, List
 from face_auth.core.processing.models import Video, ControlledStudyVideo, ImposterSamplePair
+from face_auth.config.models import Participant
 from face_auth.config.logging_config import get_logger
 
 logger = get_logger(__name__)
@@ -11,27 +12,37 @@ class VideoMatchingStrategy(ABC):
     """Protocol for video matching strategies."""
 
     @abstractmethod
-    def match(self, all_videos: List[Video], genuine_user_name: str) -> List[ImposterSamplePair]:
+    def match(self, all_videos: List[Video], genuine_user: Participant,
+              allowed_participants: List[Participant]) -> List[ImposterSamplePair]:
         """Match genuine user videos with imposter videos.
 
         Args:
             all_videos: All discovered videos
-            genuine_user_name: Name of the genuine user
+            genuine_user: Genuine user participant
+            allowed_participants: List of allowed participants from config
 
         Returns:
             List of ImposterSamplePair objects
         """
 
-    def separate_genuine_and_imposter(self, all_videos, genuine_user_name):
+    def separate_genuine_and_imposter(self, all_videos, genuine_user, allowed_participants):
         genuine_videos = []
         imposter_videos = []
+
+        # Extract names for comparison
+        genuine_name = genuine_user.name
+        allowed_names = {p.name for p in allowed_participants}
+
         for video in all_videos:
-            if video.participant.name == genuine_user_name:
+            if video.participant.name == genuine_name:
                 genuine_videos.append(video)
-            else:
+            elif video.participant.name in allowed_names:
                 imposter_videos.append(video)
-        logger.info(f"Found {len(genuine_videos)} genuine video(s) for {genuine_user_name}")
+
+        logger.info(f"Found {len(genuine_videos)} genuine video(s) for {genuine_name}")
         logger.info(f"Found {len(imposter_videos)} potential imposter video(s)")
+        logger.info(f"Filtered to participants: {', '.join(sorted(allowed_names))}")
+
         return genuine_videos, imposter_videos
 
 
@@ -39,17 +50,21 @@ class VideoMatchingStrategy(ABC):
 class ScenarioMatchingStrategy(VideoMatchingStrategy):
     """Match videos by scenario (easy, angle, lighting) for controlled study."""
 
-    def match(self, all_videos: List[ControlledStudyVideo], genuine_user_name: str) -> List[ImposterSamplePair]:
+    def match(self, all_videos: List[ControlledStudyVideo], genuine_user: Participant,
+              allowed_participants: List[Participant]) -> List[ImposterSamplePair]:
         """Match genuine user videos with imposter videos of same scenario.
 
         Args:
             all_videos: All discovered videos (must be ControlledStudyVideo)
-            genuine_user_name: Name of the genuine user
+            genuine_user: Genuine user participant
+            allowed_participants: List of allowed participants from config
 
         Returns:
             List of ImposterSamplePair objects
         """
-        genuine_videos, imposter_videos = self.separate_genuine_and_imposter(all_videos, genuine_user_name)
+        genuine_videos, imposter_videos = self.separate_genuine_and_imposter(
+            all_videos, genuine_user, allowed_participants
+        )
 
         # Match each genuine video with imposters of same scenario
         pairs = []
@@ -80,17 +95,21 @@ class ScenarioMatchingStrategy(VideoMatchingStrategy):
 class AllVideosMatchingStrategy(VideoMatchingStrategy):
     """Match all imposter videos with each genuine video for in-the-wild study."""
 
-    def match(self, all_videos: List[Video], genuine_user_name: str) -> List[ImposterSamplePair]:
+    def match(self, all_videos: List[Video], genuine_user: Participant,
+              allowed_participants: List[Participant]) -> List[ImposterSamplePair]:
         """Match genuine user videos with all available imposter videos.
 
         Args:
             all_videos: All discovered videos
-            genuine_user_name: Name of the genuine user
+            genuine_user: Genuine user participant
+            allowed_participants: List of allowed participants from config
 
         Returns:
             List of ImposterSamplePair objects
         """
-        genuine_videos, imposter_videos = self.separate_genuine_and_imposter(all_videos, genuine_user_name)
+        genuine_videos, imposter_videos = self.separate_genuine_and_imposter(
+            all_videos, genuine_user, allowed_participants
+        )
 
         # Match each genuine video with ALL imposters
         pairs = []

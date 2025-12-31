@@ -21,12 +21,14 @@ class VideoMatchingStage:
         """
         self.matching_strategy = matching_strategy
 
-    def execute(self, all_videos: List[Video], genuine_user: Participant) -> List[ImposterSamplePair]:
+    def execute(self, all_videos: List[Video], genuine_user: Participant,
+                allowed_participants: List[Participant]) -> List[ImposterSamplePair]:
         """Match genuine user videos with imposter videos.
 
         Args:
             all_videos: All discovered videos from device
             genuine_user: Participant for genuine user
+            allowed_participants: List of all allowed participants from config
 
         Returns:
             List of imposter sample pairs
@@ -36,7 +38,7 @@ class VideoMatchingStage:
         """
         logger.info(f"Matching videos for genuine user: {genuine_user.name}")
 
-        pairs = self.matching_strategy.match(all_videos, genuine_user.name)
+        pairs = self.matching_strategy.match(all_videos, genuine_user, allowed_participants)
 
         if not pairs:
             raise ValueError(
