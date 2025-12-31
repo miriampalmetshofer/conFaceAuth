@@ -6,6 +6,7 @@ from face_auth.core.authentication.similarity_calculator import SimilarityCalcul
 from face_auth.core.authentication.percentile_filter import PercentileFilter
 from face_auth.core.authentication.temporal_window import TemporalWindow
 from face_auth.core.authentication.risk_scorer import RiskScorer
+from face_auth.core.authentication.authenticator_state_cache import AuthenticatorState
 from face_auth.config.logging_config import get_logger
 
 logger = get_logger(__name__)
@@ -33,6 +34,7 @@ class ContinuousAuthenticator:
         """
         self.enrollment_embeddings = enrollment_embeddings
         self.threshold = threshold
+        self.window_size = window_size
 
         self._similarity_calculator = SimilarityCalculator()
         self._percentile_filter = PercentileFilter(similarity_percentile)
@@ -103,3 +105,37 @@ class ContinuousAuthenticator:
         if self._current_risk_score is None:
             raise ValueError("No risk score available before processing frames")
         return self._current_risk_score
+
+    def get_state(self) -> AuthenticatorState:
+        """Get current authenticator state for caching.
+
+        Returns:
+            Current state including distance window and risk score
+
+        Raises:
+            ValueError: If no state available yet (no frames processed)
+        """
+        if self._current_risk_score is None:
+            raise ValueError("Cannot get state before processing any frames")
+
+        return AuthenticatorState(
+            distance_window=self._distance_window.get_values(),
+            risk_score=self._current_risk_score
+        )
+
+    def restore_state(self, state: AuthenticatorState) -> None:
+        """Restore authenticator state from cache.
+
+        Args:
+            state: Previously saved authenticator state
+        """
+        self._distance_window = TemporalWindow[float](self.window_size)
+        for distance in state.distance_window:
+            self._distance_window.append(distance)
+
+        self._current_risk_score = state.risk_score
+
+        logger.debug(
+            f"Restored authenticator state: window_size={len(state.distance_window)}, "
+            f"risk_score={state.risk_score:.4f}"
+        )

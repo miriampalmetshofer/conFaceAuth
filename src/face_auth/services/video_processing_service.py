@@ -7,7 +7,9 @@ from face_auth.core.authentication.embedder import Embedder
 from face_auth.core.detection import FaceDetector, FaceExtractor
 from face_auth.core.authentication.continuous_authenticator import ContinuousAuthenticator
 from face_auth.core.authentication.frame_authenticator import FrameAuthenticator
+from face_auth.core.authentication.authenticator_state_cache import AuthenticatorStateCache
 from face_auth.core.processing.video_processor import VideoProcessor
+from face_auth.core.processing.cached_video_processor import CachedVideoProcessor
 from face_auth.core.processing.models import ComposedVideo
 from face_auth.services.models import EnrollmentData, VideoResult
 from face_auth.config.logging_config import get_logger
@@ -37,6 +39,7 @@ class VideoProcessingService:
         self.detector = face_detector
         self.extractor = face_extractor
         self.embedder = embedder
+        self.state_cache = AuthenticatorStateCache()
 
     def process_video(
         self,
@@ -54,7 +57,6 @@ class VideoProcessingService:
         Returns:
             VideoResult with frame-by-frame authentication results
         """
-        # Build continuous authenticator for this video
         authenticator = ContinuousAuthenticator(
             enrollment_embeddings=enrollment_data.embeddings,
             window_size=self.config.window_size,
@@ -63,7 +65,6 @@ class VideoProcessingService:
             alpha=self.config.alpha
         )
 
-        # Build frame authenticator
         frame_authenticator = FrameAuthenticator(
             detector=self.detector,
             extractor=self.extractor,
@@ -72,16 +73,18 @@ class VideoProcessingService:
             no_face_penalty=self.config.no_face_penalty
         )
 
-        # Build video processor
         video_processor = VideoProcessor(
             frame_authenticator=frame_authenticator,
             debug_output_folder=Path("debug/no_face_frames")
         )
 
-        frame_results = video_processor.process_frame_iterators(
-                iterators=video.iterators,
-                video_name=video.path.name,
-                skip_frames=skip_frames
+        cached_processor = CachedVideoProcessor(video_processor, self.state_cache)
+
+        frame_results = cached_processor.process_with_cache(
+            iterators=video.iterators,
+            video_name=video.path.name,
+            skip_frames=skip_frames,
+            genuine_video_path=video.iterators[0].video_path
         )
 
         return VideoResult(

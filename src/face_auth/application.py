@@ -122,7 +122,7 @@ class FaceAuthApplication:
             )
 
             # Create imposter videos
-            imposter_videos = self.imposter_video_creation_stage.execute(imposter_data_for_stitching, context)
+            imposter_videos = self.imposter_video_creation_stage.execute(imposter_data_for_stitching)
 
             # Process imposter videos
             video_results = self.video_processing_stage.execute(imposter_videos, enrollment_data)

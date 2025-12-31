@@ -31,7 +31,8 @@ class VideoProcessor:
         self,
         iterators: List[FrameIterator],
         video_name: str,
-        skip_frames: int
+        skip_frames: int,
+        start_frame_index: int = 1
     ) -> List[FrameAuthenticationResult]:
         """Process frames from multiple iterators sequentially.
 
@@ -39,11 +40,12 @@ class VideoProcessor:
             iterators: List of frame iterators to process
             video_name: Name for debugging/logging
             skip_frames: Process every Nth frame
+            start_frame_index: Frame index to start from (default: 1)
 
         Returns:
             List of frame authentication results
         """
-        frame_index = 1
+        frame_index = start_frame_index
         results = []
 
         logger.info(f"Processing {len(iterators)} iterator(s) for {video_name}")

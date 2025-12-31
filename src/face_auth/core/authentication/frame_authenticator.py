@@ -97,3 +97,8 @@ class FrameAuthenticator:
             if self._authenticator.is_authenticated()
             else AuthenticationState.LOCKED
         )
+
+    @property
+    def authenticator(self) -> ContinuousAuthenticator:
+        """Get the continuous authenticator instance."""
+        return self._authenticator

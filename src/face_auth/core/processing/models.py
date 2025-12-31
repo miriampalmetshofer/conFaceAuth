@@ -7,7 +7,7 @@ from typing import List
 
 from face_auth.config import Participant
 from face_auth.config.models import Scenario, HeadRotation
-from face_auth.core.imposter_video_creation import FrameIterator
+from face_auth.core.imposter_video_creation import FrameIterator, VideoFrameIterator
 
 VIDEO_EXTENSIONS = ("mp4", "MP4")
 
