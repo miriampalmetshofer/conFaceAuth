@@ -1,6 +1,6 @@
 """Factory for creating pipeline stages."""
 
-from face_auth.config.models import ApplicationConfig
+from face_auth.config.models import ApplicationConfig, Pool
 from face_auth.core.authentication.embedder import Embedder
 from face_auth.core.detection import FaceDetector, FaceExtractor
 from face_auth.core.authentication.constants import FACENET_INPUT_WIDTH, FACENET_INPUT_HEIGHT
@@ -123,7 +123,7 @@ class PipelineFactory:
         """Create video processing stage."""
         return VideoProcessingStage(
             video_processing_service=self._create_video_processing_service(),
-            skip_frames=self.config.processing.skip_frames
+            config=self.config.processing
         )
 
     def create_results_persistence_stage(self) -> ResultsPersistenceStage:
@@ -134,18 +134,18 @@ class PipelineFactory:
 
     def _get_parser_for_pool(self) -> VideoParser:
         """Select appropriate parser based on pool type."""
-        if self.config.pool == "controlled_study":
+        if self.config.pool == Pool.CONTROLLED_STUDY:
             return ControlledStudyParser()
-        elif self.config.pool == "in_the_wild":
+        elif self.config.pool == Pool.IN_THE_WILD:
             return InTheWildStudyParser()
         else:
             raise ValueError(f"Unknown pool type: {self.config.pool}")
 
     def _get_matching_strategy_for_pool(self) -> VideoMatchingStrategy:
         """Select appropriate matching strategy based on pool type."""
-        if self.config.pool == "controlled_study":
+        if self.config.pool == Pool.CONTROLLED_STUDY:
             return ScenarioMatchingStrategy()
-        elif self.config.pool == "in_the_wild":
+        elif self.config.pool == Pool.IN_THE_WILD:
             return RandomSamplingMatchingStrategy(
                 imposters_per_genuine=self.config.processing.imposters_per_genuine
             )

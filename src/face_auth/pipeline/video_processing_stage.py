@@ -1,5 +1,6 @@
 from typing import List
 
+from face_auth.config import ProcessingConfig
 from face_auth.config.logging_config import get_logger
 from face_auth.core.processing.models import Video, ComposedVideo
 from face_auth.services.models import EnrollmentData, VideoResult
@@ -11,7 +12,7 @@ logger = get_logger(__name__)
 class VideoProcessingStage:
     """Stage 3: Process each video through authentication pipeline."""
 
-    def __init__(self, video_processing_service: VideoProcessingService, skip_frames: int):
+    def __init__(self, video_processing_service: VideoProcessingService, config: ProcessingConfig):
         """Initialize with video processing service and configuration.
 
         Args:
@@ -19,7 +20,7 @@ class VideoProcessingStage:
             skip_frames: Process every Nth frame
         """
         self.video_processing_service = video_processing_service
-        self.skip_frames = skip_frames
+        self.config = config
 
     def execute(
         self,
@@ -48,7 +49,7 @@ class VideoProcessingStage:
                 video_result = self.video_processing_service.process_video(
                     video=video,
                     enrollment_data=enrollment_data,
-                    skip_frames=self.skip_frames
+                    skip_frames=self.config.skip_frames
                 )
                 video_results.append(video_result)
                 logger.info(f"Successfully processed {video.path.name}")

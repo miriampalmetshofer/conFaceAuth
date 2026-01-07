@@ -2,6 +2,7 @@ from pathlib import Path
 from typing import List
 
 from face_auth.config.logging_config import get_logger
+from face_auth.config.models import Device
 from face_auth.core.processing.models import Video
 from face_auth.core.processing.video_discovery import VideoDiscovery
 from face_auth.core.processing.video_parser import ControlledStudyParser, VideoParser
@@ -21,7 +22,7 @@ class VideoDiscoveryStage:
         self.base_path = base_path
         self.parser = parser
 
-    def execute(self, device: str) -> List[Video]:
+    def execute(self, device: Device) -> List[Video]:
         """Discover all videos on device.
 
         Args:
@@ -35,7 +36,7 @@ class VideoDiscoveryStage:
         """
         logger.info(f"Discovering videos on {device}")
 
-        video_folder = self.base_path / device
+        video_folder = self.base_path / device.value
         discovery = VideoDiscovery(self.parser)
         videos = discovery.discover(video_folder)
 

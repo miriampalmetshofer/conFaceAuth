@@ -1,5 +1,9 @@
 {
   "pool": "controlled_study",
+  "devices": [
+    "mobile",
+    "desktop"
+  ],
   "paths": {
     "base_path": "data/controlled_study",
     "enrollment_base_path": "data/enrollments",
@@ -10,11 +14,7 @@
     "embedder": "facenet"
   },
   "processing": {
-    "skip_frames": 30,
-    "devices": [
-      "mobile",
-      "desktop"
-    ]
+    "skip_frames": 30
   },
   "authentication": {
     "threshold": 0.95,
@@ -46,7 +46,7 @@
     "impostor_seconds": 180
   },
   "logging": {
-    "level": "DEBUG",
+    "level": "INFO",
     "format": "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
   },
   "participants": [

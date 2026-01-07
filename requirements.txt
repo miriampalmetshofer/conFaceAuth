@@ -17,3 +17,4 @@ deepface
 
 # Utilities
 rich>=13.0
+pydantic>=2.0

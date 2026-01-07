@@ -1,10 +1,23 @@
 """Configuration domain models."""
 
-from dataclasses import dataclass
 from pathlib import Path
-from typing import List
+from typing import List, Optional
 from enum import Enum
 import logging
+
+from pydantic import BaseModel, Field, field_validator, ConfigDict
+
+'''
+  - ge = greater than or equal to (>=)
+  - le = less than or equal to (<=)
+  - gt = greater than (>)
+  - lt = less than (<)
+'''
+
+class Pool(Enum):
+    """Available pool types."""
+    CONTROLLED_STUDY = "controlled_study"
+    IN_THE_WILD = "in_the_wild"
 
 
 class Scenario(Enum):
@@ -20,220 +33,162 @@ class HeadRotation(Enum):
     COUNTERCLOCKWISE = "ccw"
 
 
-@dataclass
-class PathsConfig:
+class Device(Enum):
+    """Device types for video recording."""
+    MOBILE = "mobile"
+    DESKTOP = "desktop"
+
+
+class PathsConfig(BaseModel):
     """File paths configuration."""
 
     base_path: Path
     enrollment_base_path: Path
-    results_file: str
+    results_file: str = Field(..., min_length=1)
+
+    model_config = ConfigDict(frozen=True)
 
     def get_results_path(self) -> Path:
         """Get formatted results file path."""
         return Path(self.results_file.format(base_path=self.base_path))
 
-    def validate(self):
-        """Validate paths configuration."""
-        if not self.base_path:
-            raise ValueError("base_path cannot be empty")
-        if not self.enrollment_base_path:
-            raise ValueError("enrollment_base_path cannot be empty")
-        if not self.results_file:
-            raise ValueError("results_file cannot be empty")
 
-
-@dataclass
-class AuthenticationConfig:
+class AuthenticationConfig(BaseModel):
     """Authentication parameters configuration."""
 
-    threshold: float
-    window_size: int
-    similarity_percentile: float
-    alpha: float
-    no_face_penalty: float
+    threshold: float = Field(..., ge=0, le=2.0)
+    window_size: int = Field(..., gt=0)
+    similarity_percentile: float = Field(..., ge=0, le=100)
+    alpha: float = Field(..., ge=0, le=1)
+    no_face_penalty: float = Field(..., gt=0)
 
-    def validate(self):
-        """Validate authentication parameters."""
-        if not 0 <= self.threshold <= 2.0:
-            raise ValueError(f"threshold must be between 0 and 2.0, got {self.threshold}")
-        if self.window_size <= 0:
-            raise ValueError(f"window_size must be positive, got {self.window_size}")
-        if not 0 <= self.similarity_percentile <= 100:
-            raise ValueError(f"similarity_percentile must be between 0 and 100, got {self.similarity_percentile}")
-        if not 0 <= self.alpha <= 1:
-            raise ValueError(f"alpha must be between 0 and 1, got {self.alpha}")
-        if self.no_face_penalty <= 0:
-            raise ValueError(f"no_face_penalty must be positive, got {self.no_face_penalty}")
+    model_config = ConfigDict(frozen=True)
 
 
-@dataclass
-class EnrollmentVideoPreference:
+class EnrollmentVideoPreference(BaseModel):
     """Preference for enrollment video selection."""
 
     scenario: Scenario
-    rotations: List[HeadRotation]
+    rotations: List[HeadRotation] = Field(..., min_length=1)
 
-    def validate(self):
-        """Validate enrollment video preference."""
-        if not self.scenario:
-            raise ValueError("scenario cannot be empty")
-        if not self.rotations:
-            raise ValueError("rotations list cannot be empty")
+    model_config = ConfigDict(frozen=True)
 
 
-@dataclass
-class EnrollmentConfig:
+class EnrollmentConfig(BaseModel):
     """Enrollment parameters configuration."""
 
     enrollment_video_preference: EnrollmentVideoPreference
-    frames_per_direction: int
-    frame_sampling_interval: int
-    yaw_threshold: float
-    pitch_threshold: float
-    distribution_mean_fraction: float
-    distribution_stddev_fraction: float
+    frames_per_direction: int = Field(..., gt=0)
+    frame_sampling_interval: int = Field(..., gt=0)
+    yaw_threshold: float = Field(..., gt=0)
+    pitch_threshold: float = Field(..., gt=0)
+    distribution_mean_fraction: float = Field(..., ge=0, le=1)
+    distribution_stddev_fraction: float = Field(..., ge=0, le=1)
     sampling_seed: int
 
-    def validate(self):
-        """Validate enrollment parameters."""
-        self.enrollment_video_preference.validate()
-        if self.frames_per_direction <= 0:
-            raise ValueError(f"frames_per_direction must be positive, got {self.frames_per_direction}")
-        if self.frame_sampling_interval <= 0:
-            raise ValueError(f"frame_sampling_interval must be positive, got {self.frame_sampling_interval}")
-        if self.yaw_threshold <= 0:
-            raise ValueError(f"yaw_threshold must be positive, got {self.yaw_threshold}")
-        if self.pitch_threshold <= 0:
-            raise ValueError(f"pitch_threshold must be positive, got {self.pitch_threshold}")
-        if not 0 <= self.distribution_mean_fraction <= 1:
-            raise ValueError(f"distribution_mean_fraction must be between 0 and 1, got {self.distribution_mean_fraction}")
-        if not 0 <= self.distribution_stddev_fraction <= 1:
-            raise ValueError(f"distribution_stddev_fraction must be between 0 and 1, got {self.distribution_stddev_fraction}")
+    model_config = ConfigDict(frozen=True)
 
 
-@dataclass
-class ModelConfig:
+class ModelConfig(BaseModel):
     """ML model configuration."""
 
     detector: str
     embedder: str
 
-    def validate(self):
-        """Validate model configuration."""
-        # Validation is performed by FaceDetector and Embedder classes at runtime
-        pass
+    model_config = ConfigDict(frozen=True)
 
 
-@dataclass
-class ProcessingConfig:
+class ProcessingConfig(BaseModel):
     """Video processing configuration."""
 
-    skip_frames: int
-    devices: List[str]
+    skip_frames: int = Field(..., gt=0)
+    imposters_per_genuine: Optional[int] = Field(None, gt=0)
 
-    def validate(self):
-        """Validate processing configuration."""
-        if self.skip_frames <= 0:
-            raise ValueError(f"skip_frames must be positive, got {self.skip_frames}")
-        if not self.devices:
-            raise ValueError("devices list cannot be empty")
+    model_config = ConfigDict(frozen=True)
 
 
-@dataclass
-class StitchConfig:
+class MatchingConfig(BaseModel):
+    """Video matching configuration."""
+
+    imposters_per_genuine: Optional[int] = Field(None, gt=0)
+
+    model_config = ConfigDict(frozen=True)
+
+
+class StitchConfig(BaseModel):
     """Imposter video creation configuration."""
 
-    fps: int
-    genuine_user_seconds: float|None
-    black_screen_seconds: float
-    impostor_seconds: float|None
+    fps: int = Field(..., gt=0)
+    genuine_user_seconds: Optional[float] = Field(None, gt=0)
+    black_screen_seconds: float = Field(..., ge=0)
+    impostor_seconds: Optional[float] = Field(None, gt=0)
 
-    def validate(self):
-        """Validate imposter creation configuration."""
-        if self.fps <= 0:
-            raise ValueError(f"fps must be positive, got {self.fps}")
-        if self.black_screen_seconds < 0:
-            raise ValueError(f"black_screen_seconds cannot be negative, got {self.black_screen_seconds}")
+    model_config = ConfigDict(frozen=True)
 
 
-@dataclass
-class LoggingConfig:
+class LoggingConfig(BaseModel):
     """Logging configuration."""
 
     level: str
     format: str
 
+    model_config = ConfigDict(frozen=True)
+
     def get_log_level(self) -> int:
         """Convert string log level to logging constant."""
         return getattr(logging, self.level.upper(), logging.INFO)
 
-    def validate(self):
-        """Validate logging configuration."""
+    @field_validator('level')
+    @classmethod
+    def validate_log_level(cls, v: str) -> str:
+        """Validate logging level."""
         valid_levels = ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
-        if self.level.upper() not in valid_levels:
-            raise ValueError(f"log level must be one of {valid_levels}, got {self.level}")
+        if v.upper() not in valid_levels:
+            raise ValueError(f"log level must be one of {valid_levels}, got {v}")
+        return v
 
 
-@dataclass
-class Participant:
+class Participant(BaseModel):
     """Participant configuration."""
 
-    name: str
+    name: str = Field(..., min_length=1)
 
-    def validate(self):
-        """Validate participant configuration."""
-        if not self.name:
-            raise ValueError("participant name cannot be empty")
+    model_config = ConfigDict(frozen=True)
 
 
-@dataclass
-class ProcessingContext:
+class ProcessingContext(BaseModel):
     """Context for processing a participant on a specific device."""
 
     participant: Participant
-    device: str
-    pool: str
+    device: Device
+    pool: Pool
 
-    def validate(self):
-        """Validate processing context."""
-        if not self.device:
-            raise ValueError("device cannot be empty")
-        if not self.pool:
-            raise ValueError("pool cannot be empty")
-        self.participant.validate()
+    model_config = ConfigDict(frozen=True)
 
 
-@dataclass
-class ApplicationConfig:
+class ApplicationConfig(BaseModel):
     """Root configuration object containing all sub-configurations."""
 
-    pool: str
-    participants: List[Participant]
+    pool: Pool
+    participants: List[Participant] = Field(..., min_length=1)
+    devices: List[Device] = Field(..., min_length=1)
     paths: PathsConfig
     authentication: AuthenticationConfig
     enrollment: EnrollmentConfig
     models: ModelConfig
     processing: ProcessingConfig
+    matching: Optional[MatchingConfig] = None
     imposter_creation: StitchConfig
     logging: LoggingConfig
 
-    def validate(self):
-        """Validate entire configuration tree."""
-        if not self.pool:
-            raise ValueError("pool name cannot be empty")
+    model_config = ConfigDict(frozen=True)
 
-        if not self.participants:
-            raise ValueError("participants list cannot be empty")
-
-        # Validate all sub-configurations
-        self.paths.validate()
-        self.authentication.validate()
-        self.enrollment.validate()
-        self.models.validate()
-        self.processing.validate()
-        self.imposter_creation.validate()
-        self.logging.validate()
-
-        # Validate all participants
-        for participant in self.participants:
-            participant.validate()
+    @field_validator('pool')
+    @classmethod
+    def validate_pool_specific_config(cls, v: Pool, info) -> Pool:
+        """Validate pool-specific configuration requirements."""
+        if hasattr(info, 'data') and v == Pool.IN_THE_WILD:
+            processing = info.data.get('processing')
+            if processing and processing.imposters_per_genuine is None:
+                raise ValueError("imposters_per_genuine is required for in_the_wild pool")
+        return v

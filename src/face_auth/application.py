@@ -1,6 +1,6 @@
 """Face authentication application orchestrator."""
 
-from face_auth.config.models import ApplicationConfig, ProcessingContext
+from face_auth.config.models import ApplicationConfig, ProcessingContext, Device
 from face_auth.factories import PipelineFactory, ResultsFileValidator
 from face_auth.config.logging_config import get_logger
 
@@ -41,7 +41,7 @@ class FaceAuthApplication:
         total_success = 0
         total_failed = 0
 
-        for device in self.config.processing.devices:
+        for device in self.config.devices:
             device_success, device_failed = self._process_device(device)
             total_success += device_success
             total_failed += device_failed
@@ -52,7 +52,7 @@ class FaceAuthApplication:
         logger.info(f"Results saved to: {self.config.paths.get_results_path()}")
         logger.info(f"{'=' * 60}")
 
-    def _process_device(self, device: str) -> tuple[int, int]:
+    def _process_device(self, device: Device) -> tuple[int, int]:
         """Process all participants on a device.
 
         Args:

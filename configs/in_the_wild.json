@@ -1,5 +1,8 @@
 {
   "pool": "in_the_wild",
+  "devices": [
+    "mobile"
+  ],
   "paths": {
     "base_path": "data/in_the_wild",
     "enrollment_base_path": "data/enrollments",
@@ -11,9 +14,6 @@
   },
   "processing": {
     "skip_frames": 30,
-    "devices": [
-      "mobile"
-    ],
     "imposters_per_genuine": 10
   },
   "authentication": {
@@ -51,7 +51,22 @@
   },
   "participants": [
     {
+      "name": "christina"
+    },
+    {
       "name": "gudrun"
+    },
+    {
+      "name": "ulli"
+    },
+    {
+      "name": "anna"
+    },
+    {
+      "name": "lisi"
+    },
+    {
+      "name": "max"
     }
   ]
 }
