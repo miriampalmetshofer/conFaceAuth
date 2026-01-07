@@ -3,7 +3,7 @@ from face_auth.core.authentication.continuous_authenticator import ContinuousAut
 from face_auth.core.authentication.constants import FACENET_INPUT_WIDTH, FACENET_INPUT_HEIGHT
 from face_auth.core.authentication.embedder import Embedder
 from face_auth.core.authentication.frame_authenticator import FrameAuthenticator
-from face_auth.core.authentication.models import AuthenticationState, FrameAuthenticationResult
+from face_auth.core.authentication.models import AuthenticationState, AuthenticationResult, FrameAuthenticationResult
 from face_auth.core.authentication.percentile_filter import PercentileFilter
 from face_auth.core.authentication.risk_scorer import RiskScorer
 from face_auth.core.authentication.similarity_calculator import SimilarityCalculator
@@ -16,6 +16,7 @@ __all__ = [
     'FrameAuthenticator',
     # Models
     'AuthenticationState',
+    'AuthenticationResult',
     'FrameAuthenticationResult',
     # Constants
     'FACENET_INPUT_WIDTH',

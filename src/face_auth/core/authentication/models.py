@@ -14,23 +14,31 @@ class AuthenticationState(Enum):
 
 
 @dataclass
-class FrameAuthenticationResult:
-    """Result of authenticating a single frame."""
+class AuthenticationResult:
+    """Pure authentication result from authenticator."""
     state: AuthenticationState
     distance: float
     risk_score: float
     face_detected: bool
     bounding_box: Optional[BoundingBox] = None
-    frame_index: int = 0
+
+
+@dataclass
+class FrameAuthenticationResult:
+    """Frame-level authentication result with processing metadata."""
+    auth_result: AuthenticationResult
+    frame_index: int
+    source_type: str
 
     def to_dict(self) -> dict:
         """Convert to dictionary format for CSV output."""
         return {
             'frame': self.frame_index,
-            'predicted_state': self.state.value,
-            'distance': self.distance,
-            'risk_score': self.risk_score,
-            'face_detected': self.face_detected
+            'predicted_state': self.auth_result.state.value,
+            'distance': self.auth_result.distance,
+            'risk_score': self.auth_result.risk_score,
+            'face_detected': self.auth_result.face_detected,
+            'source_type': self.source_type
         }
 
 @dataclass

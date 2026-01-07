@@ -1,7 +1,7 @@
 """Frame processing for face authentication."""
 import numpy as np
 
-from face_auth.core.authentication.models import FrameAuthenticationResult, AuthenticationState
+from face_auth.core.authentication.models import AuthenticationResult, AuthenticationState
 from face_auth.core.detection import FaceDetector, FaceExtractor
 from face_auth.core.authentication.embedder import Embedder
 from face_auth.core.authentication.continuous_authenticator import ContinuousAuthenticator
@@ -33,7 +33,7 @@ class FrameAuthenticator:
         self._authenticator = authenticator
         self._no_face_penalty = no_face_penalty
 
-    def authenticate(self, frame_bgr: np.ndarray) -> FrameAuthenticationResult:
+    def authenticate(self, frame_bgr: np.ndarray) -> AuthenticationResult:
         """Process frame and return authentication result.
 
         Args:
@@ -49,15 +49,15 @@ class FrameAuthenticator:
 
         return self._create_result_for_detected_face(detection_result)
 
-    def _create_result_for_no_face(self) -> FrameAuthenticationResult:
+    def _create_result_for_no_face(self) -> AuthenticationResult:
         """Create authentication result when no face was detected.
 
         Returns:
-            FrameAuthenticationResult with no_face_penalty distance
+            AuthenticationResult with no_face_penalty distance
         """
         self._authenticator.update_with_distance(self._no_face_penalty)
 
-        return FrameAuthenticationResult(
+        return AuthenticationResult(
             state=self._get_authentication_state(),
             distance=self._no_face_penalty,
             risk_score=self._authenticator.risk_score,
@@ -65,20 +65,20 @@ class FrameAuthenticator:
             bounding_box=None
         )
 
-    def _create_result_for_detected_face(self, detection) -> FrameAuthenticationResult:
+    def _create_result_for_detected_face(self, detection) -> AuthenticationResult:
         """Create authentication result when face was detected.
 
         Args:
             detection: DetectionResult with face image and bounding box
 
         Returns:
-            FrameAuthenticationResult with computed distance and risk score
+            AuthenticationResult with computed distance and risk score
         """
         embedding = self._embedder.get_embedding(detection.face_image)
         distance = self._authenticator.compute_distance_to_enrollment(embedding)
         self._authenticator.update_with_distance(distance)
 
-        return FrameAuthenticationResult(
+        return AuthenticationResult(
             state=self._get_authentication_state(),
             distance=distance,
             risk_score=self._authenticator.risk_score,

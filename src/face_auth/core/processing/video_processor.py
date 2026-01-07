@@ -1,7 +1,6 @@
 from typing import List
 
 import cv2
-from dataclasses import replace
 from pathlib import Path
 
 from face_auth.core.authentication import FrameAuthenticationResult
@@ -62,8 +61,12 @@ class VideoProcessor:
                         f"Distance={auth_result.distance:.4f}, Risk Score={auth_result.risk_score:.4f}"
                     )
 
-                    auth_result_with_frame = replace(auth_result, frame_index=frame_index)
-                    results.append(auth_result_with_frame)
+                    frame_result = FrameAuthenticationResult(
+                        auth_result=auth_result,
+                        frame_index=frame_index,
+                        source_type=source_name
+                    )
+                    results.append(frame_result)
 
             except Exception as e:
                 logger.error(f"Error processing frame {frame_index}: {e}", exc_info=True)
