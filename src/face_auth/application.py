@@ -1,8 +1,9 @@
 """Face authentication application orchestrator."""
 
 from face_auth.config.models import ApplicationConfig, ProcessingContext, Device
-from face_auth.factories import PipelineFactory, ResultsFileValidator
 from face_auth.config.logging_config import get_logger
+from face_auth.factories import PipelineFactory
+from face_auth.results_file_validator import ResultsFileValidator
 
 logger = get_logger(__name__)
 
