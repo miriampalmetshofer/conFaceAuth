@@ -82,62 +82,6 @@ class VideoProcessor:
 
         return results
 
-    def process_live_stream(self, skip_frames: int = 30) -> None:
-        """Process live webcam stream with face authentication.
-
-        Args:
-            skip_frames: Process every Nth frame
-        """
-        cap = cv2.VideoCapture(0)
-
-        if not cap.isOpened():
-            logger.error("Cannot open webcam")
-            return
-
-        cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
-        cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
-
-        frame_count = 0
-        threshold = self.frame_authenticator.continuous_authenticator.threshold
-
-        # Store last authentication result to persist display
-        last_auth_result = None
-
-        while True:
-            ret, frame = cap.read()
-            if not ret:
-                logger.error("Cannot read frame")
-                break
-
-            try:
-                # Authenticate only on skip_frames interval
-                if frame_count % skip_frames == 0:
-                    last_auth_result = self.frame_authenticator.authenticate(frame)
-
-                # Display last authentication result on every frame
-                if last_auth_result is not None:
-                    if not last_auth_result.face_detected:
-                        cv2.putText(frame, "No face detected", (70, 70),
-                                  cv2.FONT_HERSHEY_SIMPLEX, 1, Color.RED.value, 2)
-                    else:
-                        self._draw_detection_box(frame, last_auth_result.face_box)
-
-                    color = Color.GREEN.value if last_auth_result.predicted_state == 'Unlocked' else Color.RED.value
-                    cv2.putText(frame, f"{last_auth_result.risk_score:.4f} (Distance) < {threshold} (Threshold)",
-                              (20, 30), cv2.FONT_HERSHEY_SIMPLEX, 1.0, color, 2)
-
-            except Exception as e:
-                logger.error(f"Error at frame {frame_count}: {e}")
-
-            cv2.imshow('Live Face Authentication', frame)
-
-            frame_count += 1
-
-            if cv2.waitKey(1) & 0xFF == ord('q'):
-                break
-
-        cap.release()
-        cv2.destroyAllWindows()
 
     def _log_video_info(self, cap: cv2.VideoCapture) -> None:
         """Log video metadata."""
