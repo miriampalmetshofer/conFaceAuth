@@ -90,7 +90,7 @@ class FaceAuthApplication:
             return success_count, failed_count
 
         except Exception as e:
-            logger.error(f"Failed to process device {device}: {e}")
+            logger.error(f"Failed to process device {device}: {e}", exc_info=True)
             return 0, len(self.config.participants)
 
     def _process_participant(
@@ -135,7 +135,7 @@ class FaceAuthApplication:
             return True
 
         except Exception as e:
-            logger.error(f"Failed to process {context.participant.name} on {context.device}: {e}")
+            logger.error(f"Failed to process {context.participant.name} on {context.device}: {e}", exc_info=True)
             return False
 
     def _validate_prerequisites(self):
@@ -144,10 +144,10 @@ class FaceAuthApplication:
 
     def _log_configuration(self):
         """Log key configuration information."""
-        logger.info(f"Pool: {self.config.pool.upper()}")
+        logger.info(f"Pool: {self.config.pool.value.upper()}")
         logger.info(f"Base Path: {self.config.paths.base_path}")
         logger.info(f"Enrollment Path: {self.config.paths.enrollment_base_path}")
-        logger.info(f"Devices: {', '.join(self.config.processing.devices)}")
+        logger.info(f"Devices: {', '.join([d.value for d in self.config.devices])}")
         logger.info(f"Participants: {len(self.config.participants)}")
         logger.info(f"Detector: {self.config.models.detector}")
         logger.info(f"Embedder: {self.config.models.embedder}")

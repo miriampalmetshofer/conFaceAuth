@@ -4,11 +4,11 @@ from face_auth.config.models import ApplicationConfig, Pool
 from face_auth.core.authentication.embedder import Embedder
 from face_auth.core.detection import FaceDetector, FaceExtractor
 from face_auth.core.authentication.constants import FACENET_INPUT_WIDTH, FACENET_INPUT_HEIGHT
+from face_auth.core.processing.genuine_video_cache import VideoCache
 from face_auth.core.processing.video_parser import VideoParser, ControlledStudyParser, InTheWildStudyParser
 from face_auth.core.processing.video_matching import (
     VideoMatchingStrategy,
     ScenarioMatchingStrategy,
-    AllVideosMatchingStrategy,
     RandomSamplingMatchingStrategy
 )
 from face_auth.services.enrollment_service import EnrollmentService
@@ -73,7 +73,8 @@ class PipelineFactory:
             config=self.config.authentication,
             face_detector=self._create_face_detector(),
             face_extractor=self._create_face_extractor(),
-            embedder=self._create_embedder()
+            embedder=self._create_embedder(),
+            genuine_cache=VideoCache()
         )
 
     def _create_imposter_creation_service(self) -> ImposterVideoCreationService:

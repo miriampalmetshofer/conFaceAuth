@@ -3,10 +3,12 @@ from dataclasses import dataclass
 from datetime import date
 from enum import Enum
 from pathlib import Path
-from typing import List
+from typing import List, Optional
 
 from face_auth.config import Participant
 from face_auth.config.models import Scenario, HeadRotation
+from face_auth.core.authentication import FrameAuthenticationResult
+from face_auth.core.authentication.authenticator_state_cache import AuthenticatorState
 from face_auth.core.imposter_video_creation import FrameIterator, VideoFrameIterator
 
 VIDEO_EXTENSIONS = ("mp4", "MP4")
@@ -49,3 +51,29 @@ class ImposterSamplePair:
 class ComposedVideo(Video):
     """Virtual video composed from multiple frame iterators without physical file."""
     iterators: List['FrameIterator']
+    cacheable_iterator: Optional['FrameIterator'] = None
+
+@dataclass
+class CacheValue:
+    """Cached results from processing a genuine video."""
+
+    authenticator_state: AuthenticatorState
+    frame_results: List[FrameAuthenticationResult]
+    last_frame_index: int
+
+
+@dataclass(frozen=True)
+class CacheKey:
+    """Composite key for caching video processing results."""
+
+    video_path: Path
+
+    def __hash__(self):
+        """Make hashable for use as dict key."""
+        return hash(str(self.video_path))
+
+    def __eq__(self, other):
+        """Compare cache keys."""
+        if not isinstance(other, CacheKey):
+            return False
+        return self.video_path == other.video_path

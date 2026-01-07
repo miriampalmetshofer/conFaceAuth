@@ -1,7 +1,8 @@
 """Data models for face authentication core components."""
 from dataclasses import dataclass
 from enum import Enum
-from typing import Optional
+from pathlib import Path
+from typing import Optional, List
 
 from face_auth.core.detection import BoundingBox
 
@@ -31,3 +32,10 @@ class FrameAuthenticationResult:
             'risk_score': self.risk_score,
             'face_detected': self.face_detected
         }
+
+@dataclass
+class AuthenticatorState:
+    """Snapshot of authenticator state after processing genuine video."""
+
+    distance_window: list[float]
+    risk_score: float

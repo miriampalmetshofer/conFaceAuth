@@ -29,7 +29,15 @@ class FaceDetector:
             BoundingBox of detected face, or None if no face found
         """
         image_rgb = cv2.cvtColor(image_bgr, cv2.COLOR_BGR2RGB)
-        results = self._detector.detect_faces(image_rgb)
+
+        try:
+            results = self._detector.detect_faces(image_rgb)
+        except ValueError as e:
+            # MTCNN bug: sometimes P-Net finds candidates that get filtered out before R-Net,
+            # leaving an empty batch that R-Net can't handle
+            if "empty output" in str(e).lower() or "shape=(0," in str(e):
+                return None
+            raise
 
         if not results:
             return None

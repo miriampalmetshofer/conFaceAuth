@@ -8,7 +8,6 @@ from face_auth.core.authentication import FrameAuthenticationResult
 from face_auth.core.authentication.frame_authenticator import FrameAuthenticator
 from face_auth.core.imposter_video_creation import FrameIterator
 from face_auth.core.processing.debug_frame_saver import DebugFrameSaver
-from face_auth.core.processing.models import Color
 from face_auth.config.logging_config import get_logger
 
 logger = get_logger(__name__)
@@ -27,18 +26,16 @@ class VideoProcessor:
         self.frame_authenticator = frame_authenticator
         self.debug_saver = DebugFrameSaver(debug_output_folder)
 
-    def process_frame_iterators(
+    def process_iterator(
         self,
-        iterators: List[FrameIterator],
-        video_name: str,
+        iterator: FrameIterator,
         skip_frames: int,
         start_frame_index: int = 1
     ) -> List[FrameAuthenticationResult]:
-        """Process frames from multiple iterators sequentially.
+        """Process frames from a single iterator.
 
         Args:
-            iterators: List of frame iterators to process
-            video_name: Name for debugging/logging
+            iterator: Frame iterator to process
             skip_frames: Process every Nth frame
             start_frame_index: Frame index to start from (default: 1)
 
@@ -47,36 +44,32 @@ class VideoProcessor:
         """
         frame_index = start_frame_index
         results = []
+        source_name = iterator.get_source_name()
 
-        logger.info(f"Processing {len(iterators)} iterator(s) for {video_name}")
+        logger.debug(f"Processing iterator: {source_name}")
 
-        for iterator_idx, iterator in enumerate(iterators, 1):
-            logger.debug(f"Processing iterator {iterator_idx}/{len(iterators)}")
-            source_name = iterator.get_source_name()
+        for frame in iterator:
+            try:
+                if frame_index == 1 or frame_index % skip_frames == 0:
+                    auth_result = self.frame_authenticator.authenticate(frame)
 
-            for frame in iterator:
-                try:
-                    if frame_index == 1 or frame_index % skip_frames == 0:
-                        auth_result = self.frame_authenticator.authenticate(frame)
+                    if not auth_result.face_detected:
+                        logger.warning(f"No face detected at frame {frame_index}")
+                        self.debug_saver.save_frame(frame, frame_index, source_name)
 
-                        if not auth_result.face_detected:
-                            logger.warning(f"No face detected at frame {frame_index}")
-                            self.debug_saver.save_frame(frame, frame_index, source_name)
+                    logger.info(
+                        f"Frame {frame_index}: Predicted State={auth_result.state.value}, "
+                        f"Distance={auth_result.distance:.4f}, Risk Score={auth_result.risk_score:.4f}"
+                    )
 
-                        logger.info(
-                            f"Frame {frame_index}: Predicted State={auth_result.state.value}, "
-                            f"Distance={auth_result.distance:.4f}, Risk Score={auth_result.risk_score:.4f}"
-                        )
+                    auth_result_with_frame = replace(auth_result, frame_index=frame_index)
+                    results.append(auth_result_with_frame)
 
-                        # Add frame number to result
-                        auth_result_with_frame = replace(auth_result, frame_index=frame_index)
-                        results.append(auth_result_with_frame)
+            except Exception as e:
+                logger.error(f"Error processing frame {frame_index}: {e}", exc_info=True)
+                raise e
 
-                except Exception as e:
-                    logger.error(f"Error processing frame {frame_index}: {e}")
-                    raise e
-
-                frame_index += 1
+            frame_index += 1
 
         cv2.destroyAllWindows()
 

@@ -55,7 +55,7 @@ class VideoProcessingStage:
                 logger.info(f"Successfully processed {video.path.name}")
 
             except Exception as e:
-                logger.error(f"Failed to process {video.path.name}: {e}")
+                logger.error(f"Failed to process {video.path.name}: {e}", exc_info=True)
 
         if not video_results:
             raise RuntimeError("All videos failed to process")

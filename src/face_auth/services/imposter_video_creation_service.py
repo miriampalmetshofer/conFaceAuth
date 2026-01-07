@@ -44,7 +44,8 @@ class ImposterVideoCreationService:
             path=virtual_path,
             recording_date=pair.genuine_video.recording_date,
             participant=pair.genuine_video.participant,
-            iterators=iterators
+            iterators=iterators,
+            cacheable_iterator=iterators[0]  # Genuine video - reused across multiple imposter pairs
         )
 
     def _create_iterators(self, pair):

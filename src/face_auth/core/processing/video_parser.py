@@ -41,7 +41,7 @@ class ControlledStudyParser(VideoParser):
             path=path,
             scenario=scenario,
             recording_date=datetime_obj.date(),
-            participant=Participant(groups["name"]),
+            participant=Participant(name=groups["name"]),
         )
 
 class InTheWildStudyParser(VideoParser):
@@ -63,7 +63,7 @@ class InTheWildStudyParser(VideoParser):
         return Video(
             path=path,
             recording_date=datetime_obj.date(),
-            participant=Participant(groups["name"]),
+            participant=Participant(name=groups["name"]),
         )
 
 
@@ -90,5 +90,5 @@ class EnrollmentVideoParser(VideoParser):
             scenario=scenario,
             head_rotation=head_rotation,
             recording_date=datetime_obj.date(),
-            participant=Participant(groups["name"]),
+            participant=Participant(name=groups["name"]),
         )

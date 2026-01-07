@@ -98,7 +98,7 @@ class EnrollmentService:
         Raises:
             EnrollmentException: If no enrollment videos found
         """
-        participant_folder = self.paths.enrollment_base_path / context.device / context.participant.name
+        participant_folder = self.paths.enrollment_base_path / context.device.value / context.participant.name
         discovery = VideoDiscovery(EnrollmentVideoParser())
         enrollment_videos = discovery.discover(participant_folder)
 
@@ -124,7 +124,7 @@ class EnrollmentService:
         Returns:
             Path to enrollment folder
         """
-        participant_folder = self.paths.enrollment_base_path / context.device / context.participant.name
+        participant_folder = self.paths.enrollment_base_path / context.device.value / context.participant.name
         # Use first video's stem as folder name (all should be from same scenario/date)
         video_name = enrollment_videos[0].path.stem
         return participant_folder / video_name
