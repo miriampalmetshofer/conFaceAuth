@@ -11,15 +11,17 @@ logger = get_logger(__name__)
 class VideoValidationService:
     """Validates video files meet FPS and duration requirements."""
 
-    def __init__(self, expected_fps: float, duration_buffer_seconds: float = 1.0):
+    def __init__(self, expected_fps: float, duration_buffer_seconds: float = 1.0, fps_tolerance: float = 0.5):
         """Initialize validator with expected FPS and duration buffer.
 
         Args:
             expected_fps: Expected frames per second for all videos
             duration_buffer_seconds: Tolerance buffer for duration (default: 1.0s)
+            fps_tolerance: Tolerance for FPS matching (default: 0.5 to handle 29.97 vs 30)
         """
         self.expected_fps = expected_fps
         self.duration_buffer_seconds = duration_buffer_seconds
+        self.fps_tolerance = fps_tolerance
 
     def validate(self, video_path: Path, required_duration: float) -> None:
         """Validate video meets FPS and duration requirements.
@@ -55,15 +57,15 @@ class VideoValidationService:
         return fps, duration
 
     def _validate_fps(self, video_path: Path, actual_fps: float) -> None:
-        """Validate video FPS matches expected FPS.
+        """Validate video FPS matches expected FPS (with tolerance).
 
         Raises:
-            ValueError: If FPS doesn't match
+            ValueError: If FPS doesn't match within tolerance
         """
-        if abs(actual_fps - self.expected_fps) > 0.1:
+        if abs(actual_fps - self.expected_fps) > self.fps_tolerance:
             raise ValueError(
                 f"Video {video_path.name} has FPS={actual_fps:.2f}, "
-                f"but expected FPS={self.expected_fps}. "
+                f"but expected FPS={self.expected_fps} (tolerance: ±{self.fps_tolerance}). "
                 f"All videos must have matching FPS for frame-based analysis."
             )
 
