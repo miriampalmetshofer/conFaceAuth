@@ -13,7 +13,8 @@
     "skip_frames": 30,
     "devices": [
       "mobile"
-    ]
+    ],
+    "imposters_per_genuine": 10
   },
   "authentication": {
     "threshold": 0.95,

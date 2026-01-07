@@ -5,7 +5,12 @@ from face_auth.core.authentication.embedder import Embedder
 from face_auth.core.detection import FaceDetector, FaceExtractor
 from face_auth.core.authentication.constants import FACENET_INPUT_WIDTH, FACENET_INPUT_HEIGHT
 from face_auth.core.processing.video_parser import VideoParser, ControlledStudyParser, InTheWildStudyParser
-from face_auth.core.processing.video_matching import VideoMatchingStrategy, ScenarioMatchingStrategy, AllVideosMatchingStrategy
+from face_auth.core.processing.video_matching import (
+    VideoMatchingStrategy,
+    ScenarioMatchingStrategy,
+    AllVideosMatchingStrategy,
+    RandomSamplingMatchingStrategy
+)
 from face_auth.services.enrollment_service import EnrollmentService
 from face_auth.services.video_processing_service import VideoProcessingService
 from face_auth.services.imposter_video_creation_service import ImposterVideoCreationService
@@ -141,6 +146,8 @@ class PipelineFactory:
         if self.config.pool == "controlled_study":
             return ScenarioMatchingStrategy()
         elif self.config.pool == "in_the_wild":
-            return AllVideosMatchingStrategy()
+            return RandomSamplingMatchingStrategy(
+                imposters_per_genuine=self.config.processing.imposters_per_genuine
+            )
         else:
             raise ValueError(f"Unknown pool type: {self.config.pool}")
