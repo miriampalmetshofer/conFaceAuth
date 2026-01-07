@@ -1,14 +1,11 @@
 """Metrics calculation utilities for authentication evaluation.shared."""
 import pandas as pd
 from typing import Dict
-from dataclasses import asdict
 
 from evaluation.shared.models import (
     GenuineSegmentMetrics,
     ImposterSegmentMetrics,
     OverallMetrics,
-    ErrorRates,
-    VideoMetrics,
     SegmentAnalysis,
     GroupedMetrics
 )

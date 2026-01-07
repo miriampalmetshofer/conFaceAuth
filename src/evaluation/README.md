@@ -84,9 +84,8 @@ results_df, stitch_config, annotations_df = load_study_data(config)
 ```python
 from evaluation.processor import categorize_frames, add_grouping_columns
 
-# Categorize frames by segment type
-results_df = categorize_frames(df, fps=25, genuine_seconds=20,
-                               black_seconds=2, imposter_seconds=20)
+# Categorize frames by segment type using source_type field
+results_df = categorize_frames(df)
 
 # Add grouping columns from annotations
 results_df = add_grouping_columns(results_df, ['device', 'scenario'], annotations_df)
@@ -237,7 +236,7 @@ def main():
     print_study_header(config)
 
     results_df, stitch_config, annotations_df = load_study_data(config)
-    results_df = categorize_frames(results_df, **stitch_config)
+    results_df = categorize_frames(results_df)
     results_df = add_grouping_columns(results_df, config.grouping_dimensions, annotations_df)
 
     segment_metrics = calculate_segment_metrics(results_df)

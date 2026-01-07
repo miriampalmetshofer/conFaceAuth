@@ -89,16 +89,11 @@ def calculate_segment_boundaries(fps: int, genuine_seconds: float,
     )
 
 
-def categorize_frames(df: pd.DataFrame, fps: int, genuine_seconds: float,
-                     black_seconds: float, imposter_seconds: float) -> pd.DataFrame:
-    """Categorize each frame as genuine, black, or imposter segment.
+def categorize_frames(df: pd.DataFrame) -> pd.DataFrame:
+    """Categorize each frame as genuine, black, or imposter segment using source_type.
 
     Args:
-        df: Results dataframe
-        fps: Frames per second
-        genuine_seconds: Duration of genuine user segment
-        black_seconds: Duration of black screen
-        imposter_seconds: Duration of imposter segment
+        df: Results dataframe with source_type column
 
     Returns:
         DataFrame with additional columns: segment_type, genuine_user, imposter_user
@@ -110,19 +105,19 @@ def categorize_frames(df: pd.DataFrame, fps: int, genuine_seconds: float,
     df['genuine_user'] = video_info.apply(lambda x: x[0])
     df['imposter_user'] = video_info.apply(lambda x: x[1])
 
-    # Calculate boundaries
-    boundaries = calculate_segment_boundaries(fps, genuine_seconds, black_seconds, imposter_seconds)
+    # Categorize frames based on source_type
+    def categorize_frame(row):
+        source_type = row['source_type']
+        genuine_user = row['genuine_user']
 
-    # Categorize frames
-    def categorize_frame(frame):
-        if frame <= boundaries.genuine_segment.end_frame:
-            return 'genuine'
-        elif frame <= boundaries.black_segment.end_frame:
+        if source_type == 'black_frames':
             return 'black'
+        elif genuine_user and genuine_user in source_type:
+            return 'genuine'
         else:
             return 'imposter'
 
-    df['segment_type'] = df['frame'].apply(categorize_frame)
+    df['segment_type'] = df.apply(categorize_frame, axis=1)
 
     return df
 

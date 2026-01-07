@@ -36,13 +36,7 @@ def main():
     results_df, stitch_config, annotations_df = load_study_data(config)
 
     # Categorize frames by segment type
-    results_df = categorize_frames(
-        results_df,
-        fps=stitch_config.fps,
-        genuine_seconds=stitch_config.genuine_user_seconds,
-        black_seconds=stitch_config.black_screen_seconds,
-        imposter_seconds=stitch_config.impostor_seconds
-    )
+    results_df = categorize_frames(results_df)
 
     # Merge annotations for grouping
     results_df = add_grouping_columns(
