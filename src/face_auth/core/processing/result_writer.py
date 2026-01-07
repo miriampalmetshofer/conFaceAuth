@@ -31,8 +31,8 @@ class ResultWriter:
         """Extract relevant configuration fields for CSV output."""
         return {
             "participant": context.participant.name,
-            "device": context.device,
-            "pool": context.pool,
+            "device": context.device.value,
+            "pool": context.pool.value,
             "video_path": video_path,
             "skip_frames": self.config.processing.skip_frames,
             "window_size": self.config.authentication.window_size,
