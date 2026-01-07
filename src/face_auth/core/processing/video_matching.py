@@ -1,7 +1,7 @@
 """Video matching strategies for pairing genuine videos with imposter samples."""
 import random
 from abc import ABC, abstractmethod
-from typing import Protocol, List
+from typing import List
 from face_auth.core.processing.models import Video, ControlledStudyVideo, ImposterSamplePair
 from face_auth.config.models import Participant
 from face_auth.config.logging_config import get_logger
