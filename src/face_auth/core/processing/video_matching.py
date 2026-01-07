@@ -26,7 +26,7 @@ class VideoMatchingStrategy(ABC):
             List of ImposterSamplePair objects
         """
 
-    def separate_genuine_and_imposter(self, all_videos, genuine_user, allowed_participants):
+    def _separate_genuine_and_imposter(self, all_videos, genuine_user, allowed_participants):
         genuine_videos = []
         imposter_videos = []
 
@@ -63,7 +63,7 @@ class ScenarioMatchingStrategy(VideoMatchingStrategy):
         Returns:
             List of ImposterSamplePair objects
         """
-        genuine_videos, imposter_videos = self.separate_genuine_and_imposter(
+        genuine_videos, imposter_videos = self._separate_genuine_and_imposter(
             all_videos, genuine_user, allowed_participants
         )
 
@@ -108,7 +108,7 @@ class AllVideosMatchingStrategy(VideoMatchingStrategy):
         Returns:
             List of ImposterSamplePair objects
         """
-        genuine_videos, imposter_videos = self.separate_genuine_and_imposter(
+        genuine_videos, imposter_videos = self._separate_genuine_and_imposter(
             all_videos, genuine_user, allowed_participants
         )
 
@@ -156,7 +156,7 @@ class RandomSamplingMatchingStrategy(VideoMatchingStrategy):
         Returns:
             List of ImposterSamplePair objects
         """
-        genuine_videos, imposter_videos = self.separate_genuine_and_imposter(
+        genuine_videos, imposter_videos = self._separate_genuine_and_imposter(
             all_videos, genuine_user, allowed_participants
         )
 
