@@ -10,11 +10,15 @@
     "results_file": "{base_path}/results.csv"
   },
   "models": {
-    "detector": "mtcnn",
+    "detector": "mediapipe",
     "embedder": "facenet"
   },
   "processing": {
-    "skip_frames": 30
+    "skip_frames": 30,
+    "matching_strategy": {
+      "type": "scenario",
+      "config": {}
+    }
   },
   "authentication": {
     "threshold": 0.95,

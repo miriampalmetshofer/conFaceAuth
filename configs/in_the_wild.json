@@ -14,7 +14,13 @@
   },
   "processing": {
     "skip_frames": 30,
-    "imposters_per_genuine": 10
+    "matching_strategy": {
+      "type": "random_sampling",
+      "config": {
+        "imposters_per_genuine": 10,
+        "random_seed": 42
+      }
+    }
   },
   "authentication": {
     "threshold": 0.95,

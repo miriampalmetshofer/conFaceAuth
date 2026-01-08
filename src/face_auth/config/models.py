@@ -98,19 +98,20 @@ class ModelConfig(BaseModel):
     model_config = ConfigDict(frozen=True)
 
 
-class ProcessingConfig(BaseModel):
-    """Video processing configuration."""
+class MatchingStrategyConfig(BaseModel):
+    """Configuration for video matching strategy."""
 
-    skip_frames: int = Field(..., gt=0)
-    imposters_per_genuine: Optional[int] = Field(None, gt=0)
+    type: str = Field(..., min_length=1)
+    config: dict = Field(default_factory=dict)
 
     model_config = ConfigDict(frozen=True)
 
 
-class MatchingConfig(BaseModel):
-    """Video matching configuration."""
+class ProcessingConfig(BaseModel):
+    """Video processing configuration."""
 
-    imposters_per_genuine: Optional[int] = Field(None, gt=0)
+    skip_frames: int = Field(..., gt=0)
+    matching_strategy: MatchingStrategyConfig
 
     model_config = ConfigDict(frozen=True)
 
@@ -177,18 +178,7 @@ class ApplicationConfig(BaseModel):
     enrollment: EnrollmentConfig
     models: ModelConfig
     processing: ProcessingConfig
-    matching: Optional[MatchingConfig] = None
     imposter_creation: StitchConfig
     logging: LoggingConfig
 
     model_config = ConfigDict(frozen=True)
-
-    @field_validator('pool')
-    @classmethod
-    def validate_pool_specific_config(cls, v: Pool, info) -> Pool:
-        """Validate pool-specific configuration requirements."""
-        if hasattr(info, 'data') and v == Pool.IN_THE_WILD:
-            processing = info.data.get('processing')
-            if processing and processing.imposters_per_genuine is None:
-                raise ValueError("imposters_per_genuine is required for in_the_wild pool")
-        return v

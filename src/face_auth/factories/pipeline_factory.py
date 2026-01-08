@@ -6,11 +6,7 @@ from face_auth.core.detection import FaceDetector, FaceExtractor
 from face_auth.core.authentication.constants import FACENET_INPUT_WIDTH, FACENET_INPUT_HEIGHT
 from face_auth.core.processing.genuine_video_cache import VideoCache
 from face_auth.core.processing.video_parser import VideoParser, ControlledStudyParser, InTheWildStudyParser
-from face_auth.core.processing.video_matching import (
-    VideoMatchingStrategy,
-    ScenarioMatchingStrategy,
-    RandomSamplingMatchingStrategy
-)
+from face_auth.core.processing.matching.matching_strategy_factory import create_matching_strategy
 from face_auth.services.enrollment_service import EnrollmentService
 from face_auth.services.video_processing_service import VideoProcessingService
 from face_auth.services.imposter_video_creation_service import ImposterVideoCreationService
@@ -103,7 +99,7 @@ class PipelineFactory:
     def create_video_matching_stage(self) -> VideoMatchingStage:
         """Create video matching stage with appropriate strategy."""
         return VideoMatchingStage(
-            matching_strategy=self._get_matching_strategy_for_pool()
+            matching_strategy=create_matching_strategy(self.config.processing.matching_strategy)
         )
 
     def create_imposter_video_creation_stage(self) -> ImposterVideoCreationStage:
@@ -139,16 +135,5 @@ class PipelineFactory:
             return ControlledStudyParser()
         elif self.config.pool == Pool.IN_THE_WILD:
             return InTheWildStudyParser()
-        else:
-            raise ValueError(f"Unknown pool type: {self.config.pool}")
-
-    def _get_matching_strategy_for_pool(self) -> VideoMatchingStrategy:
-        """Select appropriate matching strategy based on pool type."""
-        if self.config.pool == Pool.CONTROLLED_STUDY:
-            return ScenarioMatchingStrategy()
-        elif self.config.pool == Pool.IN_THE_WILD:
-            return RandomSamplingMatchingStrategy(
-                imposters_per_genuine=self.config.processing.imposters_per_genuine
-            )
         else:
             raise ValueError(f"Unknown pool type: {self.config.pool}")

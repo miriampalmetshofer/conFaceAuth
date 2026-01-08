@@ -10,7 +10,7 @@ from face_auth.core.detection.models import BoundingBox
 class MediaPipeBackend:
     """Face detector using MediaPipe FaceDetector (BlazeFace)."""
 
-    def __init__(self, model_path: str = "blaze_face_short_range.tflite"):
+    def __init__(self, model_path: str = "src/face_auth/core/detection/backend/impl/blaze_face_short_range.tflite"):
         """Initialize MediaPipe BlazeFace detector."""
         BaseOptions = mp.tasks.BaseOptions
         FaceDetector = mp.tasks.vision.FaceDetector
@@ -20,7 +20,7 @@ class MediaPipeBackend:
         options = FaceDetectorOptions(
             base_options=BaseOptions(model_asset_path=model_path),
             running_mode=VisionRunningMode.IMAGE,
-            min_detection_confidence=0.6,
+            min_detection_confidence=0.4,
         )
 
         self._detector = FaceDetector.create_from_options(options)

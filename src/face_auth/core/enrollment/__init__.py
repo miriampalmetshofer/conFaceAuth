@@ -1,9 +1,9 @@
 """Enrollment-specific functionality."""
-
+from face_auth.core.enrollment.head_pose_estimator import HeadPoseEstimator
 from face_auth.core.enrollment.models import HeadPose, EnrollmentFrames, HeadDirection
 
 from face_auth.core.enrollment.video_frame_extractor import VideoFrameExtractor
-from face_auth.core.enrollment.direction_classifier import HeadPoseEstimator, DirectionClassifier
+from face_auth.core.enrollment.direction_classifier import DirectionClassifier
 from face_auth.core.enrollment.frame_sampler import NormalDistributionSampler
 from face_auth.core.enrollment.enrollment_frame_saver import EnrollmentFrameSaver
 from face_auth.core.enrollment.enrollment_loader import EnrollmentLoader
