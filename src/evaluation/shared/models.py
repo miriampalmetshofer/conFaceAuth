@@ -113,27 +113,3 @@ class GroupedMetrics:
     def list_groups(self) -> list[str]:
         """List all group names."""
         return list(self.groups.keys())
-
-
-@dataclass
-class StitchConfig:
-    """Configuration for video stitching/segmentation."""
-    fps: int
-    genuine_user_seconds: float
-    black_screen_seconds: float
-    impostor_seconds: float
-
-    @property
-    def genuine_frames(self) -> int:
-        """Total frames in genuine segment."""
-        return int(self.fps * self.genuine_user_seconds)
-
-    @property
-    def black_frames(self) -> int:
-        """Total frames in black screen segment."""
-        return int(self.fps * self.black_screen_seconds)
-
-    @property
-    def imposter_frames(self) -> int:
-        """Total frames in imposter segment."""
-        return int(self.fps * self.impostor_seconds)

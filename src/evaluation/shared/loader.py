@@ -1,11 +1,7 @@
 """Data loading utilities for evaluation studies."""
 import json
 from pathlib import Path
-from typing import Dict, List, Optional
 import pandas as pd
-
-from evaluation.shared.config import StudyConfig
-from evaluation.shared.models import StitchConfig
 
 
 def load_results_csv(results_path: Path) -> pd.DataFrame:
@@ -26,29 +22,6 @@ def load_annotation_schema(schema_path: Path) -> dict:
     print(f"  Single choice fields: {schema['single_choice_fields']}")
 
     return schema
-
-
-def load_stitch_config(config_path: Path) -> StitchConfig:
-    """Load stitch configuration from JSON config file."""
-    with open(config_path, 'r') as f:
-        config = json.load(f)
-
-    stitch_data = config.get('imposter_creation', {})
-
-    stitch_config = StitchConfig(
-        fps=stitch_data.get('fps', 25),
-        genuine_user_seconds=stitch_data.get('genuine_user_seconds', 20.0),
-        black_screen_seconds=stitch_data.get('black_screen_seconds', 2.0),
-        impostor_seconds=stitch_data.get('impostor_seconds', 20.0)
-    )
-
-    print(f"Loaded stitch config from {config_path.name}")
-    print(f"  FPS: {stitch_config.fps}")
-    print(f"  Genuine seconds: {stitch_config.genuine_user_seconds}")
-    print(f"  Black screen seconds: {stitch_config.black_screen_seconds}")
-    print(f"  Imposter seconds: {stitch_config.impostor_seconds}")
-
-    return stitch_config
 
 
 def load_annotations(annotations_path: Path, schema_path: Path) -> pd.DataFrame:
@@ -88,26 +61,3 @@ def load_annotations(annotations_path: Path, schema_path: Path) -> pd.DataFrame:
     print(f"Loaded {len(annotations_df)} annotations from {annotations_path.name}")
 
     return annotations_df
-
-
-def load_study_data(config: StudyConfig) -> tuple[pd.DataFrame, StitchConfig, Optional[pd.DataFrame]]:
-    """Load all data for a study.
-
-    Args:
-        config: Study configuration
-
-    Returns:
-        Tuple of (results_df, stitch_config, annotations_df or None)
-    """
-    print(f"\n{'='*80}")
-    print(f"LOADING DATA FOR {config.name.upper().replace('_', ' ')} STUDY")
-    print(f"{'='*80}\n")
-
-    results_df = load_results_csv(config.results_path)
-    stitch_config = load_stitch_config(config.config_path)
-
-    annotations_df = None
-    if config.has_annotations and config.annotations_path.exists():
-        annotations_df = load_annotations(config.annotations_path, config.schema_path)
-
-    return results_df, stitch_config, annotations_df

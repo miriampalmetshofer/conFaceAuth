@@ -1,8 +1,8 @@
 """Evaluation script for in-the-wild study."""
 import matplotlib.pyplot as plt
+from pathlib import Path
 
-from evaluation.in_the_wild.config import WILD_STUDY_CONFIG
-from evaluation.shared.loader import load_study_data, load_annotation_schema
+from evaluation.shared.loader import load_results_csv, load_annotations, load_annotation_schema
 from evaluation.shared.processor import categorize_frames, add_grouping_columns
 from evaluation.shared.metrics import (
     calculate_overall_metrics,
@@ -11,29 +11,46 @@ from evaluation.shared.metrics import (
 )
 from evaluation.shared.visualizer import (
     create_risk_score_timeline,
+    create_risk_score_timeline_with_categories,
     save_interactive_plot,
     create_grouped_comparison_plot
 )
 from evaluation.shared.reporter import (
-    print_study_header,
+    print_section,
     print_overall_summary,
     print_segment_analysis,
     print_grouped_analysis,
-    save_plot,
-    print_completion_summary,
-    print_section
+    save_plot
 )
+
+# Study configuration
+def get_project_root() -> Path:
+    """Get project root directory."""
+    # From src/evaluation/in_the_wild/evaluate.py -> go up 3 levels to project root
+    return Path(__file__).parent.parent.parent.parent
+
+PROJECT_ROOT = get_project_root()
+RESULTS_PATH = PROJECT_ROOT / "data/in_the_wild/results.csv"
+ANNOTATIONS_PATH = PROJECT_ROOT / "data/annotations"
+ANNOTATION_SCHEMA_PATH = PROJECT_ROOT / "src/evaluation/in_the_wild/annotation_schema.json"
+OUTPUT_PATH = PROJECT_ROOT / "src/evaluation/in_the_wild/output"
+GROUPING_DIMENSIONS = ["environment", "light_quality_indoor", "light_quality_outdoor", "angle", "main_movement"]
 
 
 def main():
-    """Run in-the-wild study evaluation.shared."""
-    config = WILD_STUDY_CONFIG
-
+    """Run in-the-wild study evaluation."""
     # Print study header
-    print_study_header(config)
+    print_section("IN-THE-WILD STUDY EVALUATION")
+    print(f"Results: {RESULTS_PATH}")
+    print(f"Annotations: {ANNOTATIONS_PATH}")
+    print(f"Output: {OUTPUT_PATH}")
+    print(f"Grouping dimensions: {', '.join(GROUPING_DIMENSIONS)}")
 
     # Load data
-    results_df, stitch_config, annotations_df = load_study_data(config)
+    results_df = load_results_csv(RESULTS_PATH)
+    annotations_df = None
+    if ANNOTATIONS_PATH.exists():
+        annotations_df = load_annotations(ANNOTATIONS_PATH, ANNOTATION_SCHEMA_PATH)
 
     # Categorize frames by segment type
     results_df = categorize_frames(results_df)
@@ -41,7 +58,7 @@ def main():
     # Merge annotations for grouping
     results_df = add_grouping_columns(
         results_df,
-        config.grouping_dimensions,
+        GROUPING_DIMENSIONS,
         annotations_df
     )
 
@@ -61,18 +78,26 @@ def main():
     # Generate visualizations
     output_files = []
 
-    # Interactive risk score timeline
     threshold = results_df['threshold'].iloc[0]
+
+    # Interactive risk score timeline with category grouping (by environment)
+    if 'environment' in results_df.columns:
+        fig_timeline_categories = create_risk_score_timeline_with_categories(results_df, threshold, category_column='environment')
+        output_files.append(
+            save_interactive_plot(fig_timeline_categories, OUTPUT_PATH, 'risk_score_timeline_by_environment.html')
+        )
+
+    # Interactive risk score timeline (all videos, original version)
     fig_timeline = create_risk_score_timeline(results_df, threshold)
     output_files.append(
-        save_interactive_plot(fig_timeline, config.output_path, 'risk_score_timeline.html')
+        save_interactive_plot(fig_timeline, OUTPUT_PATH, 'risk_score_timeline_all.html')
     )
 
     # Environment comparison plot
     if environment_metrics.groups:
         fig_env_comparison = create_grouped_comparison_plot(environment_metrics)
         output_files.append(
-            save_interactive_plot(fig_env_comparison, config.output_path, 'environment_comparison.html')
+            save_interactive_plot(fig_env_comparison, OUTPUT_PATH, 'environment_comparison.html')
         )
 
     # Static comprehensive analysis plot
@@ -196,14 +221,14 @@ def main():
     plt.suptitle('In-the-Wild Study: Imposter Attack Analysis', fontsize=16, y=0.995)
     plt.tight_layout()
 
-    output_files.append(save_plot(fig, config.output_path, 'comprehensive_analysis.png'))
+    output_files.append(save_plot(fig, OUTPUT_PATH, 'comprehensive_analysis.png'))
     plt.close()
 
     # Generate annotation distribution plots if annotations exist
     if annotations_df is not None and len(annotations_df) > 0:
         print_section("GENERATING ANNOTATION PLOTS")
 
-        annotation_schema = load_annotation_schema(config.schema_path)
+        annotation_schema = load_annotation_schema(ANNOTATION_SCHEMA_PATH)
         list_cols = annotation_schema['list_fields']
         categorical_cols = annotation_schema['single_choice_fields']
         cols_to_plot = [col for col in list_cols + categorical_cols if col in annotations_df.columns]
@@ -237,11 +262,15 @@ def main():
         plt.suptitle("In-the-Wild Study: Annotation Distribution", fontsize=16, y=0.995)
         plt.tight_layout()
 
-        output_files.append(save_plot(fig, config.output_path, 'annotation_distribution.png'))
+        output_files.append(save_plot(fig, OUTPUT_PATH, 'annotation_distribution.png'))
         plt.close()
 
     # Print completion summary
-    print_completion_summary(config, output_files)
+    print_section("EVALUATION COMPLETE")
+    print(f"All outputs saved to: {OUTPUT_PATH}")
+    print("\nGenerated files:")
+    for file in output_files:
+        print(f"  - {file}")
 
 
 if __name__ == '__main__':

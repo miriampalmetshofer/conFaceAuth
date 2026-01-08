@@ -1,15 +1,11 @@
 """Unified reporting utilities for evaluation studies."""
 import os
 from pathlib import Path
-from typing import Dict, List, Optional
 import matplotlib.pyplot as plt
 
-from evaluation.shared.config import StudyConfig
 from evaluation.shared.models import (
     OverallMetrics,
     SegmentAnalysis,
-    GenuineSegmentMetrics,
-    ImposterSegmentMetrics,
     GroupedMetrics
 )
 
@@ -19,16 +15,6 @@ def print_section(title: str, width: int = 80):
     print("\n" + "="*width)
     print(title)
     print("="*width)
-
-
-def print_study_header(config: StudyConfig):
-    """Print study header with configuration info."""
-    print_section(f"{config.name.upper().replace('_', ' ')} STUDY EVALUATION")
-    print(f"Results: {config.results_path}")
-    print(f"Config: {config.config_path}")
-    print(f"Output: {config.output_path}")
-    print(f"Device types: {', '.join(config.device_types)}")
-    print(f"Grouping dimensions: {', '.join(config.grouping_dimensions)}")
 
 
 def print_overall_summary(metrics: OverallMetrics):
@@ -115,27 +101,3 @@ def save_plot(fig: plt.Figure, output_folder: Path, filename: str, dpi: int = 30
     fig.savefig(output_file, dpi=dpi, bbox_inches='tight')
     print(f"Saved plot to {output_file}")
     return output_file
-
-
-def print_completion_summary(config: StudyConfig, output_files: List[Path]):
-    """Print completion summary with generated files."""
-    print_section("EVALUATION COMPLETE")
-    print(f"All outputs saved to: {config.output_path}")
-    print("\nGenerated files:")
-
-    # Group files by type
-    html_files = [f for f in output_files if f.suffix == '.html']
-    png_files = [f for f in output_files if f.suffix == '.png']
-
-    if html_files:
-        print("\nInteractive HTML plots:")
-        for f in html_files:
-            print(f"  - {f.name}")
-
-    if png_files:
-        print("\nStatic PNG plots:")
-        for f in png_files:
-            print(f"  - {f.name}")
-
-    print(f"\nTo view interactive plots:")
-    print(f"  open {config.output_path}/*.html")

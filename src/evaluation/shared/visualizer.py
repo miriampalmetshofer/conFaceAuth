@@ -10,6 +10,7 @@ from evaluation.shared.models import GroupedMetrics, SegmentAnalysis
 
 __all__ = [
     'create_risk_score_timeline',
+    'create_risk_score_timeline_with_categories',
     'create_scenario_aggregated_timeline',
     'save_interactive_plot',
     'create_grouped_comparison_plot',
@@ -112,6 +113,177 @@ def create_scenario_aggregated_timeline(df: pd.DataFrame, threshold: float) -> g
         template='plotly_white',
         height=700,
         margin=dict(r=250, t=100)
+    )
+
+    # Add grid
+    fig.update_xaxes(showgrid=True, gridwidth=1, gridcolor='LightGray')
+    fig.update_yaxes(showgrid=True, gridwidth=1, gridcolor='LightGray')
+
+    # Add range slider
+    fig.update_xaxes(
+        rangeslider=dict(visible=True, thickness=0.05),
+        type='linear'
+    )
+
+    return fig
+
+
+def create_risk_score_timeline_with_categories(df: pd.DataFrame, threshold: float,
+                                               category_column: str = 'scenario') -> go.Figure:
+    """Create interactive line plot with category-based grouping and color coding.
+
+    Args:
+        df: Results dataframe
+        threshold: Authentication threshold
+        category_column: Column to use for grouping (e.g., 'scenario', 'device')
+
+    Returns:
+        Plotly figure with dropdown to show/hide by category
+    """
+    fig = go.Figure()
+
+    # Define colors per category
+    category_colors = {
+        'easy': '#2ecc71',      # Green
+        'angle': '#f39c12',     # Orange
+        'lighting': '#9b59b6',  # Purple
+        'mobile': '#3498db',    # Blue
+        'desktop': '#e74c3c'    # Red
+    }
+
+    # Get unique categories and videos
+    if category_column not in df.columns:
+        raise ValueError(f"DataFrame must contain '{category_column}' column")
+
+    categories = sorted(df[category_column].unique())
+    videos = df['video_path'].unique()
+
+    # Build traces - one per video, colored by category
+    traces_by_category = {cat: [] for cat in categories}
+
+    for video_path in videos:
+        video_data = df[df['video_path'] == video_path].copy()
+        video_data = video_data.sort_values('frame')
+        video_name = Path(video_path).stem
+
+        # Get category for this video
+        category = video_data[category_column].iloc[0]
+        color = category_colors.get(category, '#95a5a6')
+
+        # Create hover text
+        hover_text = [
+            f"<b>{video_name}</b><br>"
+            f"Category: {category.title()}<br>"
+            f"Frame: {row['frame']}<br>"
+            f"Risk Score: {row['risk_score']:.4f}<br>"
+            f"Distance: {row['distance']:.4f}<br>"
+            f"State: {row['predicted_state']}<br>"
+            f"Face Detected: {row['face_detected']}"
+            + (f"<br>Device: {row.get('device', 'N/A')}" if 'device' in video_data.columns else "")
+            + (f"<br>Segment: {row.get('segment_type', 'N/A').title()}" if 'segment_type' in video_data.columns else "")
+            for _, row in video_data.iterrows()
+        ]
+
+        # Add trace (hidden by default)
+        trace = go.Scatter(
+            x=video_data['frame'],
+            y=video_data['risk_score'],
+            mode='lines',
+            name=f'{category.title()}: {video_name}',
+            line=dict(width=2, color=color),
+            hovertemplate='%{text}<extra></extra>',
+            text=hover_text,
+            showlegend=True,
+            visible='legendonly',
+            legendgroup=category,
+            legendgrouptitle_text=category.title()
+        )
+
+        fig.add_trace(trace)
+        traces_by_category[category].append(len(fig.data) - 1)
+
+    # Add threshold line
+    threshold_trace_idx = len(fig.data)
+    fig.add_trace(go.Scatter(
+        x=[df['frame'].min(), df['frame'].max()],
+        y=[threshold, threshold],
+        mode='lines',
+        name='Threshold',
+        line=dict(color='black', width=3, dash='dash'),
+        hovertemplate=f'Threshold: {threshold}<extra></extra>',
+        showlegend=True
+    ))
+
+    # Create buttons for show/hide by category
+    buttons = [
+        dict(
+            label="Show All",
+            method="update",
+            args=[{"visible": [True] * len(fig.data)}]
+        ),
+        dict(
+            label="Hide All Videos",
+            method="update",
+            args=[{"visible": ['legendonly'] * (len(fig.data) - 1) + [True]}]
+        )
+    ]
+
+    # Add button for each category
+    for category in categories:
+        # Create visibility list
+        visible = []
+        for i in range(len(fig.data) - 1):  # Exclude threshold
+            if i in traces_by_category[category]:
+                visible.append(True)
+            else:
+                visible.append('legendonly')
+        visible.append(True)  # Keep threshold visible
+
+        buttons.append(dict(
+            label=f"Show {category.title()} Only",
+            method="update",
+            args=[{"visible": visible}]
+        ))
+
+    # Update layout
+    fig.update_layout(
+        title={
+            'text': f'Risk Score Over Time by Video<br><sub>Videos grouped by {category_column.title()} | Use buttons to show/hide categories | Click legend to toggle individual videos</sub>',
+            'x': 0.5,
+            'xanchor': 'center'
+        },
+        xaxis_title='Frame',
+        yaxis_title='Risk Score',
+        hovermode='closest',
+        legend=dict(
+            yanchor="top",
+            y=0.99,
+            xanchor="left",
+            x=1.01,
+            bgcolor="rgba(255, 255, 255, 0.9)",
+            bordercolor="Gray",
+            borderwidth=2,
+            font=dict(size=10),
+            itemclick="toggle",
+            itemdoubleclick="toggleothers",
+            groupclick="toggleitem"
+        ),
+        updatemenus=[
+            dict(
+                type="dropdown",
+                direction="down",
+                buttons=buttons,
+                pad={"r": 10, "t": 10},
+                showactive=True,
+                x=0.0,
+                xanchor="left",
+                y=1.15,
+                yanchor="top"
+            )
+        ],
+        template='plotly_white',
+        height=700,
+        margin=dict(r=300, t=120)
     )
 
     # Add grid
