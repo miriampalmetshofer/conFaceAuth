@@ -56,7 +56,7 @@ class VideoProcessor:
                         logger.warning(f"No face detected at frame {frame_index}")
                         self.debug_saver.save_frame(frame, frame_index, source_name)
 
-                    logger.info(
+                    logger.debug(
                         f"Frame {frame_index}: Predicted State={auth_result.state.value}, "
                         f"Distance={auth_result.distance:.4f}, Risk Score={auth_result.risk_score:.4f}"
                     )
