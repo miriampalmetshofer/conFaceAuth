@@ -41,7 +41,10 @@ class PipelineFactory:
     def _create_embedder(self) -> Embedder:
         """Create embedder instance (cached)."""
         if self._embedder is None:
-            self._embedder = Embedder(model_name=self.config.models.embedder)
+            self._embedder = Embedder(
+                model_name=self.config.models.embedder.model,
+                model_config=self.config.models.embedder.config
+            )
         return self._embedder
 
     def _create_face_extractor(self) -> FaceExtractor:

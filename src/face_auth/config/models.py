@@ -89,11 +89,20 @@ class EnrollmentConfig(BaseModel):
     model_config = ConfigDict(frozen=True)
 
 
+class EmbedderConfig(BaseModel):
+    """Configuration for embedder model and parameters."""
+
+    model: str = Field(..., min_length=1, description="Embedder model name (facenet, arcface, insightface)")
+    config: dict = Field(default_factory=dict, description="Model-specific configuration parameters")
+
+    model_config = ConfigDict(frozen=True)
+
+
 class ModelConfig(BaseModel):
     """ML model configuration."""
 
     detector: str
-    embedder: str
+    embedder: EmbedderConfig
 
     model_config = ConfigDict(frozen=True)
 

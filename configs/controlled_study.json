@@ -11,7 +11,10 @@
   },
   "models": {
     "detector": "mediapipe",
-    "embedder": "facenet"
+    "embedder": {
+      "model": "facenet",
+      "config": {}
+    }
   },
   "processing": {
     "skip_frames": 30,

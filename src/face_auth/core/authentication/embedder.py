@@ -1,27 +1,27 @@
 """Face embedding generation."""
+from typing import Dict, Any
 import numpy as np
-from keras_facenet import FaceNet
+from face_auth.core.authentication.backend.embedder_backend import EmbedderBackend
+from face_auth.core.authentication.backend.embedder_factory import create_embedder
 
 
 class Embedder:
     """Generates face embeddings from preprocessed face images."""
 
-    def __init__(self, model_name: str):
+    def __init__(self, model_name: str, model_config: Dict[str, Any] = None):
         """Initialize embedder with specified model.
 
         Args:
-            model_name: Name of embedding model to use
+            model_name: Name of embedding model to use ('facenet', 'insightface', 'arcface')
+            model_config: Optional configuration dict for the model backend
+                         For insightface/arcface:
+                           - model_name: str (default: 'buffalo_l')
+                           - det_size: tuple (default: (640, 640))
 
         Raises:
             ValueError: If model_name is not supported
         """
-        if model_name == "facenet":
-            self._model = FaceNet()
-        else:
-            raise ValueError(
-                f"Unsupported embedding model: {model_name}. "
-                f"Supported models: ['facenet']"
-            )
+        self._backend: EmbedderBackend = create_embedder(model_name, model_config)
 
     def get_embedding(self, face_rgb: np.ndarray) -> np.ndarray:
         """Generate embedding vector for a face image.
@@ -32,5 +32,4 @@ class Embedder:
         Returns:
             Embedding vector for the face
         """
-        embeddings = self._model.embeddings([face_rgb])
-        return embeddings[0]
+        return self._backend.get_embedding(face_rgb)
