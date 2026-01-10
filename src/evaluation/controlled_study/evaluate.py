@@ -94,11 +94,13 @@ def main():
         save_interactive_plot(fig_timeline_categories, OUTPUT_PATH, 'risk_score_timeline_by_scenario.html')
     )
 
-    # Interactive risk score timeline (all videos, original version)
-    fig_timeline = create_risk_score_timeline(results_df, threshold)
-    output_files.append(
-        save_interactive_plot(fig_timeline, OUTPUT_PATH, 'risk_score_timeline_all.html')
-    )
+    # Interactive risk score timeline (separate by device)
+    for device in results_df['device'].unique():
+        device_df = results_df[results_df['device'] == device]
+        fig_timeline_device = create_risk_score_timeline(device_df, threshold)
+        output_files.append(
+            save_interactive_plot(fig_timeline_device, OUTPUT_PATH, f'risk_score_timeline_{device}.html')
+        )
 
     # Scenario aggregated timeline
     if 'scenario' in results_df.columns:
