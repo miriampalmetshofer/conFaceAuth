@@ -42,7 +42,7 @@ class VideoCache:
         """
         self._cache[key] = value
         logger.info(
-            f"Cached results for {key.video_path.name}: "
+            f"Caching results for {key.video_path.name}: "
             f"{len(value.frame_results)} frames, last_index={value.last_frame_index}, "
             f"risk_score={value.authenticator_state.risk_score:.4f}"
         )
