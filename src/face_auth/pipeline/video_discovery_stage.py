@@ -5,7 +5,7 @@ from face_auth.config.logging_config import get_logger
 from face_auth.config.models import Device
 from face_auth.core.processing.models import Video
 from face_auth.core.processing.video_discovery import VideoDiscovery
-from face_auth.core.processing.video_parser import ControlledStudyParser, VideoParser
+from face_auth.core.processing.video_parser import VideoParser
 
 logger = get_logger(__name__)
 
