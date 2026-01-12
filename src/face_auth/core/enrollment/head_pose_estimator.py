@@ -1,6 +1,7 @@
 from typing import Optional
 import math
 import numpy as np
+import cv2
 from face_auth.core.enrollment.models import HeadPose
 import mediapipe as mp
 
@@ -23,14 +24,21 @@ FACE_MODEL_POINTS = np.array([
 class HeadPoseEstimator:
     """Estimates head pose angles from facial landmarks using MediaPipe."""
 
-    def __init__(self):
-        """Initialize head pose estimator with MediaPipe Face Mesh."""
-        self.mp_face_mesh = mp.solutions.face_mesh
-        self.face_mesh = self.mp_face_mesh.FaceMesh(
-            static_image_mode=False,
-            max_num_faces=1,
-            refine_landmarks=True
+    def __init__(self, model_path: str = "src/face_auth/core/enrollment/face_landmarker.task"):
+        """Initialize head pose estimator with MediaPipe FaceLandmarker (Tasks API)."""
+        BaseOptions = mp.tasks.BaseOptions
+        FaceLandmarker = mp.tasks.vision.FaceLandmarker
+        FaceLandmarkerOptions = mp.tasks.vision.FaceLandmarkerOptions
+        VisionRunningMode = mp.tasks.vision.RunningMode
+
+        options = FaceLandmarkerOptions(
+            base_options=BaseOptions(model_asset_path=model_path),
+            running_mode=VisionRunningMode.VIDEO,
+            num_faces=1,
         )
+
+        self._landmarker = FaceLandmarker.create_from_options(options)
+        self._frame_timestamp_ms = 0
 
         self._landmark_indices = [
             NOSE_TIP_LANDMARK,
@@ -50,28 +58,37 @@ class HeadPoseEstimator:
         Returns:
             HeadPose with pitch, yaw, roll angles, or None if no face detected
         """
-        results = self.face_mesh.process(frame_rgb)
+        # Create MediaPipe Image
+        mp_image = mp.Image(
+            image_format=mp.ImageFormat.SRGB,
+            data=frame_rgb
+        )
 
-        if not results.multi_face_landmarks:
+        # Process with FaceLandmarker
+        results = self._landmarker.detect_for_video(mp_image, self._frame_timestamp_ms)
+        self._frame_timestamp_ms += 33  # ~30 fps
+
+        if not results.face_landmarks:
             return None
 
-        landmarks = results.multi_face_landmarks[0]
+        landmarks = results.face_landmarks[0]
         return self._compute_pose_from_landmarks(landmarks, frame_rgb.shape)
 
     def _compute_pose_from_landmarks(
         self,
         landmarks,
         image_shape: tuple[int, ...]
-    , cv2=None) -> Optional[HeadPose]:
+    ) -> Optional[HeadPose]:
         """Compute head pose angles from facial landmarks."""
         h, w = image_shape[:2]
 
         # Convert normalized landmark coordinates to pixel coordinates
+        # landmarks is now a list of NormalizedLandmark objects
         face_2d = []
         for idx in self._landmark_indices:
-            if idx < len(landmarks.landmark):
-                x = int(landmarks.landmark[idx].x * w)
-                y = int(landmarks.landmark[idx].y * h)
+            if idx < len(landmarks):
+                x = int(landmarks[idx].x * w)
+                y = int(landmarks[idx].y * h)
                 face_2d.append([x, y])
 
         if len(face_2d) < 6:
