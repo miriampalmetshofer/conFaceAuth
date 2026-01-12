@@ -2,20 +2,27 @@
 import numpy as np
 import cv2
 
+from face_auth.core.authentication.models import EmbeddingResult
+from face_auth.core.authentication.backend.embedder_backend import EmbedderBackend
 
-class InsightFaceBackend:
-    """Face embedder using InsightFace models (ArcFace, CosFace, etc.)."""
 
-    def __init__(self, model_name: str = 'buffalo_l', det_size: tuple = (640, 640)):
+class InsightFaceBackend(EmbedderBackend):
+    """Face embedder using InsightFace ArcFace model with integrated detection."""
+
+    def __init__(self, model_name: str = 'buffalo_sc', det_size: tuple = (640, 640), min_detection_confidence: float = 0.5):
         """Initialize InsightFace model.
 
         Args:
             model_name: Name of the InsightFace model pack to use
-                       Options: 'buffalo_l' (default), 'buffalo_s', 'buffalo_sc',
-                               'antelopev2', etc.
+                       Options: 'buffalo_l' (ResNet50, default, best accuracy),
+                               'buffalo_s' (smaller/faster),
+                               'buffalo_sc' (smallest/fastest)
             det_size: Detection size for the model (width, height)
                      Larger = more accurate but slower
                      Default: (640, 640)
+            min_detection_confidence: Minimum detection confidence threshold (0-1)
+                                     Faces with confidence below this are treated as "no face"
+                                     Default: 0.5
         """
         try:
             from insightface.app import FaceAnalysis
@@ -27,34 +34,45 @@ class InsightFaceBackend:
 
         self.model_name = model_name
         self.det_size = det_size
+        self.min_detection_confidence = min_detection_confidence
 
-        # Initialize FaceAnalysis with the specified model
+        # Initialize FaceAnalysis with detection + recognition
         self._app = FaceAnalysis(
             name=model_name,
-            providers=['CPUExecutionProvider']  # Use CPU by default, can be configured for GPU
+            providers=['CPUExecutionProvider'],
+            min_detection_confidence=self.min_detection_confidence,
         )
-        self._app.prepare(ctx_id=0, det_size=det_size)
+        self._app.prepare(ctx_id=-1, det_size=det_size)
 
-    def get_embedding(self, face_rgb: np.ndarray) -> np.ndarray:
+    def get_embedding(self, frame_rgb: np.ndarray) -> EmbeddingResult:
         """Generate embedding vector using InsightFace.
 
         Args:
-            face_rgb: Preprocessed face image in RGB format
+            frame_rgb: Full frame image in RGB format
 
         Returns:
-            512-dimensional embedding vector (for most models)
+            EmbeddingResult with 512-dimensional L2-normalized embedding or None if no face detected
+
+        Note: InsightFace performs detection, alignment, and embedding in one pipeline.
+              This is optimal as the model was trained with this specific alignment.
         """
         # InsightFace expects BGR format
-        face_bgr = cv2.cvtColor(face_rgb, cv2.COLOR_RGB2BGR)
+        frame_bgr = cv2.cvtColor(frame_rgb, cv2.COLOR_RGB2BGR)
 
-        # Get faces from image
-        faces = self._app.get(face_bgr)
+        faces = self._app.get(frame_bgr)
 
         if not faces or len(faces) == 0:
-            # If no face detected, return zero vector
-            # This maintains consistency with the existing flow
-            return np.zeros(512, dtype=np.float32)
+            return EmbeddingResult.no_face()
 
-        # Return embedding of the first (largest) detected face
-        # InsightFace returns normalized embeddings
-        return faces[0].embedding
+        face = faces[0]
+        embedding = face.embedding
+
+        normalized_embedding = self._l2_normalize_embeddings(embedding)
+
+        return EmbeddingResult.success(normalized_embedding)
+
+    def _l2_normalize_embeddings(self, embedding):
+        norm = np.linalg.norm(embedding)
+        if norm > 0:
+            embedding = embedding / norm
+        return embedding

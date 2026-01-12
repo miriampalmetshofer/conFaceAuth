@@ -5,7 +5,6 @@ from typing import List
 
 from face_auth.config.models import EnrollmentConfig, PathsConfig, ProcessingContext, EnrollmentVideoPreference
 from face_auth.core.authentication.embedder import Embedder
-from face_auth.core.detection import FaceDetector, FaceExtractor
 from face_auth.core.processing.video_discovery import VideoDiscovery
 from face_auth.core.processing.video_parser import EnrollmentVideoParser
 from face_auth.core.processing.models import EnrollmentVideo, Scenario, HeadRotation
@@ -36,8 +35,6 @@ class EnrollmentService:
         self,
         config: EnrollmentConfig,
         paths_config: PathsConfig,
-        face_detector: FaceDetector,
-        face_extractor: FaceExtractor,
         embedder: Embedder
     ):
         """Initialize enrollment service.
@@ -45,14 +42,10 @@ class EnrollmentService:
         Args:
             config: Enrollment configuration
             paths_config: Paths configuration
-            face_detector: Face detector instance
-            face_extractor: Face extractor instance
             embedder: Embedding generator instance
         """
         self.config = config
         self.paths = paths_config
-        self.detector = face_detector
-        self.extractor = face_extractor
         self.embedder = embedder
 
     def get_enrollment(
@@ -228,7 +221,7 @@ class EnrollmentService:
             EnrollmentException: If loading fails
         """
         try:
-            loader = EnrollmentLoader(self.embedder, self.detector, self.extractor)
+            loader = EnrollmentLoader(self.embedder)
             embeddings = loader.load_embeddings(folder)
             return EnrollmentData(folder=folder, embeddings=embeddings)
         except Exception as e:

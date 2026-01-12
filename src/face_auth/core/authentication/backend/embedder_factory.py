@@ -1,27 +1,27 @@
 """Factory for creating face embedder backends."""
 from typing import Dict, Any
+from face_auth.core.detection import FaceDetector, FaceExtractor
 from face_auth.core.authentication.backend import FaceNetBackend, InsightFaceBackend
 from face_auth.core.authentication.backend.embedder_backend import EmbedderBackend
 
-# Registry of available embedder backends
 EMBEDDER_REGISTRY = {
     "facenet": FaceNetBackend,
     "insightface": InsightFaceBackend,
 }
 
 
-def create_embedder(backend_name: str, backend_config: Dict[str, Any] = None) -> EmbedderBackend:
-    """Create a face embedder backend instance.
+def create_embedder(
+    backend_name: str,
+    backend_config: Dict[str, Any] = None
+) -> EmbedderBackend:
+    """Create a face embedder backend instance with all its dependencies.
 
     Args:
-        backend_name: Name of the backend to create (e.g., "facenet", "insightface", "arcface")
+        backend_name: Name of the backend to create (e.g., "facenet", "insightface")
         backend_config: Optional configuration dict for the backend
-                       For insightface:
-                         - model_name: str (default: 'buffalo_l')
-                         - det_size: tuple (default: (640, 640))
 
     Returns:
-        Embedder backend instance
+        Embedder backend instance with all dependencies initialized
 
     Raises:
         ValueError: If backend_name is not recognized
@@ -33,8 +33,26 @@ def create_embedder(backend_name: str, backend_config: Dict[str, Any] = None) ->
             f"Supported backends: [{supported}]"
         )
 
-    backend_class = EMBEDDER_REGISTRY[backend_name]
     backend_config = backend_config or {}
 
-    # Instantiate with config if provided
-    return backend_class(**backend_config)
+    # FaceNet backend needs a face detector and extractor
+    if backend_name == "facenet":
+        detector = FaceDetector(
+            detector_backend=backend_config.get("detector", "mediapipe")
+        )
+
+        target_size = backend_config.get("target_size", [160, 160])
+        extractor = FaceExtractor(
+            target_width=target_size[0],
+            target_height=target_size[1]
+        )
+
+        return FaceNetBackend(detector=detector, extractor=extractor)
+
+    # InsightFace backend - handles detection internally
+    else:
+        return InsightFaceBackend(
+            model_name=backend_config.get("model_name", "buffalo_sc"),
+            det_size=tuple(backend_config.get("det_size", [640, 640])),
+            min_detection_confidence=backend_config.get("min_detection_confidence", 0.5)
+        )

@@ -3,7 +3,6 @@ import numpy as np
 from pathlib import Path
 
 from face_auth.core.authentication.embedder import Embedder
-from face_auth.core.detection import FaceDetector, FaceExtractor
 from face_auth.config.logging_config import get_logger
 
 logger = get_logger(__name__)
@@ -12,22 +11,13 @@ logger = get_logger(__name__)
 class EnrollmentLoader:
     """Loads enrollment images from disc and computes their embeddings."""
 
-    def __init__(
-        self,
-        embedder: Embedder,
-        face_detector: FaceDetector,
-        face_extractor: FaceExtractor
-    ):
+    def __init__(self, embedder: Embedder):
         """Initialize embedding loader.
 
         Args:
             embedder: Embedder instance for generating embeddings
-            face_detector: FaceDetector instance for detecting faces
-            face_extractor: FaceExtractor instance for extracting face regions
         """
         self.embedder = embedder
-        self.face_detector = face_detector
-        self.face_extractor = face_extractor
 
     def load_embeddings(self, enrollment_folder: Path) -> list[np.ndarray]:
         """Load enrollment images and compute their embeddings."""
@@ -56,19 +46,16 @@ class EnrollmentLoader:
 
     def _get_enrollment_embedding(self, image_path: Path) -> np.ndarray | None:
         """Process a single enrollment image and return its embedding."""
-        image = cv2.imread(str(image_path))
-        if image is None:
+        image_bgr = cv2.imread(str(image_path))
+        if image_bgr is None:
             logger.warning(f"Could not read image {image_path}. Skipping")
             return None
 
-        detection_result = self.face_extractor.detect_and_extract(image, self.face_detector)
-        if detection_result is None:
+        image_rgb = cv2.cvtColor(image_bgr, cv2.COLOR_BGR2RGB)
+        embedding_result = self.embedder.get_embedding(image_rgb)
+
+        if not embedding_result.face_detected:
             logger.warning(f"No face detected in enrollment image {image_path}. Skipping")
             return None
 
-        embedding = self.embedder.get_embedding(detection_result.face_image)
-        if embedding is None:
-            logger.warning(f"Failed to compute embedding for {image_path}. Skipping")
-            return None
-
-        return embedding
+        return embedding_result.embedding

@@ -1,18 +1,24 @@
 """Face embedder backend interface."""
-from typing import Protocol
+from abc import ABC, abstractmethod
 import numpy as np
 
+from face_auth.core.authentication.models import EmbeddingResult
 
-class EmbedderBackend(Protocol):
-    """Interface that all face embedder backends must implement."""
 
-    def get_embedding(self, face_rgb: np.ndarray) -> np.ndarray:
-        """Generate embedding vector for a face image.
+class EmbedderBackend(ABC):
+    """Abstract base class that all face embedder backends must implement.
+
+    All backends handle their own face detection and preprocessing internally.
+    """
+
+    @abstractmethod
+    def get_embedding(self, frame_rgb: np.ndarray) -> EmbeddingResult:
+        """Generate embedding vector from a frame.
 
         Args:
-            face_rgb: Preprocessed face image in RGB format
+            frame_rgb: Full frame image in RGB format
 
         Returns:
-            Embedding vector for the face
+            EmbeddingResult with embedding vector and face detection status
         """
-        ...
+        pass

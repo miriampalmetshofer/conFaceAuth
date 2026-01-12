@@ -228,3 +228,24 @@ Annotations are stored separately in `data/annotations/` and should be used in s
   - `controlled_study/` - Controlled study pool (mobile + desktop)
   - `annotations/` - Ground truth annotations (for evaluation)
   - `_archive/` - Archived data from previous structure
+
+
+## Sizes
+ Face Detection:
+
+  - MTCNN: ~2.2 MB (very lightweight!)
+  - MediaPipe BlazeFace: ~2-3 MB (embedded in package)
+  - InsightFace RetinaFace (det_10g): 16 MB
+
+  Face Recognition (Embeddings):
+
+  - FaceNet: ~90 MB (Inception-ResNet)
+  - InsightFace buffalo_l: 166 MB (ResNet50) - w600k_r50.onnx
+  - InsightFace buffalo_s: ~50 MB (MobileFaceNet)
+  - InsightFace buffalo_sc: ~10 MB (compressed MobileFaceNet)
+
+  Total Package Sizes:
+
+  - FaceNet + MTCNN: ~92 MB
+  - InsightFace buffalo_l: 326 MB (detection + recognition + extras)
+  - InsightFace buffalo_sc: ~20 MB (detection + recognition, mobile-optimized)

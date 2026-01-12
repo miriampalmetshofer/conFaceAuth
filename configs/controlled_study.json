@@ -1,8 +1,8 @@
 {
   "pool": "controlled_study",
   "devices": [
-    "mobile",
-    "desktop"
+    "desktop",
+     "mobile"
   ],
   "paths": {
     "base_path": "data/controlled_study",
@@ -12,8 +12,10 @@
   "models": {
     "detector": "mediapipe",
     "embedder": {
-      "model": "facenet",
-      "config": {}
+      "model": "insightface",
+      "config": {
+        "min_detection_confidence": 0.6
+      }
     }
   },
   "processing": {
@@ -58,28 +60,10 @@
   },
   "participants": [
     {
-      "name": "christina"
-    },
-    {
-      "name": "gudrun"
-    },
-    {
-      "name": "ulli"
-    },
-    {
       "name": "anna"
     },
     {
       "name": "lisi"
-    },
-    {
-      "name": "bettina"
-    },
-    {
-      "name": "alfred"
-    },
-    {
-      "name": "max"
     }
   ]
 }

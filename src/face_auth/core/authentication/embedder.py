@@ -1,35 +1,44 @@
 """Face embedding generation."""
 from typing import Dict, Any
-import numpy as np
 from face_auth.core.authentication.backend.embedder_backend import EmbedderBackend
 from face_auth.core.authentication.backend.embedder_factory import create_embedder
+from face_auth.core.authentication.models import EmbeddingResult
+import numpy as np
 
 
 class Embedder:
-    """Generates face embeddings from preprocessed face images."""
+    """Generates face embeddings from frames."""
 
-    def __init__(self, model_name: str, model_config: Dict[str, Any] = None):
+    def __init__(
+        self,
+        model_name: str,
+        model_config: Dict[str, Any] = None
+    ):
         """Initialize embedder with specified model.
 
         Args:
-            model_name: Name of embedding model to use ('facenet', 'insightface', 'arcface')
+            model_name: Name of embedding model to use ('facenet', 'insightface')
             model_config: Optional configuration dict for the model backend
-                         For insightface/arcface:
-                           - model_name: str (default: 'buffalo_l')
-                           - det_size: tuple (default: (640, 640))
+                         For FaceNet:
+                           - detector: str (detector backend name, default: 'mediapipe')
+                           - target_size: list[int, int] (default: [160, 160])
+                         For InsightFace:
+                           - model_name: str (default: 'buffalo_sc')
+                           - det_size: list[int, int] (default: [640, 640])
+                           - min_detection_confidence: float (default: 0.5)
 
         Raises:
             ValueError: If model_name is not supported
         """
         self._backend: EmbedderBackend = create_embedder(model_name, model_config)
 
-    def get_embedding(self, face_rgb: np.ndarray) -> np.ndarray:
-        """Generate embedding vector for a face image.
+    def get_embedding(self, frame_rgb: np.ndarray) -> EmbeddingResult:
+        """Generate embedding vector from a frame.
 
         Args:
-            face_rgb: Preprocessed face image in RGB format
+            frame_rgb: Full frame image in RGB format
 
         Returns:
-            Embedding vector for the face
+            EmbeddingResult with embedding vector and face detection status
         """
-        return self._backend.get_embedding(face_rgb)
+        return self._backend.get_embedding(frame_rgb)

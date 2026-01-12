@@ -2,8 +2,6 @@
 
 from face_auth.config.models import ApplicationConfig, Pool
 from face_auth.core.authentication.embedder import Embedder
-from face_auth.core.detection import FaceDetector, FaceExtractor
-from face_auth.core.authentication.constants import FACENET_INPUT_WIDTH, FACENET_INPUT_HEIGHT
 from face_auth.core.processing.genuine_video_cache import VideoCache
 from face_auth.core.processing.video_parser import VideoParser, ControlledStudyParser, InTheWildStudyParser
 from face_auth.core.processing.matching.matching_strategy_factory import create_matching_strategy
@@ -28,15 +26,7 @@ class PipelineFactory:
     def __init__(self, config: ApplicationConfig):
         self.config = config
         # Cache shared dependencies
-        self._face_detector = None
         self._embedder = None
-        self._face_extractor = None
-
-    def _create_face_detector(self) -> FaceDetector:
-        """Create face detector instance (cached)."""
-        if self._face_detector is None:
-            self._face_detector = FaceDetector(detector_backend=self.config.models.detector)
-        return self._face_detector
 
     def _create_embedder(self) -> Embedder:
         """Create embedder instance (cached)."""
@@ -47,22 +37,11 @@ class PipelineFactory:
             )
         return self._embedder
 
-    def _create_face_extractor(self) -> FaceExtractor:
-        """Create face extractor instance (cached)."""
-        if self._face_extractor is None:
-            self._face_extractor = FaceExtractor(
-                target_width=FACENET_INPUT_WIDTH,
-                target_height=FACENET_INPUT_HEIGHT
-            )
-        return self._face_extractor
-
     def _create_enrollment_service(self) -> EnrollmentService:
         """Create enrollment service with all dependencies."""
         return EnrollmentService(
             config=self.config.enrollment,
             paths_config=self.config.paths,
-            face_detector=self._create_face_detector(),
-            face_extractor=self._create_face_extractor(),
             embedder=self._create_embedder()
         )
 
@@ -70,8 +49,6 @@ class PipelineFactory:
         """Create video processing service with all dependencies."""
         return VideoProcessingService(
             config=self.config.authentication,
-            face_detector=self._create_face_detector(),
-            face_extractor=self._create_face_extractor(),
             embedder=self._create_embedder(),
             genuine_cache=VideoCache()
         )

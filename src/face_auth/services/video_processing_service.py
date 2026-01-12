@@ -5,7 +5,6 @@ from typing import List
 
 from face_auth.config.models import AuthenticationConfig
 from face_auth.core.authentication.embedder import Embedder
-from face_auth.core.detection import FaceDetector, FaceExtractor
 from face_auth.core.authentication.continuous_authenticator import ContinuousAuthenticator
 from face_auth.core.authentication.frame_authenticator import FrameAuthenticator
 from face_auth.core.processing.genuine_video_cache import VideoCache
@@ -25,8 +24,6 @@ class VideoProcessingService:
     def __init__(
         self,
         config: AuthenticationConfig,
-        face_detector: FaceDetector,
-        face_extractor: FaceExtractor,
         embedder: Embedder,
         genuine_cache: VideoCache
     ):
@@ -34,14 +31,10 @@ class VideoProcessingService:
 
         Args:
             config: Authentication configuration
-            face_detector: Face detector instance
-            face_extractor: Face extractor instance
             embedder: Embedding generator instance
             genuine_cache: Cache for genuine video results
         """
         self.config = config
-        self.detector = face_detector
-        self.extractor = face_extractor
         self.embedder = embedder
         self.genuine_cache = genuine_cache
 
@@ -158,8 +151,6 @@ class VideoProcessingService:
     def _create_frame_authenticator(self, authenticator: ContinuousAuthenticator) -> FrameAuthenticator:
         """Create frame authenticator instance."""
         return FrameAuthenticator(
-            detector=self.detector,
-            extractor=self.extractor,
             embedder=self.embedder,
             authenticator=authenticator,
             no_face_penalty=self.config.no_face_penalty
