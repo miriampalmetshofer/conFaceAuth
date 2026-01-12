@@ -1,6 +1,6 @@
 # Core ML/CV libraries
 tensorflow>=2.16,<2.18
-keras>=3.0
+tf-keras  # Use TensorFlow's bundled Keras for compatibility with keras-facenet
 keras-facenet>=0.3
 mediapipe>=0.10,<0.11
 opencv-contrib-python>=4.9
