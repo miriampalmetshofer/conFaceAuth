@@ -35,9 +35,9 @@ class VideoDiscovery:
         return videos
 
     def _find_video_files(self, folder: Path) -> list[Path]:
-        """Find all video files in folder."""
+        """Find all video files in folder recursively."""
         video_paths = []
         for ext in VIDEO_EXTENSIONS:
-            pattern = f"*.{ext}"
+            pattern = f"**/*.{ext}"
             video_paths.extend(folder.glob(pattern))
         return video_paths
