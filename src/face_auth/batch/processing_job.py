@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from typing import Optional, List
 
 from face_auth.config.models import ProcessingContext, ApplicationConfig, Participant
-from face_auth.core.processing.models import Video
+from face_auth.processing import Video
 from face_auth.services.models import VideoResult
 
 

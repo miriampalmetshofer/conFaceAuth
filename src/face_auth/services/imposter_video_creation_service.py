@@ -6,8 +6,8 @@ from typing import List
 
 from face_auth.config.logging_config import get_logger
 from face_auth.config.models import StitchConfig
-from face_auth.core.imposter_video_creation import VideoFrameIterator, BlackFrameGenerator, FrameIterator
-from face_auth.core.processing.models import ImposterSamplePair, ComposedVideo
+from face_auth.authentication.imposter_video_creation import VideoFrameIterator, BlackFrameGenerator, FrameIterator
+from face_auth.processing import ImposterSamplePair, ComposedVideo
 
 logger = get_logger(__name__)
 

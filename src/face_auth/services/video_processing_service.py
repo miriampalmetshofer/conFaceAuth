@@ -4,14 +4,14 @@ from pathlib import Path
 from typing import List
 
 from face_auth.config.models import AuthenticationConfig
-from face_auth.core.authentication.continuous_authenticator import ContinuousAuthenticator
-from face_auth.core.authentication.frame_authenticator import FrameAuthenticator
-from face_auth.core.embedder import Embedder
-from face_auth.core.processing.genuine_video_cache import VideoCache
-from face_auth.core.processing.video_processor import VideoProcessor
-from face_auth.core.processing.models import ComposedVideo, CacheKey, CacheValue
-from face_auth.core.authentication import FrameAuthenticationResult
-from face_auth.core.imposter_video_creation import FrameIterator
+from face_auth.authentication.core.continuous_authenticator import ContinuousAuthenticator
+from face_auth.authentication.core.frame_authenticator import FrameAuthenticator
+from face_auth.authentication.embedder import Embedder
+from face_auth.processing import VideoCache
+from face_auth.processing import VideoProcessor
+from face_auth.processing import ComposedVideo, CacheKey, CacheValue
+from face_auth.authentication.core import FrameAuthenticationResult
+from face_auth.authentication.imposter_video_creation import FrameIterator
 from face_auth.services.models import EnrollmentData, VideoResult
 from face_auth.config.logging_config import get_logger
 
