@@ -21,7 +21,7 @@ def _init_worker(log_level: int):
 class BatchProcessor:
     """Processes a batch of jobs either sequentially or in parallel."""
 
-    def __init__(self, num_workers: int, log_level: str):
+    def __init__(self, num_workers: int, log_level: int):
         """Initialize batch processor.
 
         Args:
@@ -31,7 +31,7 @@ class BatchProcessor:
         self.num_workers = num_workers
         self.log_level = log_level
 
-    def process_batch(
+    def process(
         self,
         jobs: List[ProcessingJob],
         executor_func: Callable[[ProcessingJob], ProcessingResult]

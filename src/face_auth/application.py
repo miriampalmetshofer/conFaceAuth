@@ -36,7 +36,7 @@ class FaceAuthApplication:
         self._validate_prerequisites()
 
         jobs = self._create_jobs()
-        results = self.batch_processor.process_batch(jobs, execute_job)
+        results = self.batch_processor.process(jobs, execute_job)
 
         self.reporter.log_summary(results, self.config.paths.get_results_path())
 
