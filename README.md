@@ -80,6 +80,43 @@ venv\Scripts\activate  # On Windows
 pip install -r requirements.txt
 ```
 
+### Model Downloads
+
+The project requires several pre-trained models. Some download automatically, others need manual download.
+
+#### Automatic Downloads (No Action Required)
+
+These models download automatically on first use:
+- **InsightFace models** (`buffalo_l`, `buffalo_s`, `buffalo_sc`)
+  - Downloads to `~/.insightface/models/`
+  - Size: 10-326 MB depending on model variant
+  - Used for face detection and embedding generation
+
+**3. FaceNet/MTCNN Models** (handled by keras-facenet package)
+- Location: `~/.keras/models/`
+- Size: ~92 MB total
+
+
+#### Manual Downloads (Required)
+
+**1. MediaPipe FaceLandmarker** (for head pose estimation during enrollment)
+```bash
+curl -L -o src/face_auth/core/enrollment/face_landmarker.task \
+  https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task
+```
+- Size: 3.6 MB
+- Location: `src/face_auth/core/enrollment/face_landmarker.task`
+- Used by: HeadPoseEstimator for enrollment video processing
+
+**2. MediaPipe BlazeFace** (for face detection)
+```bash
+curl -L -o src/face_auth/core/detection/backend/impl/blaze_face_short_range.tflite \
+  https://storage.googleapis.com/mediapipe-assets/face_detection_short_range.tflite
+```
+- Size: 224 KB
+- Location: `src/face_auth/core/detection/backend/impl/blaze_face_short_range.tflite`
+- Used by: MediaPipeBackend for face detection
+
 ### Quick Testing with live.py
 
 For quick testing, use `live.py`. This script will:
