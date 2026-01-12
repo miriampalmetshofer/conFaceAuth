@@ -4,7 +4,7 @@ from typing import List
 
 from face_auth.config import Participant
 from face_auth.config.logging_config import get_logger
-from face_auth.core.processing.matching.strategy.video_matching_strategy import VideoMatchingStrategy
+from face_auth.core.matching.strategy.video_matching_strategy import VideoMatchingStrategy
 from face_auth.core.processing.models import Video, ImposterSamplePair
 
 logger = get_logger(__name__)

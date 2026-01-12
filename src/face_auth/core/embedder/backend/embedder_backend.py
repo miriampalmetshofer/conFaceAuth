@@ -2,7 +2,7 @@
 from abc import ABC, abstractmethod
 import numpy as np
 
-from face_auth.core.authentication.models import EmbeddingResult
+from face_auth.core.embedder.models import EmbeddingResult
 
 
 class EmbedderBackend(ABC):

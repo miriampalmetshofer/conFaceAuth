@@ -11,7 +11,7 @@ logger = get_logger(__name__)
 class VideoValidationService:
     """Validates video files meet FPS and duration requirements."""
 
-    def __init__(self, expected_fps: float, duration_buffer_seconds: float = 1.0, fps_tolerance: float = 0.5):
+    def __init__(self, expected_fps: float, duration_buffer_seconds: float = 1.0, fps_tolerance: float = 1.0):
         """Initialize validator with expected FPS and duration buffer.
 
         Args:

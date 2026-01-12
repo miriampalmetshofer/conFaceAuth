@@ -29,7 +29,7 @@ class ResultsPersistenceStage:
             video_results: List of video processing results
             context: Processing context with participant and device
         """
-        logger.info("Writing results to file")
+        logger.debug("Writing results to file")
 
         self.results_service.write_results(
             video_results=video_results,

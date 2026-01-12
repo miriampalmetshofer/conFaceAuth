@@ -3,8 +3,8 @@ import numpy as np
 import cv2
 
 from face_auth.core.authentication.models import AuthenticationResult, AuthenticationStatus
-from face_auth.core.authentication.embedder import Embedder
 from face_auth.core.authentication.continuous_authenticator import ContinuousAuthenticator
+from face_auth.core.embedder.embedder import Embedder
 
 
 class FrameAuthenticator:

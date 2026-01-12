@@ -80,13 +80,6 @@ def main():
 
     threshold = results_df['threshold'].iloc[0]
 
-    # Interactive risk score timeline with category grouping (by environment)
-    if 'environment' in results_df.columns:
-        fig_timeline_categories = create_risk_score_timeline_with_categories(results_df, threshold, category_column='environment')
-        output_files.append(
-            save_interactive_plot(fig_timeline_categories, OUTPUT_PATH, 'risk_score_timeline_by_environment.html')
-        )
-
     # Interactive risk score timeline (all videos, original version)
     fig_timeline = create_risk_score_timeline(results_df, threshold)
     output_files.append(

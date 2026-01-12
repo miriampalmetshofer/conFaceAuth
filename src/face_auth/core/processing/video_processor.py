@@ -44,8 +44,7 @@ class VideoProcessor:
         frame_index = start_frame_index
         results = []
         source_name = iterator.get_source_name()
-
-        logger.debug(f"Processing iterator: {source_name}")
+        no_face_count = 0
 
         for frame in iterator:
             try:
@@ -53,10 +52,11 @@ class VideoProcessor:
                     auth_result = self.frame_authenticator.authenticate(frame)
 
                     if not auth_result.face_detected:
-                        logger.warning(f"No face detected at frame {frame_index}")
+                        no_face_count += 1
+                        logger.debug(f"No face detected at frame {frame_index}")
                         self.debug_saver.save_frame(frame, frame_index, source_name)
 
-                    logger.info(
+                    logger.debug(
                         f"Frame {frame_index}: Predicted State={auth_result.status.value}, "
                         f"Distance={auth_result.distance:.4f}, Risk Score={auth_result.risk_score:.4f}"
                     )
@@ -75,6 +75,10 @@ class VideoProcessor:
             frame_index += 1
 
         cv2.destroyAllWindows()
+
+        # Log summary instead of per-frame details
+        if no_face_count > 0:
+            logger.warning(f"{source_name}: {no_face_count}/{len(results)} frames with no face detected")
 
         return results
 

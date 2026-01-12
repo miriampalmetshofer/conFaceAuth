@@ -1,4 +1,4 @@
-from face_auth.processing import VideoProcessor
+from face_auth.batch import VideoProcessor
 from face_auth.core import (
     ContinuousAuthenticator,
     Embedder,

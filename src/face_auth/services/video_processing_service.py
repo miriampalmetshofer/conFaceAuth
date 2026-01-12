@@ -4,9 +4,9 @@ from pathlib import Path
 from typing import List
 
 from face_auth.config.models import AuthenticationConfig
-from face_auth.core.authentication.embedder import Embedder
 from face_auth.core.authentication.continuous_authenticator import ContinuousAuthenticator
 from face_auth.core.authentication.frame_authenticator import FrameAuthenticator
+from face_auth.core.embedder import Embedder
 from face_auth.core.processing.genuine_video_cache import VideoCache
 from face_auth.core.processing.video_processor import VideoProcessor
 from face_auth.core.processing.models import ComposedVideo, CacheKey, CacheValue

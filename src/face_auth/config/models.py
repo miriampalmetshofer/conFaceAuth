@@ -121,6 +121,7 @@ class ProcessingConfig(BaseModel):
 
     skip_frames: int = Field(..., gt=0)
     matching_strategy: MatchingStrategyConfig
+    num_workers: int = Field(gt=0, description="Number of parallel workers (1 = sequential)")
 
     model_config = ConfigDict(frozen=True)
 

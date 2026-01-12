@@ -23,7 +23,8 @@
     "matching_strategy": {
       "type": "scenario",
       "config": {}
-    }
+    },
+    "num_workers": 4
   },
   "authentication": {
     "threshold": 0.95,
@@ -60,10 +61,28 @@
   },
   "participants": [
     {
+      "name": "christina"
+    },
+    {
+      "name": "gudrun"
+    },
+    {
+      "name": "ulli"
+    },
+    {
       "name": "anna"
     },
     {
       "name": "lisi"
+    },
+    {
+      "name": "bettina"
+    },
+    {
+      "name": "alfred"
+    },
+    {
+      "name": "max"
     }
   ]
 }

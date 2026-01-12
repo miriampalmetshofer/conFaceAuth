@@ -3,8 +3,8 @@ import numpy as np
 import cv2
 from keras_facenet import FaceNet
 from face_auth.core.detection import FaceDetector, FaceExtractor
-from face_auth.core.authentication.models import EmbeddingResult
-from face_auth.core.authentication.backend.embedder_backend import EmbedderBackend
+from face_auth.core.embedder.backend.embedder_backend import EmbedderBackend
+from face_auth.core.embedder.models import EmbeddingResult
 
 
 class FaceNetBackend(EmbedderBackend):

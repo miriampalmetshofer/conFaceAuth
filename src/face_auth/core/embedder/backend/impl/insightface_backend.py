@@ -1,9 +1,10 @@
 """InsightFace (ArcFace) embedder backend."""
 import numpy as np
 import cv2
+import logging
 
-from face_auth.core.authentication.models import EmbeddingResult
-from face_auth.core.authentication.backend.embedder_backend import EmbedderBackend
+from face_auth.core.embedder.backend.embedder_backend import EmbedderBackend
+from face_auth.core.embedder.models import EmbeddingResult
 
 
 class InsightFaceBackend(EmbedderBackend):
@@ -24,6 +25,8 @@ class InsightFaceBackend(EmbedderBackend):
                                      Faces with confidence below this are treated as "no face"
                                      Default: 0.5
         """
+        logging.getLogger('onnxruntime').setLevel(logging.ERROR)
+
         try:
             from insightface.app import FaceAnalysis
         except ImportError:

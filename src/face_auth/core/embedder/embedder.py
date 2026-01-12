@@ -1,10 +1,10 @@
 """Face embedding generation."""
 from typing import Dict, Any
-from face_auth.core.authentication.backend.embedder_backend import EmbedderBackend
-from face_auth.core.authentication.backend.embedder_factory import create_embedder
-from face_auth.core.authentication.models import EmbeddingResult
 import numpy as np
 
+from face_auth.core.embedder.backend.embedder_backend import EmbedderBackend
+from face_auth.core.embedder.embedder_factory import create_embedder
+from face_auth.core.embedder.models import EmbeddingResult
 
 class Embedder:
     """Generates face embeddings from frames."""

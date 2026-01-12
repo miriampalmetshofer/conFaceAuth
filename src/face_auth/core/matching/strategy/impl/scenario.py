@@ -1,6 +1,6 @@
 from typing import List
 
-from face_auth.core.processing.matching.strategy.video_matching_strategy import VideoMatchingStrategy
+from face_auth.core.matching.strategy.video_matching_strategy import VideoMatchingStrategy
 from face_auth.core.processing.models import ControlledStudyVideo, ImposterSamplePair
 from face_auth.config.models import Participant
 from face_auth.config.logging_config import get_logger

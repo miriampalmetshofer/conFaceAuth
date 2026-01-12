@@ -25,9 +25,9 @@ class EnrollmentStage:
         Returns:
             Enrollment data with embeddings
         """
-        logger.info(f"Setting up enrollment for {context.participant.name}")
+        logger.debug(f"Setting up enrollment for {context.participant.name}")
 
         enrollment_data = self.enrollment_service.get_enrollment(context)
 
-        logger.info("Enrollment ready")
+        logger.debug("Enrollment ready")
         return enrollment_data

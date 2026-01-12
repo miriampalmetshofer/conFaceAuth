@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import List
 
 from face_auth.config.models import EnrollmentConfig, PathsConfig, ProcessingContext, EnrollmentVideoPreference
-from face_auth.core.authentication.embedder import Embedder
+from face_auth.core.embedder import Embedder
 from face_auth.core.processing.video_discovery import VideoDiscovery
 from face_auth.core.processing.video_parser import EnrollmentVideoParser
 from face_auth.core.processing.models import EnrollmentVideo, Scenario, HeadRotation

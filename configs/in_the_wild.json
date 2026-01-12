@@ -9,10 +9,12 @@
     "results_file": "{base_path}/results.csv"
   },
   "models": {
-    "detector": "mtcnn",
+    "detector": "mediapipe",
     "embedder": {
-      "model": "facenet",
-      "config": {}
+      "model": "insightface",
+      "config": {
+        "min_detection_confidence": 0.6
+      }
     }
   },
   "processing": {
@@ -20,10 +22,11 @@
     "matching_strategy": {
       "type": "random_sampling",
       "config": {
-        "imposters_per_genuine": 10,
+        "imposters_per_genuine": 5,
         "random_seed": 42
       }
-    }
+    },
+    "num_workers": 5
   },
   "authentication": {
     "threshold": 0.95,
@@ -60,19 +63,7 @@
   },
   "participants": [
     {
-      "name": "christina"
-    },
-    {
-      "name": "gudrun"
-    },
-    {
-      "name": "ulli"
-    },
-    {
-      "name": "anna"
-    },
-    {
-      "name": "lisi"
+      "name": "alfred"
     },
     {
       "name": "max"

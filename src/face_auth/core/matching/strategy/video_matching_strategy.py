@@ -1,5 +1,4 @@
 """Video matching strategy for pairing genuine videos with imposter samples."""
-import random
 from abc import ABC, abstractmethod
 from typing import List
 from face_auth.core.processing.models import Video, ImposterSamplePair

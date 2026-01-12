@@ -1,16 +1,16 @@
 """Factory for creating pipeline stages."""
 
 from face_auth.config.models import ApplicationConfig, Pool
-from face_auth.core.authentication.embedder import Embedder
+from face_auth.core.embedder.embedder import Embedder
+from face_auth.core.matching.matching_strategy_factory import create_matching_strategy
 from face_auth.core.processing.genuine_video_cache import VideoCache
 from face_auth.core.processing.video_parser import VideoParser, ControlledStudyParser, InTheWildStudyParser
-from face_auth.core.processing.matching.matching_strategy_factory import create_matching_strategy
 from face_auth.services.enrollment_service import EnrollmentService
 from face_auth.services.video_processing_service import VideoProcessingService
 from face_auth.services.imposter_video_creation_service import ImposterVideoCreationService
 from face_auth.services.video_validation_service import VideoValidationService
 from face_auth.services.results_service import ResultsService
-from face_auth.pipeline import (
+from face_auth.pipeline.stages import (
     VideoDiscoveryStage,
     VideoMatchingStage,
     ImposterVideoCreationStage,
