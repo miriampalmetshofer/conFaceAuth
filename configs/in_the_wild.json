@@ -29,7 +29,7 @@
     "num_workers": 5
   },
   "authentication": {
-    "threshold": 0.95,
+    "threshold": 1,
     "window_size": 5,
     "similarity_percentile": 0.90,
     "alpha": 1.0,
@@ -62,6 +62,24 @@
     "format": "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
   },
   "participants": [
+    {
+      "name": "christina"
+    },
+    {
+      "name": "gudrun"
+    },
+    {
+      "name": "ulli"
+    },
+    {
+      "name": "anna"
+    },
+    {
+      "name": "lisi"
+    },
+    {
+      "name": "bettina"
+    },
     {
       "name": "alfred"
     },

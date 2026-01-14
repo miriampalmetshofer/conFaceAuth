@@ -1,0 +1,5 @@
+# Ignore output files
+output/
+*.png
+*.csv
+*.pdf
