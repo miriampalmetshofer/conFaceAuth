@@ -12,6 +12,10 @@ from evaluation.common.visualization import (
     save_html,
     save_png
 )
+from evaluation.in_the_wild.annotation_validator import (
+    validate_annotations,
+    print_validation_results
+)
 
 
 DEVICES = ['mobile', 'desktop']
@@ -19,6 +23,7 @@ DEVICES = ['mobile', 'desktop']
 PROJECT_ROOT = Path(__file__).parent.parent.parent.parent
 RESULTS_PATH = PROJECT_ROOT / "data/in_the_wild/results.csv"
 CONFIG_PATH = PROJECT_ROOT / "data/in_the_wild/config.json"
+ANNOTATIONS_PATH = PROJECT_ROOT / "data/in_the_wild"
 OUTPUT_PATH = PROJECT_ROOT / "src/evaluation/in_the_wild/output"
 
 
@@ -28,8 +33,17 @@ def main():
     print(f"Results: {RESULTS_PATH}")
     print(f"Output: {OUTPUT_PATH}")
 
+    # Validate annotations
+    print_section("VALIDATING ANNOTATIONS")
+    validation_result = validate_annotations(ANNOTATIONS_PATH)
+    print_validation_results(validation_result)
+
+    if validation_result.invalid_files:
+        print("\n⚠️  Warning: Some annotation files are invalid. Please fix them before proceeding.")
+        print("Continuing with evaluation using valid annotations only.\n")
+
     data = load_evaluation_data(RESULTS_PATH, parse_scenario=False)
-    print(f"Loaded {len(data.frames)} frames from {len(data.videos)} videos")
+    print(f"\nLoaded {len(data.frames)} frames from {len(data.videos)} videos")
 
     device_metrics = calculate_metrics_by_device(data.frames, DEVICES)
 
