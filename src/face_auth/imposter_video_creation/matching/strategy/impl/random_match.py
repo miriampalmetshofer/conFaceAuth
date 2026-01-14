@@ -1,10 +1,10 @@
 from typing import List
-
 from face_auth.config import Participant
-from face_auth.authentication.imposter_video_creation.matching.strategy.video_matching_strategy import VideoMatchingStrategy
+from face_auth.imposter_video_creation.matching.strategy.video_matching_strategy import VideoMatchingStrategy
 from face_auth.processing import Video
-from face_auth.processing import ImposterSamplePair
 from face_auth.config.logging_config import get_logger
+from face_auth.processing.models import ImposterSamplePair
+import random
 
 logger = get_logger(__name__)
 

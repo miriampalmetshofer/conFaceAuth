@@ -1,7 +1,7 @@
 from typing import Iterator
 import numpy as np
-from face_auth.authentication.imposter_video_creation.iterators.frame_iterator import FrameIterator
 from face_auth.config.logging_config import get_logger
+from face_auth.imposter_video_creation.iterators.frame_iterator import FrameIterator
 
 logger = get_logger(__name__)
 

@@ -2,8 +2,8 @@ import cv2
 import numpy as np
 from pathlib import Path
 
-from face_auth.processing import get_video_rotation_from_metadata, rotate_frame
 from face_auth.config.logging_config import get_logger
+from face_auth.processing.video_utils import get_video_rotation_from_metadata, rotate_frame
 
 logger = get_logger(__name__)
 

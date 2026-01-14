@@ -9,7 +9,7 @@ from face_auth.config import Participant
 from face_auth.config.models import Scenario, HeadRotation
 from face_auth.authentication.core import FrameAuthenticationResult
 from face_auth.authentication.core.authenticator_state_cache import AuthenticatorState
-from face_auth.authentication.imposter_video_creation import FrameIterator, VideoFrameIterator
+from face_auth.imposter_video_creation.iterators.frame_iterator import FrameIterator
 
 VIDEO_EXTENSIONS = ("mp4", "MP4")
 

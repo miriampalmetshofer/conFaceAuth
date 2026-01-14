@@ -2,10 +2,10 @@
 from typing import Dict, Callable
 
 from face_auth.config.models import MatchingStrategyConfig
-from face_auth.authentication.imposter_video_creation.matching.strategy.impl.all import AllVideosMatchingStrategy
-from face_auth.authentication.imposter_video_creation.matching.strategy.impl.random import RandomSamplingMatchingStrategy
-from face_auth.authentication.imposter_video_creation.matching.strategy.impl.scenario import ScenarioMatchingStrategy
-from face_auth.authentication.imposter_video_creation.matching.strategy.video_matching_strategy import VideoMatchingStrategy
+from face_auth.imposter_video_creation.matching.strategy.impl.all import AllVideosMatchingStrategy
+from face_auth.imposter_video_creation.matching.strategy.impl.random_match import RandomSamplingMatchingStrategy
+from face_auth.imposter_video_creation.matching.strategy.impl.scenario import ScenarioMatchingStrategy
+from face_auth.imposter_video_creation.matching.strategy.video_matching_strategy import VideoMatchingStrategy
 
 
 def create_scenario_strategy(config: dict) -> ScenarioMatchingStrategy:

@@ -4,7 +4,7 @@ from typing import List
 
 from face_auth.config.logging_config import get_logger
 from face_auth.config.models import StitchConfig
-from face_auth.processing import ImposterSamplePair, ComposedVideo
+from face_auth.processing.models import ImposterSamplePair, ComposedVideo
 from face_auth.services.imposter_video_creation_service import ImposterVideoCreationService
 from face_auth.services.video_validation_service import VideoValidationService
 
