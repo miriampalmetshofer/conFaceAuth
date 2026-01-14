@@ -34,8 +34,6 @@ def calculate_metrics(frames: list[FrameData]) -> AuthenticationMetrics:
     eer = (far + frr) / 2
 
     all_frames = genuine_frames + imposter_frames
-    avg_risk = np.mean([f.risk_score for f in all_frames]) if all_frames else 0
-
     lockout_time = calculate_imposter_lockout_time(frames)
 
     counts = FrameCounts(
@@ -50,7 +48,6 @@ def calculate_metrics(frames: list[FrameData]) -> AuthenticationMetrics:
         true_reject_rate=trr,
         false_accept_rate=far,
         equal_error_rate=eer,
-        avg_risk_score=avg_risk,
         imposter_lockout_time=lockout_time,
         counts=counts
     )
@@ -75,7 +72,7 @@ def calculate_imposter_lockout_time(frames: list[FrameData]) -> Optional[float]:
                 break
 
         if first_imposter_idx is None:
-            continue
+            raise ValueError(f"No imposter frames found in video: {video_path}")
 
         # Check if imposter is immediately locked from first frame
         if video_frames[first_imposter_idx].predicted_state == 'Locked':

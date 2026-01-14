@@ -26,7 +26,6 @@ class AuthenticationMetrics:
     true_reject_rate: float
     false_accept_rate: float
     equal_error_rate: float
-    avg_risk_score: float
     imposter_lockout_time: Optional[float]
     counts: FrameCounts
 

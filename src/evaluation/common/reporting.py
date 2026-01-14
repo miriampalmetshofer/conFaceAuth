@@ -21,7 +21,6 @@ def print_metrics_by_device(device_metrics: list[DeviceMetrics]) -> None:
         print(f"  TRR (True Reject Rate):        {m.true_reject_rate:6.2f}%")
         print(f"  FAR (False Accept Rate):       {m.false_accept_rate:6.2f}%")
         print(f"  EER (Equal Error Rate):        {m.equal_error_rate:6.2f}%")
-        print(f"  Average Risk Score:            {m.avg_risk_score:6.4f}")
         if m.imposter_lockout_time is not None:
             print(f"  Mean Imposter Lockout Time:    {m.imposter_lockout_time:6.1f} frames")
         else:
@@ -41,7 +40,6 @@ def print_metrics_by_scenario(scenario_metrics: list[ScenarioMetrics]) -> None:
         print(f"  TRR (True Reject Rate):        {m.true_reject_rate:6.2f}%")
         print(f"  FAR (False Accept Rate):       {m.false_accept_rate:6.2f}%")
         print(f"  EER (Equal Error Rate):        {m.equal_error_rate:6.2f}%")
-        print(f"  Average Risk Score:            {m.avg_risk_score:6.4f}")
         if m.imposter_lockout_time is not None:
             print(f"  Mean Imposter Lockout Time:    {m.imposter_lockout_time:6.1f} frames")
         else:

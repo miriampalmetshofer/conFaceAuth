@@ -17,13 +17,15 @@ from evaluation.common.visualization import (
     save_png
 )
 
-
 DEVICES = ['mobile', 'desktop']
 SCENARIOS = ['easy', 'angle', 'lighting']
 
 PROJECT_ROOT = Path(__file__).parent.parent.parent.parent
-RESULTS_PATH = PROJECT_ROOT / "data/controlled_study/results_archive/arcface_small_model/results_arcface_small_model.csv"
-CONFIG_PATH = PROJECT_ROOT / "data/controlled_study/results_archive/arcface_small_model/config.json"
+RESULTS_FOLDER = "data/controlled_study/results_archive/threshold_1"
+
+RESULTS_PATH = PROJECT_ROOT / RESULTS_FOLDER / "results.csv"
+CONFIG_PATH = PROJECT_ROOT / RESULTS_FOLDER / "config.json"
+
 OUTPUT_PATH = PROJECT_ROOT / "src/evaluation/controlled_study/output"
 
 

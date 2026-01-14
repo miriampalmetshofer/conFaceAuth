@@ -315,7 +315,7 @@ def create_device_metrics_table(device_metrics: list[DeviceMetrics]) -> plt.Figu
     fig, ax = plt.subplots(figsize=(16, 4))
     ax.axis('off')
 
-    columns = ['Device', 'TAR (%)', 'FRR (%)', 'TRR (%)', 'FAR (%)', 'EER (%)', 'Avg Risk', 'Lockout (frames)']
+    columns = ['Device', 'TAR (%)', 'FRR (%)', 'TRR (%)', 'FAR (%)', 'EER (%)', 'Lockout (frames)']
     rows = []
 
     for dm in device_metrics:
@@ -328,7 +328,6 @@ def create_device_metrics_table(device_metrics: list[DeviceMetrics]) -> plt.Figu
             f"{m.true_reject_rate:.2f}",
             f"{m.false_accept_rate:.2f}",
             f"{m.equal_error_rate:.2f}",
-            f"{m.avg_risk_score:.4f}",
             lockout
         ])
 
@@ -366,7 +365,7 @@ def create_device_scenario_metrics_table(
     fig, ax = plt.subplots(figsize=(16, 6))
     ax.axis('off')
 
-    columns = ['Scenario', 'TAR (%)', 'FRR (%)', 'TRR (%)', 'FAR (%)', 'EER (%)', 'Avg Risk', 'Lockout (frames)']
+    columns = ['Scenario', 'TAR (%)', 'FRR (%)', 'TRR (%)', 'FAR (%)', 'EER (%)', 'Lockout (frames)']
     rows = []
 
     filtered_metrics = [sdm for sdm in scenario_device_metrics if sdm.device == device]
@@ -381,7 +380,6 @@ def create_device_scenario_metrics_table(
             f"{m.true_reject_rate:.2f}",
             f"{m.false_accept_rate:.2f}",
             f"{m.equal_error_rate:.2f}",
-            f"{m.avg_risk_score:.4f}",
             lockout
         ])
 
@@ -419,7 +417,7 @@ def create_combined_metrics_tables(
     fig = plt.figure(figsize=(16, 14))
     gs = fig.add_gridspec(3, 1, hspace=0.4)
 
-    columns = ['TAR (%)', 'FRR (%)', 'TRR (%)', 'FAR (%)', 'EER (%)', 'Avg Risk', 'Lockout (frames)']
+    columns = ['TAR (%)', 'FRR (%)', 'TRR (%)', 'FAR (%)', 'EER (%)', 'Lockout (frames)']
 
     ax1 = fig.add_subplot(gs[0])
     ax1.axis('off')
@@ -437,7 +435,6 @@ def create_combined_metrics_tables(
             f"{m.true_reject_rate:.2f}",
             f"{m.false_accept_rate:.2f}",
             f"{m.equal_error_rate:.2f}",
-            f"{m.avg_risk_score:.4f}",
             lockout
         ])
 
@@ -477,7 +474,6 @@ def create_combined_metrics_tables(
             f"{m.true_reject_rate:.2f}",
             f"{m.false_accept_rate:.2f}",
             f"{m.equal_error_rate:.2f}",
-            f"{m.avg_risk_score:.4f}",
             lockout
         ])
 
@@ -516,7 +512,6 @@ def create_combined_metrics_tables(
             f"{m.true_reject_rate:.2f}",
             f"{m.false_accept_rate:.2f}",
             f"{m.equal_error_rate:.2f}",
-            f"{m.avg_risk_score:.4f}",
             lockout
         ])
 
