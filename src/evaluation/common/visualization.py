@@ -98,8 +98,12 @@ class MetricsTableBuilder:
         MetricsTableBuilder.render_table(ax, columns, rows, title, bbox, fontsize, scale_height)
 
 
-def _load_segment_config(config_path: Optional[Path]) -> Optional[dict]:
-    """Load segment boundaries from config file."""
+def _load_segment_config(config_path: Optional[Path]) -> Optional[tuple[dict, int]]:
+    """Load segment boundaries from config file.
+
+    Returns:
+        Tuple of (segments in seconds, fps) or None if config not available
+    """
     if not config_path:
         return None
 
@@ -115,15 +119,15 @@ def _load_segment_config(config_path: Optional[Path]) -> Optional[dict]:
     black_seconds = imposter_config.get('black_screen_seconds', 0)
     imposter_seconds = imposter_config.get('impostor_seconds', 0)
 
-    genuine_end = genuine_seconds * fps
-    black_end = genuine_end + (black_seconds * fps)
-    imposter_end = black_end + (imposter_seconds * fps)
+    genuine_end = genuine_seconds
+    black_end = genuine_end + black_seconds
+    imposter_end = black_end + imposter_seconds
 
     return {
         'genuine': (0, genuine_end),
         'black': (genuine_end, black_end),
         'imposter': (black_end, imposter_end)
-    }
+    }, fps
 
 
 def _add_segment_backgrounds(fig: go.Figure, segments: Optional[dict]) -> None:
@@ -188,27 +192,49 @@ def _create_show_hide_buttons(num_traces: int) -> list[dict]:
     ]
 
 
-def _add_video_traces(fig: go.Figure, video_frames_dict: dict[str, list[FrameData]]) -> None:
-    """Add video traces to a plotly figure."""
+def _add_video_traces(fig: go.Figure, video_frames_dict: dict[str, list[FrameData]], fps: int) -> None:
+    """Add video traces to a plotly figure.
+
+    Args:
+        fig: Plotly figure to add traces to
+        video_frames_dict: Dictionary mapping video paths to frame data
+        fps: Frames per second for converting frames to seconds (required)
+    """
     for video_path, frames in video_frames_dict.items():
         frames_sorted = sorted(frames, key=lambda f: f.frame)
 
         fig.add_trace(go.Scatter(
-            x=[f.frame for f in frames_sorted],
+            x=[f.frame / fps for f in frames_sorted],
             y=[f.risk_score for f in frames_sorted],
             mode='lines',
             name=Path(video_path).name,
-            hovertemplate='<b>%{fullData.name}</b><br>Frame: %{x}<br>Risk: %{y:.4f}<extra></extra>',
+            hovertemplate='<b>%{fullData.name}</b><br>Time: %{x:.2f}s<br>Risk: %{y:.4f}<extra></extra>',
             visible=True
         ))
 
 
 def create_risk_timeline_all_videos(data: EvaluationData, study_name: str, config_path: Optional[Path] = None) -> go.Figure:
-    """Create interactive risk score timeline showing all videos."""
+    """Create interactive risk score timeline showing all videos.
+
+    Args:
+        data: Evaluation data containing frames and videos
+        study_name: Name of the study for plot title
+        config_path: Path to config file (required for FPS and segment boundaries)
+
+    Raises:
+        ValueError: If config_path is not provided
+    """
+    if not config_path:
+        raise ValueError("config_path is required to determine FPS for time axis")
+
     fig = go.Figure()
 
-    # Add segment backgrounds if config available
-    segments = _load_segment_config(config_path)
+    # Load segment config and FPS
+    config_result = _load_segment_config(config_path)
+    if not config_result:
+        raise ValueError(f"Failed to load config from {config_path}")
+
+    segments, fps = config_result
     _add_segment_backgrounds(fig, segments)
 
     videos = {}
@@ -217,7 +243,7 @@ def create_risk_timeline_all_videos(data: EvaluationData, study_name: str, confi
             videos[frame.video_path] = []
         videos[frame.video_path].append(frame)
 
-    _add_video_traces(fig, videos)
+    _add_video_traces(fig, videos, fps)
 
     fig.add_hline(
         y=data.threshold,
@@ -227,7 +253,7 @@ def create_risk_timeline_all_videos(data: EvaluationData, study_name: str, confi
 
     fig.update_layout(
         title=f"{study_name} - Risk Score Timeline (All Videos)<br><sub>Device: All | Threshold: {data.threshold}</sub>",
-        xaxis_title="Frame",
+        xaxis_title="Time (seconds)",
         yaxis_title="Risk Score",
         hovermode='closest',
         height=600,
@@ -252,16 +278,23 @@ def create_risk_timeline_all_videos(data: EvaluationData, study_name: str, confi
 
 
 def create_risk_timeline_by_device(data: EvaluationData, devices: list[str], study_name: str, config_path: Optional[Path] = None) -> list[go.Figure]:
-    """Create independent risk score timelines for each device."""
+    if not config_path:
+        raise ValueError("config_path is required to determine FPS for time axis")
+
     figures = []
-    segments = _load_segment_config(config_path)
+
+    config_result = _load_segment_config(config_path)
+    if not config_result:
+        raise ValueError(f"Failed to load config from {config_path}")
+
+    segments, fps = config_result
 
     for device in devices:
         device_frames = [f for f in data.frames if f.device == device]
 
         # Skip devices with no data
         if not device_frames:
-            continue
+            raise ValueError(f"No frames found for device: {device}")
 
         fig = go.Figure()
 
@@ -274,7 +307,7 @@ def create_risk_timeline_by_device(data: EvaluationData, devices: list[str], stu
                 videos[frame.video_path] = []
             videos[frame.video_path].append(frame)
 
-        _add_video_traces(fig, videos)
+        _add_video_traces(fig, videos, fps)
 
         fig.add_hline(
             y=data.threshold,
@@ -284,7 +317,7 @@ def create_risk_timeline_by_device(data: EvaluationData, devices: list[str], stu
 
         fig.update_layout(
             title=f"{study_name} - {device.upper()}<br><sub>Threshold: {data.threshold}</sub>",
-            xaxis_title="Frame",
+            xaxis_title="Time (seconds)",
             yaxis_title="Risk Score",
             hovermode='closest',
             height=600,
