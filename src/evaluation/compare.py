@@ -1,5 +1,7 @@
 """Compare two evaluation results."""
 from pathlib import Path
+import pandas as pd
+import re
 
 from evaluation.common.data_loader import load_evaluation_data
 from evaluation.common.metrics import calculate_metrics_by_device, calculate_metrics_by_scenario
@@ -7,15 +9,13 @@ from evaluation.common.comparison import print_device_comparison, print_scenario
 from evaluation.common.reporting import print_section
 
 
+
 # Configure the two variants to compare
-VARIANT1_PATH = Path("data/controlled_study/results_archive/arcface_small_model")
-VARIANT2_PATH = Path("data/controlled_study/results_archive/threshold_1")
+VARIANT1_PATH = Path("data/in_the_wild/_results_archive/threshold_95")
+VARIANT2_PATH = Path("data/in_the_wild/_results_archive/threshold_1")
 
 VARIANT1_NAME = "threshold 0.95"
 VARIANT2_NAME = "threshold 1"
-
-DEVICES = ['mobile', 'desktop']
-SCENARIOS = ['easy', 'angle', 'lighting']
 
 
 def main():
@@ -29,31 +29,72 @@ def main():
     print(f"Variant 1: {variant1_results}")
     print(f"Variant 2: {variant2_results}")
 
+    # Detect if data has scenarios
+    has_scenarios = _detect_has_scenarios(variant1_results)
+    print(f"\nData type: {'Controlled Study (with scenarios)' if has_scenarios else 'In-the-Wild (no scenarios)'}")
+
     print("\nLoading data...")
-    data1 = load_evaluation_data(variant1_results, parse_scenario=True)
-    data2 = load_evaluation_data(variant2_results, parse_scenario=True)
+    data1 = load_evaluation_data(variant1_results, parse_scenario=has_scenarios)
+    data2 = load_evaluation_data(variant2_results, parse_scenario=has_scenarios)
 
     print(f"Variant 1: {len(data1.frames)} frames from {len(data1.videos)} videos")
     print(f"Variant 2: {len(data2.frames)} frames from {len(data2.videos)} videos")
 
-    print("\nCalculating metrics...")
-    device_metrics1 = calculate_metrics_by_device(data1.frames, DEVICES)
-    device_metrics2 = calculate_metrics_by_device(data2.frames, DEVICES)
+    has_scenarios = _has_scenarios(data1) and _has_scenarios(data2)
+    devices = _get_unique_devices(data1)
 
-    scenario_metrics1 = calculate_metrics_by_scenario(data1.frames, SCENARIOS)
-    scenario_metrics2 = calculate_metrics_by_scenario(data2.frames, SCENARIOS)
+    print("\nCalculating metrics...")
+    device_metrics1 = calculate_metrics_by_device(data1.frames, devices)
+    device_metrics2 = calculate_metrics_by_device(data2.frames, devices)
 
     print_section("DEVICE METRICS COMPARISON")
-    print_device_comparison(device_metrics1, device_metrics2, VARIANT1_NAME, VARIANT2_NAME, DEVICES)
+    print_device_comparison(device_metrics1, device_metrics2, VARIANT1_NAME, VARIANT2_NAME, devices)
 
-    print_section("SCENARIO METRICS COMPARISON")
-    print_scenario_comparison(scenario_metrics1, scenario_metrics2, VARIANT1_NAME, VARIANT2_NAME, SCENARIOS)
+    if has_scenarios:
+        scenarios = _get_unique_scenarios(data1)
+        scenario_metrics1 = calculate_metrics_by_scenario(data1.frames, scenarios)
+        scenario_metrics2 = calculate_metrics_by_scenario(data2.frames, scenarios)
+
+        print_section("SCENARIO METRICS COMPARISON")
+        print_scenario_comparison(scenario_metrics1, scenario_metrics2, VARIANT1_NAME, VARIANT2_NAME, scenarios)
 
     print_section("COMPARISON COMPLETE")
     print("\nLegend:")
     print("  ✓ = Improvement")
     print("  ✗ = Degradation")
     print("  = = No change")
+
+
+def _has_scenarios(data) -> bool:
+    """Check if data contains scenario information."""
+    return any(video.scenario is not None for video in data.videos)
+
+
+def _get_unique_devices(data) -> list[str]:
+    """Extract unique device names from data."""
+    return sorted(set(frame.device for frame in data.frames))
+
+
+def _get_unique_scenarios(data) -> list[str]:
+    """Extract unique scenario names from data."""
+    scenarios = set()
+    for video in data.videos:
+        if video.scenario:
+            scenarios.add(video.scenario)
+    return sorted(scenarios)
+
+def _detect_has_scenarios(csv_path: Path) -> bool:
+    """Detect if results contain scenario information by checking video paths."""
+
+    df = pd.read_csv(csv_path, nrows=100)
+    video_paths = df['video_path'].unique()
+
+    # Check if any video path has scenario format (username_scenario_date_vs_...)
+    scenario_pattern = r'([^/]+)_([^_]+)_\d{4}-\d{2}-\d{2}_\d{2}-\d{2}-\d{2}_vs_([^_]+)_'
+    for vp in video_paths:
+        if re.search(scenario_pattern, vp):
+            return True
+    return False
 
 
 if __name__ == '__main__':
