@@ -1,4 +1,5 @@
 import pandas as pd
+import json
 from pathlib import Path
 from typing import List
 from face_auth.config.logging_config import get_logger
@@ -14,7 +15,7 @@ class ResultWriter:
     def __init__(self, config: ApplicationConfig):
         self.config = config
 
-    def write_results(self, results: List[FrameAuthenticationResult], csv_path: Path, video_path: Path, context: ProcessingContext) -> None:
+    def write_results(self, results: List[FrameAuthenticationResult], results_path: Path, video_path: Path, context: ProcessingContext) -> None:
         """Write authentication results to CSV with configuration metadata."""
         results_dicts = [result.to_dict() for result in results]
         df = pd.DataFrame(results_dicts)
@@ -23,9 +24,24 @@ class ResultWriter:
         for key, value in metadata.items():
             df[key] = value
 
-        file_exists = csv_path.exists()
-        logger.info(f"{'Appending' if file_exists else 'Creating'} results to {csv_path}")
-        df.to_csv(csv_path, mode='a', header=not file_exists, index=False)
+        file_exists = results_path.exists()
+        logger.info(f"{'Appending' if file_exists else 'Creating'} results to {results_path}")
+
+        if not file_exists:
+            self._save_config_copy(results_path)
+
+        df.to_csv(results_path, mode='a', header=not file_exists, index=False)
+
+    def _save_config_copy(self, results_path: Path) -> None:
+        """Save a copy of the configuration file next to the results CSV."""
+        config_path = results_path.parent / "config.json"
+
+        config_dict = self.config.model_dump(mode='json')
+
+        with open(config_path, 'w') as f:
+            json.dump(config_dict, f, indent=2)
+
+        logger.info(f"Saved configuration copy to {config_path}")
 
     def _extract_metadata(self, video_path: Path, context: ProcessingContext) -> dict:
         """Extract relevant configuration fields for CSV output."""
