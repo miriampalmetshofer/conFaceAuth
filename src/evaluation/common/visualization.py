@@ -1,7 +1,8 @@
 """Visualization utilities."""
 from pathlib import Path
 import json
-from typing import Optional
+from typing import Optional, Callable
+from dataclasses import dataclass
 
 import numpy as np
 import plotly.graph_objects as go
@@ -12,8 +13,89 @@ from evaluation.common.domain import (
     DeviceMetrics,
     ScenarioDeviceMetrics,
     SegmentType,
-    FrameData
+    FrameData,
+    AuthenticationMetrics
 )
+
+
+@dataclass
+class TableSpec:
+    """Specification for building a metrics table."""
+    title: str
+    row_label_fn: Callable
+    row_label_header: str
+
+
+class MetricsTableBuilder:
+    """Builds matplotlib tables from metrics data."""
+
+    @staticmethod
+    def build_table_data(
+        items: list,
+        spec: TableSpec
+    ) -> tuple[list[str], list[list[str]]]:
+        """Build table columns and rows from metrics items."""
+        columns = [spec.row_label_header] + AuthenticationMetrics.get_column_labels()
+
+        rows = []
+        for item in items:
+            metrics = item.metrics if hasattr(item, 'metrics') else item
+            row = [spec.row_label_fn(item)] + metrics.to_formatted_values()
+            rows.append(row)
+
+        return columns, rows
+
+    @staticmethod
+    def render_table(
+        ax: plt.Axes,
+        columns: list[str],
+        rows: list[list[str]],
+        title: str,
+        bbox: Optional[list] = None,
+        fontsize: int = 11,
+        scale_height: float = 3.0
+    ) -> None:
+        """Render table on matplotlib axes with standard styling."""
+        ax.axis('off')
+
+        table = ax.table(
+            cellText=rows,
+            colLabels=columns,
+            cellLoc='center',
+            loc='center',
+            bbox=bbox or [0, 0, 1, 1]
+        )
+
+        table.auto_set_font_size(False)
+        table.set_fontsize(fontsize)
+        table.scale(1, scale_height)
+
+        # Header styling
+        for i in range(len(columns)):
+            table[(0, i)].set_facecolor('#3498db')
+            table[(0, i)].set_text_props(weight='bold', color='white')
+
+        # Alternating row colors
+        for i in range(len(rows)):
+            for j in range(len(columns)):
+                if i % 2 == 0:
+                    table[(i + 1, j)].set_facecolor('#ecf0f1')
+
+    @staticmethod
+    def render_table_with_title(
+        ax: plt.Axes,
+        columns: list[str],
+        rows: list[list[str]],
+        title: str,
+        bbox: Optional[list] = None,
+        fontsize: int = 10,
+        scale_height: float = 2.5
+    ) -> None:
+        """Render table with title text above it (for combined figures)."""
+        ax.axis('off')
+        ax.text(0.5, 0.95, title, ha='center', fontsize=14, weight='bold', transform=ax.transAxes)
+
+        MetricsTableBuilder.render_table(ax, columns, rows, title, bbox, fontsize, scale_height)
 
 
 def _load_segment_config(config_path: Optional[Path]) -> Optional[dict]:
@@ -247,20 +329,32 @@ def plot_risk_distribution(ax: plt.Axes, data: EvaluationData) -> None:
 
 
 def plot_error_rates_by_device(ax: plt.Axes, device_metrics: list[DeviceMetrics]) -> None:
-    """Plot TAR/FRR/TRR/FAR bar chart by device."""
+    """Plot authentication rates bar chart by device."""
     devices = [dm.device for dm in device_metrics]
-    tar_vals = [dm.metrics.true_accept_rate for dm in device_metrics]
-    frr_vals = [dm.metrics.false_reject_rate for dm in device_metrics]
-    trr_vals = [dm.metrics.true_reject_rate for dm in device_metrics]
-    far_vals = [dm.metrics.false_accept_rate for dm in device_metrics]
+    plot_metrics = AuthenticationMetrics.get_plot_metrics()
 
+    # Extract all values at once using metadata
+    metric_values = [
+        [getattr(dm.metrics, metric_def.field_name) for dm in device_metrics]
+        for metric_def in plot_metrics
+    ]
+
+    # Plot bars using metadata
     x = np.arange(len(devices))
     width = 0.2
+    num_metrics = len(plot_metrics)
+    offset_start = -(num_metrics - 1) / 2  # Center the bars
 
-    ax.bar(x - 1.5*width, tar_vals, width, label='TAR', color='#2ecc71', alpha=0.8)
-    ax.bar(x - 0.5*width, frr_vals, width, label='FRR', color='#e74c3c', alpha=0.8)
-    ax.bar(x + 0.5*width, trr_vals, width, label='TRR', color='#3498db', alpha=0.8)
-    ax.bar(x + 1.5*width, far_vals, width, label='FAR', color='#f39c12', alpha=0.8)
+    for i, (metric_def, values) in enumerate(zip(plot_metrics, metric_values)):
+        offset = offset_start + i
+        ax.bar(
+            x + offset * width,
+            values,
+            width,
+            label=metric_def.short_label,
+            color=metric_def.plot_color,
+            alpha=0.8
+        )
 
     ax.set_ylabel('Rate (%)')
     ax.set_xlabel('Device')
@@ -313,46 +407,17 @@ def create_summary_visualization(data: EvaluationData, device_metrics: list[Devi
 def create_device_metrics_table(device_metrics: list[DeviceMetrics]) -> plt.Figure:
     """Create overall device metrics table."""
     fig, ax = plt.subplots(figsize=(16, 4))
-    ax.axis('off')
 
-    columns = ['Device', 'TAR (%)', 'FRR (%)', 'TRR (%)', 'FAR (%)', 'EER (%)', 'Lockout (frames)']
-    rows = []
-
-    for dm in device_metrics:
-        m = dm.metrics
-        lockout = f"{m.imposter_lockout_time:.1f}" if m.imposter_lockout_time else "N/A"
-        rows.append([
-            dm.device.upper(),
-            f"{m.true_accept_rate:.2f}",
-            f"{m.false_reject_rate:.2f}",
-            f"{m.true_reject_rate:.2f}",
-            f"{m.false_accept_rate:.2f}",
-            f"{m.equal_error_rate:.2f}",
-            lockout
-        ])
-
-    table = ax.table(
-        cellText=rows,
-        colLabels=columns,
-        cellLoc='center',
-        loc='center',
-        bbox=[0, 0, 1, 1]
+    spec = TableSpec(
+        title='Overall Device Metrics',
+        row_label_fn=lambda dm: dm.device.upper(),
+        row_label_header='Device'
     )
 
-    table.auto_set_font_size(False)
-    table.set_fontsize(11)
-    table.scale(1, 3)
+    columns, rows = MetricsTableBuilder.build_table_data(device_metrics, spec)
+    MetricsTableBuilder.render_table(ax, columns, rows, spec.title)
 
-    for i in range(len(columns)):
-        table[(0, i)].set_facecolor('#3498db')
-        table[(0, i)].set_text_props(weight='bold', color='white')
-
-    for i in range(len(rows)):
-        for j in range(len(columns)):
-            if i % 2 == 0:
-                table[(i + 1, j)].set_facecolor('#ecf0f1')
-
-    fig.suptitle('Overall Device Metrics', fontsize=16, y=0.95)
+    fig.suptitle(spec.title, fontsize=16, y=0.95)
 
     return fig
 
@@ -363,48 +428,19 @@ def create_device_scenario_metrics_table(
 ) -> plt.Figure:
     """Create scenario breakdown table for a specific device."""
     fig, ax = plt.subplots(figsize=(16, 6))
-    ax.axis('off')
-
-    columns = ['Scenario', 'TAR (%)', 'FRR (%)', 'TRR (%)', 'FAR (%)', 'EER (%)', 'Lockout (frames)']
-    rows = []
 
     filtered_metrics = [sdm for sdm in scenario_device_metrics if sdm.device == device]
 
-    for sdm in filtered_metrics:
-        m = sdm.metrics
-        lockout = f"{m.imposter_lockout_time:.1f}" if m.imposter_lockout_time else "N/A"
-        rows.append([
-            sdm.scenario.upper(),
-            f"{m.true_accept_rate:.2f}",
-            f"{m.false_reject_rate:.2f}",
-            f"{m.true_reject_rate:.2f}",
-            f"{m.false_accept_rate:.2f}",
-            f"{m.equal_error_rate:.2f}",
-            lockout
-        ])
-
-    table = ax.table(
-        cellText=rows,
-        colLabels=columns,
-        cellLoc='center',
-        loc='center',
-        bbox=[0, 0, 1, 1]
+    spec = TableSpec(
+        title=f'{device.upper()} - Scenario Breakdown',
+        row_label_fn=lambda sdm: sdm.scenario.upper(),
+        row_label_header='Scenario'
     )
 
-    table.auto_set_font_size(False)
-    table.set_fontsize(11)
-    table.scale(1, 2.5)
+    columns, rows = MetricsTableBuilder.build_table_data(filtered_metrics, spec)
+    MetricsTableBuilder.render_table(ax, columns, rows, spec.title)
 
-    for i in range(len(columns)):
-        table[(0, i)].set_facecolor('#3498db')
-        table[(0, i)].set_text_props(weight='bold', color='white')
-
-    for i in range(len(rows)):
-        for j in range(len(columns)):
-            if i % 2 == 0:
-                table[(i + 1, j)].set_facecolor('#ecf0f1')
-
-    fig.suptitle(f'{device.upper()} - Scenario Breakdown', fontsize=16, y=0.96)
+    fig.suptitle(spec.title, fontsize=16, y=0.96)
 
     return fig
 
@@ -417,122 +453,46 @@ def create_combined_metrics_tables(
     fig = plt.figure(figsize=(16, 14))
     gs = fig.add_gridspec(3, 1, hspace=0.4)
 
-    columns = ['TAR (%)', 'FRR (%)', 'TRR (%)', 'FAR (%)', 'EER (%)', 'Lockout (frames)']
-
+    # Table 1: Overall Device Metrics
     ax1 = fig.add_subplot(gs[0])
-    ax1.axis('off')
-    ax1.text(0.5, 0.95, 'Overall Device Metrics', ha='center', fontsize=14, weight='bold', transform=ax1.transAxes)
-
-    device_columns = ['Device'] + columns
-    device_rows = []
-    for dm in device_metrics:
-        m = dm.metrics
-        lockout = f"{m.imposter_lockout_time:.1f}" if m.imposter_lockout_time else "N/A"
-        device_rows.append([
-            dm.device.upper(),
-            f"{m.true_accept_rate:.2f}",
-            f"{m.false_reject_rate:.2f}",
-            f"{m.true_reject_rate:.2f}",
-            f"{m.false_accept_rate:.2f}",
-            f"{m.equal_error_rate:.2f}",
-            lockout
-        ])
-
-    table1 = ax1.table(
-        cellText=device_rows,
-        colLabels=device_columns,
-        cellLoc='center',
-        loc='center',
-        bbox=[0, 0, 1, 0.8]
+    device_spec = TableSpec(
+        title='Overall Device Metrics',
+        row_label_fn=lambda dm: dm.device.upper(),
+        row_label_header='Device'
     )
-    table1.auto_set_font_size(False)
-    table1.set_fontsize(10)
-    table1.scale(1, 2.5)
+    device_columns, device_rows = MetricsTableBuilder.build_table_data(device_metrics, device_spec)
+    MetricsTableBuilder.render_table_with_title(
+        ax1, device_columns, device_rows, device_spec.title,
+        bbox=[0, 0, 1, 0.8], fontsize=10, scale_height=2.5
+    )
 
-    for i in range(len(device_columns)):
-        table1[(0, i)].set_facecolor('#3498db')
-        table1[(0, i)].set_text_props(weight='bold', color='white')
-    for i in range(len(device_rows)):
-        for j in range(len(device_columns)):
-            if i % 2 == 0:
-                table1[(i + 1, j)].set_facecolor('#ecf0f1')
-
+    # Table 2: Mobile Scenario Breakdown
     ax2 = fig.add_subplot(gs[1])
-    ax2.axis('off')
-    ax2.text(0.5, 0.95, 'MOBILE - Scenario Breakdown', ha='center', fontsize=14, weight='bold', transform=ax2.transAxes)
-
-    scenario_columns = ['Scenario'] + columns
-    mobile_rows = []
     mobile_metrics = [sdm for sdm in scenario_device_metrics if sdm.device == 'mobile']
-    for sdm in mobile_metrics:
-        m = sdm.metrics
-        lockout = f"{m.imposter_lockout_time:.1f}" if m.imposter_lockout_time else "N/A"
-        mobile_rows.append([
-            sdm.scenario.upper(),
-            f"{m.true_accept_rate:.2f}",
-            f"{m.false_reject_rate:.2f}",
-            f"{m.true_reject_rate:.2f}",
-            f"{m.false_accept_rate:.2f}",
-            f"{m.equal_error_rate:.2f}",
-            lockout
-        ])
-
-    table2 = ax2.table(
-        cellText=mobile_rows,
-        colLabels=scenario_columns,
-        cellLoc='center',
-        loc='center',
-        bbox=[0, 0, 1, 0.8]
+    mobile_spec = TableSpec(
+        title='MOBILE - Scenario Breakdown',
+        row_label_fn=lambda sdm: sdm.scenario.upper(),
+        row_label_header='Scenario'
     )
-    table2.auto_set_font_size(False)
-    table2.set_fontsize(10)
-    table2.scale(1, 2.2)
+    mobile_columns, mobile_rows = MetricsTableBuilder.build_table_data(mobile_metrics, mobile_spec)
+    MetricsTableBuilder.render_table_with_title(
+        ax2, mobile_columns, mobile_rows, mobile_spec.title,
+        bbox=[0, 0, 1, 0.8], fontsize=10, scale_height=2.2
+    )
 
-    for i in range(len(scenario_columns)):
-        table2[(0, i)].set_facecolor('#3498db')
-        table2[(0, i)].set_text_props(weight='bold', color='white')
-    for i in range(len(mobile_rows)):
-        for j in range(len(scenario_columns)):
-            if i % 2 == 0:
-                table2[(i + 1, j)].set_facecolor('#ecf0f1')
-
+    # Table 3: Desktop Scenario Breakdown
     ax3 = fig.add_subplot(gs[2])
-    ax3.axis('off')
-    ax3.text(0.5, 0.95, 'DESKTOP - Scenario Breakdown', ha='center', fontsize=14, weight='bold', transform=ax3.transAxes)
-
-    desktop_rows = []
     desktop_metrics = [sdm for sdm in scenario_device_metrics if sdm.device == 'desktop']
-    for sdm in desktop_metrics:
-        m = sdm.metrics
-        lockout = f"{m.imposter_lockout_time:.1f}" if m.imposter_lockout_time else "N/A"
-        desktop_rows.append([
-            sdm.scenario.upper(),
-            f"{m.true_accept_rate:.2f}",
-            f"{m.false_reject_rate:.2f}",
-            f"{m.true_reject_rate:.2f}",
-            f"{m.false_accept_rate:.2f}",
-            f"{m.equal_error_rate:.2f}",
-            lockout
-        ])
-
-    table3 = ax3.table(
-        cellText=desktop_rows,
-        colLabels=scenario_columns,
-        cellLoc='center',
-        loc='center',
-        bbox=[0, 0, 1, 0.8]
+    desktop_spec = TableSpec(
+        title='DESKTOP - Scenario Breakdown',
+        row_label_fn=lambda sdm: sdm.scenario.upper(),
+        row_label_header='Scenario'
     )
-    table3.auto_set_font_size(False)
-    table3.set_fontsize(10)
-    table3.scale(1, 2.2)
-
-    for i in range(len(scenario_columns)):
-        table3[(0, i)].set_facecolor('#3498db')
-        table3[(0, i)].set_text_props(weight='bold', color='white')
-    for i in range(len(desktop_rows)):
-        for j in range(len(scenario_columns)):
-            if i % 2 == 0:
-                table3[(i + 1, j)].set_facecolor('#ecf0f1')
+    desktop_columns, desktop_rows = MetricsTableBuilder.build_table_data(desktop_metrics, desktop_spec)
+    MetricsTableBuilder.render_table_with_title(
+        ax3, desktop_columns, desktop_rows, desktop_spec.title,
+        bbox=[0, 0, 1, 0.8], fontsize=10, scale_height=2.2
+    )
 
     return fig
 
