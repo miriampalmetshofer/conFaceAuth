@@ -53,9 +53,8 @@ class PathsConfig(BaseModel):
         return Path(self.results_file.format(base_path=self.base_path))
 
 
-class AuthenticationConfig(BaseModel):
-    """Authentication parameters configuration."""
-
+class RiskBasedConfigModel(BaseModel):
+    """Configuration for windowed risk-based authentication."""
     threshold: float = Field(..., ge=0, le=2.0)
     window_size: int = Field(..., gt=0)
     similarity_percentile: float = Field(..., ge=0, le=100)
@@ -63,6 +62,20 @@ class AuthenticationConfig(BaseModel):
     no_face_penalty: float = Field(..., gt=0)
 
     model_config = ConfigDict(frozen=True)
+
+
+class AuthenticationConfig(BaseModel):
+    """Authentication parameters configuration."""
+
+    backend: str = Field(..., description="Authentication backend type (e.g., 'risk_based')")
+    risk_based: Optional[RiskBasedConfigModel] = None
+
+    model_config = ConfigDict(frozen=True)
+
+    def model_post_init(self, __context) -> None:
+        """Validate that correct config is provided for selected backend."""
+        if self.backend == "risk_based" and self.risk_based is None:
+            raise ValueError("risk_based configuration required when backend='risk_based'")
 
 
 class EnrollmentVideoPreference(BaseModel):

@@ -478,54 +478,84 @@ def create_device_scenario_metrics_table(
     return fig
 
 
-def create_combined_metrics_tables(
+def _add_distance_columns(
     device_metrics: list[DeviceMetrics],
-    scenario_device_metrics: list[ScenarioDeviceMetrics]
-) -> plt.Figure:
-    """Create combined figure with all 3 metric tables."""
-    fig = plt.figure(figsize=(16, 14))
-    gs = fig.add_gridspec(3, 1, hspace=0.4)
+    columns: list[str],
+    rows: list[list[str]],
+    frames: list[FrameData]
+) -> None:
+    """Add average distance columns to device metrics table."""
+    columns.extend(['Avg Genuine Dist', 'Avg Imposter Dist'])
 
-    # Table 1: Overall Device Metrics
-    ax1 = fig.add_subplot(gs[0])
-    device_spec = TableSpec(
+    for i, dm in enumerate(device_metrics):
+        device_frames = [f for f in frames if f.device == dm.device]
+        genuine_distances = [f.distance for f in device_frames if f.segment_type == SegmentType.GENUINE]
+        imposter_distances = [f.distance for f in device_frames if f.segment_type == SegmentType.IMPOSTER]
+
+        avg_genuine = np.mean(genuine_distances) if genuine_distances else 0
+        avg_imposter = np.mean(imposter_distances) if imposter_distances else 0
+
+        rows[i].extend([f'{avg_genuine:.4f}', f'{avg_imposter:.4f}'])
+
+
+def _render_device_overview_table(
+    ax: plt.Axes,
+    device_metrics: list[DeviceMetrics],
+    frames: list[FrameData]
+) -> None:
+    """Render overall device metrics table with distance columns."""
+    spec = TableSpec(
         title='Overall Device Metrics',
         row_label_fn=lambda dm: dm.device.upper(),
         row_label_header='Device'
     )
-    device_columns, device_rows = MetricsTableBuilder.build_table_data(device_metrics, device_spec)
+    columns, rows = MetricsTableBuilder.build_table_data(device_metrics, spec)
+    _add_distance_columns(device_metrics, columns, rows, frames)
     MetricsTableBuilder.render_table_with_title(
-        ax1, device_columns, device_rows, device_spec.title,
+        ax, columns, rows, spec.title,
         bbox=[0, 0, 1, 0.8], fontsize=10, scale_height=2.5
     )
 
-    # Table 2: Mobile Scenario Breakdown
-    ax2 = fig.add_subplot(gs[1])
-    mobile_metrics = [sdm for sdm in scenario_device_metrics if sdm.device == 'mobile']
-    mobile_spec = TableSpec(
-        title='MOBILE - Scenario Breakdown',
+
+def _render_scenario_breakdown_table(
+    ax: plt.Axes,
+    scenario_device_metrics: list[ScenarioDeviceMetrics],
+    device: str
+) -> None:
+    """Render scenario breakdown table for a specific device."""
+    device_scenario_metrics = [sdm for sdm in scenario_device_metrics if sdm.device == device]
+
+    if not device_scenario_metrics:
+        return
+
+    spec = TableSpec(
+        title=f'{device.upper()} - Scenario Breakdown',
         row_label_fn=lambda sdm: sdm.scenario.upper(),
         row_label_header='Scenario'
     )
-    mobile_columns, mobile_rows = MetricsTableBuilder.build_table_data(mobile_metrics, mobile_spec)
+    columns, rows = MetricsTableBuilder.build_table_data(device_scenario_metrics, spec)
     MetricsTableBuilder.render_table_with_title(
-        ax2, mobile_columns, mobile_rows, mobile_spec.title,
+        ax, columns, rows, spec.title,
         bbox=[0, 0, 1, 0.8], fontsize=10, scale_height=2.2
     )
 
-    # Table 3: Desktop Scenario Breakdown
-    ax3 = fig.add_subplot(gs[2])
-    desktop_metrics = [sdm for sdm in scenario_device_metrics if sdm.device == 'desktop']
-    desktop_spec = TableSpec(
-        title='DESKTOP - Scenario Breakdown',
-        row_label_fn=lambda sdm: sdm.scenario.upper(),
-        row_label_header='Scenario'
-    )
-    desktop_columns, desktop_rows = MetricsTableBuilder.build_table_data(desktop_metrics, desktop_spec)
-    MetricsTableBuilder.render_table_with_title(
-        ax3, desktop_columns, desktop_rows, desktop_spec.title,
-        bbox=[0, 0, 1, 0.8], fontsize=10, scale_height=2.2
-    )
+
+def create_combined_metrics_tables(
+    device_metrics: list[DeviceMetrics],
+    scenario_device_metrics: list[ScenarioDeviceMetrics],
+    frames: list[FrameData]
+) -> plt.Figure:
+    """Create combined figure with device overview and per-device scenario breakdowns."""
+    devices_with_scenarios = sorted(set(sdm.device for sdm in scenario_device_metrics))
+    num_tables = 1 + len(devices_with_scenarios)
+
+    fig = plt.figure(figsize=(16, 4 + len(devices_with_scenarios) * 5))
+    gs = fig.add_gridspec(num_tables, 1, hspace=0.4)
+
+    _render_device_overview_table(fig.add_subplot(gs[0]), device_metrics, frames)
+
+    for i, device in enumerate(devices_with_scenarios, start=1):
+        _render_scenario_breakdown_table(fig.add_subplot(gs[i]), scenario_device_metrics, device)
 
     return fig
 

@@ -16,7 +16,7 @@ class AuthenticationStatus(Enum):
 class AuthenticationResult:
     """Pure authentication result from authenticator."""
     status: AuthenticationStatus
-    distance: float
+    distance: Optional[float]
     risk_score: float
     face_detected: bool
     bounding_box: Optional[BoundingBox] = None

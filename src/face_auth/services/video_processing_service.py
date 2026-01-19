@@ -4,8 +4,13 @@ from pathlib import Path
 from typing import List
 
 from face_auth.config.models import AuthenticationConfig
-from face_auth.authentication.core.continuous_authenticator import ContinuousAuthenticator
 from face_auth.authentication.core.frame_authenticator import FrameAuthenticator
+from face_auth.authentication.core.backend.authenticator_backend import AuthenticatorBackend
+from face_auth.authentication.core.backend.authenticator_factory import (
+    create_authenticator,
+    AuthenticatorBackendType
+)
+from face_auth.authentication.core.backend.config_converter import convert_risk_based_config
 from face_auth.authentication.embedder import Embedder
 from face_auth.imposter_video_creation.iterators.frame_iterator import FrameIterator
 from face_auth.processing import VideoProcessor
@@ -97,7 +102,7 @@ class VideoProcessingService:
         iterator: FrameIterator,
         skip_frames: int,
         start_frame_index: int,
-        authenticator: ContinuousAuthenticator
+        authenticator: AuthenticatorBackend
     ) -> tuple[List[FrameAuthenticationResult], int]:
         """Process cacheable iterator with caching support.
 
@@ -138,20 +143,26 @@ class VideoProcessingService:
 
         return results, last_frame_index + 1
 
-    def _create_authenticator(self, enrollment_data: EnrollmentData) -> ContinuousAuthenticator:
-        """Create continuous authenticator instance."""
-        return ContinuousAuthenticator(
-            enrollment_embeddings=enrollment_data.embeddings,
-            window_size=self.config.window_size,
-            threshold=self.config.threshold,
-            similarity_percentile=self.config.similarity_percentile,
-            alpha=self.config.alpha
+    def _create_authenticator(self, enrollment_data: EnrollmentData) -> AuthenticatorBackend:
+        """Create authenticator backend instance."""
+        # Determine backend type and config
+        backend_type = AuthenticatorBackendType(self.config.backend)
+
+        if backend_type == AuthenticatorBackendType.RISK_BASED:
+            backend_config = convert_risk_based_config(self.config.risk_based)
+        else:
+            raise ValueError(f"Unsupported backend type: {backend_type}")
+
+        # Create and return backend directly
+        return create_authenticator(
+            backend_type=backend_type,
+            config=backend_config,
+            enrollment_embeddings=enrollment_data.embeddings
         )
 
-    def _create_frame_authenticator(self, authenticator: ContinuousAuthenticator) -> FrameAuthenticator:
+    def _create_frame_authenticator(self, authenticator: AuthenticatorBackend) -> FrameAuthenticator:
         """Create frame authenticator instance."""
         return FrameAuthenticator(
             embedder=self.embedder,
-            authenticator=authenticator,
-            no_face_penalty=self.config.no_face_penalty
+            authenticator=authenticator
         )

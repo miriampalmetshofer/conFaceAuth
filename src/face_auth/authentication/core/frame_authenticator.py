@@ -1,31 +1,25 @@
 """Frame processing for face authentication."""
+from datetime import datetime
 import numpy as np
 import cv2
 
 from face_auth.authentication.core.models import AuthenticationResult, AuthenticationStatus
-from face_auth.authentication.core.continuous_authenticator import ContinuousAuthenticator
+from face_auth.authentication.core.backend.authenticator_backend import AuthenticatorBackend
 from face_auth.authentication.embedder.embedder import Embedder
 
 
 class FrameAuthenticator:
     """Processes individual frames for face authentication."""
 
-    def __init__(
-            self,
-            embedder: Embedder,
-            authenticator: ContinuousAuthenticator,
-            no_face_penalty: float
-    ):
+    def __init__(self, embedder: Embedder, authenticator: AuthenticatorBackend):
         """Initialize frame processor.
 
         Args:
             embedder: Embedding generator instance
-            authenticator: Continuous authenticator instance
-            no_face_penalty: Distance penalty when no face is detected
+            authenticator: Authenticator backend instance
         """
         self._embedder = embedder
         self._authenticator = authenticator
-        self._no_face_penalty = no_face_penalty
 
     def authenticate(self, frame_bgr: np.ndarray) -> AuthenticationResult:
         """Process frame and return authentication result.
@@ -49,14 +43,14 @@ class FrameAuthenticator:
         """Create authentication result when no face was detected.
 
         Returns:
-            AuthenticationResult with no_face_penalty distance
+            AuthenticationResult with authentication status
         """
-        self._authenticator.update_with_distance(self._no_face_penalty)
+        self._authenticator.update_with_no_face(datetime.now())
 
         return AuthenticationResult(
             status=self._get_authentication_status(),
-            distance=self._no_face_penalty,
-            risk_score=self._authenticator.risk_score,
+            distance=None,
+            risk_score=self._authenticator.get_score(),
             face_detected=False,
             bounding_box=None
         )
@@ -68,15 +62,14 @@ class FrameAuthenticator:
             embedding: Face embedding vector
 
         Returns:
-            AuthenticationResult with computed distance and risk score
+            AuthenticationResult with authentication status and risk score
         """
-        distance = self._authenticator.compute_distance_to_enrollment(embedding)
-        self._authenticator.update_with_distance(distance)
+        self._authenticator.update_with_embedding(embedding, datetime.now())
 
         return AuthenticationResult(
             status=self._get_authentication_status(),
-            distance=distance,
-            risk_score=self._authenticator.risk_score,
+            distance=self._authenticator.get_last_distance(),
+            risk_score=self._authenticator.get_score(),
             face_detected=True,
             bounding_box=None
         )
@@ -94,6 +87,6 @@ class FrameAuthenticator:
         )
 
     @property
-    def authenticator(self) -> ContinuousAuthenticator:
-        """Get the continuous authenticator instance."""
+    def authenticator(self) -> AuthenticatorBackend:
+        """Get the authenticator backend instance."""
         return self._authenticator

@@ -17,11 +17,11 @@ from evaluation.common.visualization import (
     save_png
 )
 
-DEVICES = ['mobile', 'desktop']
+DEVICES = ['desktop']
 SCENARIOS = ['easy', 'angle', 'lighting']
 
 PROJECT_ROOT = Path(__file__).parent.parent.parent.parent
-RESULTS_FOLDER = "data/controlled_study/results_archive/threshold_1"
+RESULTS_FOLDER = "data/controlled_study/"
 
 RESULTS_PATH = PROJECT_ROOT / RESULTS_FOLDER / "results.csv"
 CONFIG_PATH = PROJECT_ROOT / RESULTS_FOLDER / "config.json"
@@ -60,7 +60,7 @@ def main():
     )
     output_files.append(save_png(fig_summary, OUTPUT_PATH, 'summary.png'))
 
-    fig_tables = create_combined_metrics_tables(device_metrics, scenario_device_metrics)
+    fig_tables = create_combined_metrics_tables(device_metrics, scenario_device_metrics, data.frames)
     output_files.append(save_png(fig_tables, OUTPUT_PATH, 'metrics_tables.png'))
 
     print_section("EVALUATION COMPLETE")

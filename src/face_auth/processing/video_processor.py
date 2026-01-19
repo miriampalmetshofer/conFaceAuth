@@ -56,9 +56,10 @@ class VideoProcessor:
                         logger.debug(f"No face detected at frame {frame_index}")
                         self.debug_saver.save_frame(frame, frame_index, source_name)
 
+                    distance_str = f"{auth_result.distance:.4f}" if auth_result.distance is not None else "N/A"
                     logger.debug(
                         f"Frame {frame_index}: Predicted State={auth_result.status.value}, "
-                        f"Distance={auth_result.distance:.4f}, Risk Score={auth_result.risk_score:.4f}"
+                        f"Distance={distance_str}, Risk Score={auth_result.risk_score:.4f}"
                     )
 
                     frame_result = FrameAuthenticationResult(

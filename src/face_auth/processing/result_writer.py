@@ -45,18 +45,29 @@ class ResultWriter:
 
     def _extract_metadata(self, video_path: Path, context: ProcessingContext) -> dict:
         """Extract relevant configuration fields for CSV output."""
-        return {
+        auth_config = self.config.authentication
+        backend = auth_config.backend
+
+        metadata = {
             "participant": context.participant.name,
             "device": context.device.value,
             "pool": context.pool.value,
             "video_path": str(video_path),
             "skip_frames": self.config.processing.skip_frames,
-            "window_size": self.config.authentication.window_size,
-            "threshold": self.config.authentication.threshold,
             "embedder": self.config.models.embedder.model,
             "detector": self.config.models.detector,
-            "similarity_percentile": self.config.authentication.similarity_percentile,
             "enrollment_frames_per_direction": self.config.enrollment.frames_per_direction,
-            "no_face_penalty": self.config.authentication.no_face_penalty,
-            "alpha": self.config.authentication.alpha
+            "backend": backend
         }
+
+        if backend == "risk_based":
+            risk_config = auth_config.risk_based
+            metadata.update({
+                "window_size": risk_config.window_size,
+                "threshold": risk_config.threshold,
+                "similarity_percentile": risk_config.similarity_percentile,
+                "no_face_penalty": risk_config.no_face_penalty,
+                "alpha": risk_config.alpha
+            })
+
+        return metadata

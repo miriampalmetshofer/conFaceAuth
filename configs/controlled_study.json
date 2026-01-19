@@ -27,11 +27,14 @@
     "num_workers": 4
   },
   "authentication": {
-    "threshold": 1,
-    "window_size": 5,
-    "similarity_percentile": 0.90,
-    "alpha": 1.0,
-    "no_face_penalty": 1.5
+    "backend": "risk_based",
+    "risk_based": {
+      "threshold": 1,
+      "window_size": 5,
+      "similarity_percentile": 0.90,
+      "alpha": 1.0,
+      "no_face_penalty": 1.5
+    }
   },
   "enrollment": {
     "enrollment_video_preference": {
@@ -74,15 +77,6 @@
     },
     {
       "name": "lisi"
-    },
-    {
-      "name": "bettina"
-    },
-    {
-      "name": "alfred"
-    },
-    {
-      "name": "max"
     }
   ]
 }
