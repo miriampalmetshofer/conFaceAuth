@@ -5,8 +5,8 @@ from evaluation.common.data_loader import load_evaluation_data
 from evaluation.common.metrics import calculate_metrics_by_device
 from evaluation.common.reporting import print_section, print_metrics_by_device
 from evaluation.common.visualization import (
-    create_risk_timeline_all_videos,
-    create_risk_timeline_by_device,
+    create_trust_timeline_all_videos,
+    create_trust_timeline_by_device,
     create_summary_visualization,
     create_device_metrics_table,
     save_html,
@@ -21,7 +21,7 @@ from evaluation.in_the_wild.annotation_validator import (
 DEVICES = ['mobile', 'desktop']
 
 PROJECT_ROOT = Path(__file__).parent.parent.parent.parent
-RESULTS_FOLDER = "data/controlled_study/results_archive/threshold_1"
+RESULTS_FOLDER = "data/controlled_study/_results_archive/threshold_1"
 
 RESULTS_PATH = PROJECT_ROOT / RESULTS_FOLDER / "results.csv"
 CONFIG_PATH = PROJECT_ROOT / RESULTS_FOLDER / "config.json"
@@ -54,11 +54,11 @@ def main():
 
     output_files = []
 
-    fig_all = create_risk_timeline_all_videos(data, "In-the-Wild Study", CONFIG_PATH)
-    output_files.append(save_html(fig_all, OUTPUT_PATH, 'risk_timeline_all_videos.html'))
+    fig_all = create_trust_timeline_all_videos(data, "In-the-Wild Study", CONFIG_PATH)
+    output_files.append(save_html(fig_all, OUTPUT_PATH, 'trust_timeline_all_videos.html'))
 
-    figs_devices = create_risk_timeline_by_device(data, DEVICES, "In-the-Wild Study", CONFIG_PATH)
-    output_files.append(save_html(figs_devices, OUTPUT_PATH, 'risk_timeline_by_device.html'))
+    figs_devices = create_trust_timeline_by_device(data, DEVICES, "In-the-Wild Study", CONFIG_PATH)
+    output_files.append(save_html(figs_devices, OUTPUT_PATH, 'trust_timeline_by_device.html'))
 
     fig_summary = create_summary_visualization(
         data,

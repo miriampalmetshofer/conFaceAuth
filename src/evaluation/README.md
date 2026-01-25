@@ -164,7 +164,7 @@ Required config section:
 ## Output Files
 
 ### Interactive HTML Visualizations
-- `risk_score_timeline.html` - Timeline with all videos (hover for details)
+- `trust_score_timeline.html` - Timeline with all videos (hover for details)
 - `device_comparison.html` - Device performance comparison (controlled only)
 - `device_breakdown.html` - Detailed device breakdown (controlled only)
 - `scenario_comparison.html` - Scenario comparison (controlled only)

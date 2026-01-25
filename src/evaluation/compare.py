@@ -11,11 +11,11 @@ from evaluation.common.reporting import print_section
 
 
 # Configure the two variants to compare
-VARIANT1_PATH = Path("data/in_the_wild/_results_archive/threshold_95")
-VARIANT2_PATH = Path("data/in_the_wild/_results_archive/threshold_1")
+VARIANT1_PATH = Path("data/controlled_study/_results_archive/threshold_1")
+VARIANT2_PATH = Path("data/controlled_study/_results_archive/bigger_window")
 
-VARIANT1_NAME = "threshold 0.95"
-VARIANT2_NAME = "threshold 1"
+VARIANT1_NAME = "threshold 1"
+VARIANT2_NAME = "bigger_window"
 
 
 def main():

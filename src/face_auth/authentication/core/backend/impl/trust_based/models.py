@@ -4,7 +4,7 @@ from face_auth.authentication.core.backend.authenticator_backend import Authenti
 
 
 @dataclass(frozen=True)
-class RiskBasedConfig:
+class TrustBasedConfig:
     """Configuration for windowed risk-based authentication."""
     threshold: float
     window_size: int
@@ -14,7 +14,7 @@ class RiskBasedConfig:
 
 
 @dataclass
-class RiskBasedState(AuthenticationState):
+class TrustBasedState(AuthenticationState):
     """State for risk-based authenticator."""
-    distance_window: list[float]
-    risk_score: float
+    similarity_window: list[float]
+    trust_score: float

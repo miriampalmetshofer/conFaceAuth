@@ -16,8 +16,8 @@ class AuthenticationStatus(Enum):
 class AuthenticationResult:
     """Pure authentication result from authenticator."""
     status: AuthenticationStatus
-    distance: Optional[float]
-    risk_score: float
+    similarity: Optional[float]
+    trust: float
     face_detected: bool
     bounding_box: Optional[BoundingBox] = None
 
@@ -34,8 +34,8 @@ class FrameAuthenticationResult:
         return {
             'frame': self.frame_index,
             'predicted_state': self.auth_result.status.value,
-            'distance': self.auth_result.distance,
-            'risk_score': self.auth_result.risk_score,
+            'similarity': self.auth_result.similarity,
+            'trust_score': self.auth_result.trust,
             'face_detected': self.auth_result.face_detected,
             'source_type': self.source_type
         }
@@ -44,5 +44,5 @@ class FrameAuthenticationResult:
 class AuthenticatorState:
     """Snapshot of authenticator state after processing genuine video."""
 
-    distance_window: list[float]
-    risk_score: float
+    similarity_window: list[float]
+    trust_score: float

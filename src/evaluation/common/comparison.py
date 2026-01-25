@@ -9,7 +9,7 @@ def format_metric_value(value: Optional[float], metric_type: str) -> str:
     if value is None:
         return "N/A"
 
-    if metric_type == 'risk_score':
+    if metric_type == 'trust_score':
         return f"{value:.4f}"
     elif metric_type == 'lockout':
         return f"{value:.1f}"
@@ -24,7 +24,7 @@ def calculate_diff(value1: Optional[float], value2: Optional[float], metric_type
 
     diff = value2 - value1
 
-    if metric_type == 'risk_score':
+    if metric_type == 'trust_score':
         return f"{diff:+.4f}"
     elif metric_type == 'lockout':
         return f"{diff:+.1f}"

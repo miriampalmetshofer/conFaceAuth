@@ -10,7 +10,7 @@ from face_auth.authentication.core.backend.authenticator_factory import (
     create_authenticator,
     AuthenticatorBackendType
 )
-from face_auth.authentication.core.backend.config_converter import convert_risk_based_config
+from face_auth.authentication.core.backend.config_converter import convert_trust_based_config
 from face_auth.authentication.embedder import Embedder
 from face_auth.imposter_video_creation.iterators.frame_iterator import FrameIterator
 from face_auth.processing import VideoProcessor
@@ -148,8 +148,8 @@ class VideoProcessingService:
         # Determine backend type and config
         backend_type = AuthenticatorBackendType(self.config.backend)
 
-        if backend_type == AuthenticatorBackendType.RISK_BASED:
-            backend_config = convert_risk_based_config(self.config.risk_based)
+        if backend_type == AuthenticatorBackendType.TRUST_BASED:
+            backend_config = convert_trust_based_config(self.config.trust_based)
         else:
             raise ValueError(f"Unsupported backend type: {backend_type}")
 

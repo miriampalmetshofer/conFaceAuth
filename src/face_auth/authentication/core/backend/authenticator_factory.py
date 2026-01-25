@@ -3,17 +3,17 @@ from enum import Enum
 import numpy as np
 
 from face_auth.authentication.core.backend.authenticator_backend import AuthenticatorBackend
-from face_auth.authentication.core.backend.impl.risk_based.models import RiskBasedConfig
+from face_auth.authentication.core.backend.impl.trust_based.models import TrustBasedConfig
 
 
 class AuthenticatorBackendType(Enum):
     """Available authenticator backend types."""
-    RISK_BASED = "risk_based"
+    TRUST_BASED = "trust_based"
 
 
 def create_authenticator(
     backend_type: AuthenticatorBackendType,
-    config: RiskBasedConfig,
+    config: TrustBasedConfig,
     enrollment_embeddings: list[np.ndarray]
 ) -> AuthenticatorBackend:
     """Create an authenticator backend based on type and configuration.
@@ -29,8 +29,8 @@ def create_authenticator(
     Raises:
         ValueError: If backend_type is not supported
     """
-    if backend_type == AuthenticatorBackendType.RISK_BASED:
-        from face_auth.authentication.core.backend.impl.risk_based.risk_based_authenticator import (
+    if backend_type == AuthenticatorBackendType.TRUST_BASED:
+        from face_auth.authentication.core.backend.impl.trust_based.trust_based_authenticator import (
             RiskBasedAuthenticator
         )
         return RiskBasedAuthenticator(config, enrollment_embeddings)

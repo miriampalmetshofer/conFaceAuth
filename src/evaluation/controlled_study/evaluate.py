@@ -9,22 +9,22 @@ from evaluation.common.metrics import (
 )
 from evaluation.common.reporting import print_section, print_metrics_by_device, print_metrics_by_scenario
 from evaluation.common.visualization import (
-    create_risk_timeline_all_videos,
-    create_risk_timeline_by_device,
+    create_trust_timeline_all_videos,
+    create_trust_timeline_by_device,
     create_summary_visualization,
     create_combined_metrics_tables,
     save_html,
     save_png
 )
 
-DEVICES = ['desktop']
+DEVICES = ['desktop', 'mobile']
 SCENARIOS = ['easy', 'angle', 'lighting']
 
 PROJECT_ROOT = Path(__file__).parent.parent.parent.parent
-RESULTS_FOLDER = "data/controlled_study/"
+RESULTS_FOLDER = "data/controlled_study/_results_archive"
 
-RESULTS_PATH = PROJECT_ROOT / RESULTS_FOLDER / "results.csv"
-CONFIG_PATH = PROJECT_ROOT / RESULTS_FOLDER / "config.json"
+RESULTS_PATH = PROJECT_ROOT / RESULTS_FOLDER / "bigger_window/results.csv"
+CONFIG_PATH = PROJECT_ROOT / RESULTS_FOLDER / "bigger_window/config.json"
 
 OUTPUT_PATH = PROJECT_ROOT / "src/evaluation/controlled_study/output"
 
@@ -47,11 +47,11 @@ def main():
 
     output_files = []
 
-    fig_all = create_risk_timeline_all_videos(data, "Controlled Study", CONFIG_PATH)
-    output_files.append(save_html(fig_all, OUTPUT_PATH, 'risk_timeline_all_videos.html'))
+    fig_all = create_trust_timeline_all_videos(data, "Controlled Study", CONFIG_PATH)
+    output_files.append(save_html(fig_all, OUTPUT_PATH, 'trust_timeline_all_videos.html'))
 
-    figs_devices = create_risk_timeline_by_device(data, DEVICES, "Controlled Study", CONFIG_PATH)
-    output_files.append(save_html(figs_devices, OUTPUT_PATH, 'risk_timeline_by_device.html'))
+    figs_devices = create_trust_timeline_by_device(data, DEVICES, "Controlled Study", CONFIG_PATH)
+    output_files.append(save_html(figs_devices, OUTPUT_PATH, 'trust_timeline_by_device.html'))
 
     fig_summary = create_summary_visualization(
         data,

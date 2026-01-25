@@ -27,7 +27,7 @@ class VideoCache:
         cached = self._cache.get(key)
 
         if cached:
-            logger.info(f"Cache HIT for {key.video_path.name} -  risk_score: {cached.authenticator_state.risk_score}, last_frame_index: {cached.last_frame_index}")
+            logger.info(f"Cache HIT for {key.video_path.name} -  trust_score: {cached.authenticator_state.trust_score}, last_frame_index: {cached.last_frame_index}")
         else:
             logger.debug(f"Cache MISS for {key.video_path.name}")
 
@@ -44,7 +44,7 @@ class VideoCache:
         logger.info(
             f"Caching results for {key.video_path.name}: "
             f"{len(value.frame_results)} frames, last_index={value.last_frame_index}, "
-            f"risk_score={value.authenticator_state.risk_score:.4f}"
+            f"trust_score={value.authenticator_state.trust_score:.4f}"
         )
 
     def clear(self) -> None:

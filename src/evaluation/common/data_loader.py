@@ -28,8 +28,8 @@ def load_evaluation_data(csv_path: Path, parse_scenario: bool = False) -> Evalua
         frames.append(FrameData(
             frame=row['frame'],
             predicted_state=row['predicted_state'],
-            distance=row['distance'],
-            risk_score=row['risk_score'],
+            similarity=row['similarity'] if 'similarity' in df.columns else row.get('distance', 0.0),
+            trust_score=row['trust_score'] if 'trust_score' in df.columns else row.get('risk_score', 0.0),
             face_detected=row['face_detected'],
             source_type=row['source_type'],
             participant=row['participant'],

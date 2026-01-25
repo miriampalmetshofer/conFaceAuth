@@ -13,8 +13,8 @@ logger = get_logger(__name__)
 class AuthenticatorState:
     """Snapshot of authenticator state after processing genuine video."""
 
-    distance_window: list[float]
-    risk_score: float
+    similarity_window: list[float]
+    trust_score: float
 
 
 class AuthenticatorStateCache:
@@ -52,7 +52,7 @@ class AuthenticatorStateCache:
         self._cache[genuine_video_path] = state
         logger.debug(
             f"Cached state for {genuine_video_path.name}: "
-            f"window_size={len(state.distance_window)}, risk_score={state.risk_score:.4f}"
+            f"window_size={len(state.similarity_window)}, trust_score={state.trust_score:.4f}"
         )
 
     def clear(self) -> None:

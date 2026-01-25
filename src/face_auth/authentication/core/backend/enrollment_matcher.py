@@ -9,7 +9,7 @@ logger = get_logger(__name__)
 
 
 class EnrollmentMatcher:
-    """Computes distances from query embeddings to enrollment set."""
+    """Computes similarities from query embeddings to enrollment set."""
 
     def __init__(
         self,
@@ -26,8 +26,8 @@ class EnrollmentMatcher:
         self._similarity_calculator = SimilarityCalculator()
         self._percentile_filter = PercentileFilter(similarity_percentile)
 
-    def compute_distance(self, embedding: np.ndarray) -> float:
-        """Compute average distance to closest enrollment embeddings.
+    def compute_similarity(self, embedding: np.ndarray) -> float:
+        """Compute average similarity to most similar enrollment embeddings.
 
         Uses percentile filtering to focus on most similar enrollment images.
 
@@ -35,14 +35,14 @@ class EnrollmentMatcher:
             embedding: Query embedding to compare
 
         Returns:
-            Average distance to closest enrollment embeddings
+            Average similarity to most similar enrollment embeddings
         """
-        distances = self._similarity_calculator.compute_distances_to_all(
+        similarities = self._similarity_calculator.compute_similarities_to_all(
             embedding, self._enrollment_embeddings
         )
-        logger.debug(f"Distances to enrollment embeddings: {distances}")
+        logger.debug(f"Similarities to enrollment embeddings: {similarities}")
 
-        avg_distance = self._percentile_filter.get_average_of_closest(distances)
-        logger.debug(f"Average distance to closest embeddings: {avg_distance:.4f}")
+        avg_similarity = self._percentile_filter.get_average_of_highest(similarities)
+        logger.debug(f"Average similarity to most similar embeddings: {avg_similarity:.4f}")
 
-        return avg_distance
+        return avg_similarity

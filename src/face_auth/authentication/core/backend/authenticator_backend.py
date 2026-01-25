@@ -44,8 +44,8 @@ class AuthenticatorBackend(ABC):
         pass
 
     @abstractmethod
-    def get_last_distance(self) -> float:
-        """Get the last computed distance value."""
+    def get_last_similarity(self) -> float:
+        """Get the last computed similarity value."""
         pass
 
     @abstractmethod

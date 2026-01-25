@@ -26,16 +26,16 @@
         "random_seed": 42
       }
     },
-    "num_workers": 5
+    "num_workers": 4
   },
   "authentication": {
-    "backend": "risk_based",
-    "risk_based": {
-      "threshold": 1,
-      "window_size": 5,
+    "backend": "trust_based",
+    "trust_based": {
+      "threshold": 0.6,
+      "window_size": 10,
       "similarity_percentile": 0.90,
       "alpha": 1.0,
-      "no_face_penalty": 1.5
+      "no_face_penalty": -0.5
     }
   },
   "enrollment": {

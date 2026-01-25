@@ -203,18 +203,35 @@ def _add_video_traces(fig: go.Figure, video_frames_dict: dict[str, list[FrameDat
     for video_path, frames in video_frames_dict.items():
         frames_sorted = sorted(frames, key=lambda f: f.frame)
 
+        # Prepare custom data for hover: similarity and face_detected
+        customdata = [
+            [
+                f"{f.similarity:.4f}" if f.similarity is not None else "N/A",
+                "Yes" if f.face_detected else "No"
+            ]
+            for f in frames_sorted
+        ]
+
         fig.add_trace(go.Scatter(
             x=[f.frame / fps for f in frames_sorted],
-            y=[f.risk_score for f in frames_sorted],
+            y=[f.trust_score for f in frames_sorted],
             mode='lines',
             name=Path(video_path).name,
-            hovertemplate='<b>%{fullData.name}</b><br>Time: %{x:.2f}s<br>Risk: %{y:.4f}<extra></extra>',
+            customdata=customdata,
+            hovertemplate=(
+                '<b>%{fullData.name}</b><br>'
+                'Time: %{x:.2f}s<br>'
+                'Trust: %{y:.4f}<br>'
+                'Similarity: %{customdata[0]}<br>'
+                'Face: %{customdata[1]}'
+                '<extra></extra>'
+            ),
             visible=True
         ))
 
 
-def create_risk_timeline_all_videos(data: EvaluationData, study_name: str, config_path: Optional[Path] = None) -> go.Figure:
-    """Create interactive risk score timeline showing all videos.
+def create_trust_timeline_all_videos(data: EvaluationData, study_name: str, config_path: Optional[Path] = None) -> go.Figure:
+    """Create interactive trust score timeline showing all videos.
 
     Args:
         data: Evaluation data containing frames and videos
@@ -252,9 +269,9 @@ def create_risk_timeline_all_videos(data: EvaluationData, study_name: str, confi
     )
 
     fig.update_layout(
-        title=f"{study_name} - Risk Score Timeline (All Videos)<br><sub>Device: All | Threshold: {data.threshold}</sub>",
+        title=f"{study_name} - Trust Score Timeline (All Videos)<br><sub>Device: All | Threshold: {data.threshold}</sub>",
         xaxis_title="Time (seconds)",
-        yaxis_title="Risk Score",
+        yaxis_title="Trust Score",
         hovermode='closest',
         height=600,
         margin=dict(t=100),
@@ -277,7 +294,7 @@ def create_risk_timeline_all_videos(data: EvaluationData, study_name: str, confi
     return fig
 
 
-def create_risk_timeline_by_device(data: EvaluationData, devices: list[str], study_name: str, config_path: Optional[Path] = None) -> list[go.Figure]:
+def create_trust_timeline_by_device(data: EvaluationData, devices: list[str], study_name: str, config_path: Optional[Path] = None) -> list[go.Figure]:
     if not config_path:
         raise ValueError("config_path is required to determine FPS for time axis")
 
@@ -318,7 +335,7 @@ def create_risk_timeline_by_device(data: EvaluationData, devices: list[str], stu
         fig.update_layout(
             title=f"{study_name} - {device.upper()}<br><sub>Threshold: {data.threshold}</sub>",
             xaxis_title="Time (seconds)",
-            yaxis_title="Risk Score",
+            yaxis_title="Trust Score",
             hovermode='closest',
             height=600,
             margin=dict(t=100),
@@ -343,20 +360,20 @@ def create_risk_timeline_by_device(data: EvaluationData, devices: list[str], stu
     return figures
 
 
-def plot_risk_distribution(ax: plt.Axes, data: EvaluationData) -> None:
-    """Plot risk score distribution histogram."""
+def plot_trust_distribution(ax: plt.Axes, data: EvaluationData) -> None:
+    """Plot trust score distribution histogram."""
     genuine_frames = [f for f in data.frames if f.segment_type == SegmentType.GENUINE]
     imposter_frames = [f for f in data.frames if f.segment_type == SegmentType.IMPOSTER]
 
-    genuine_risk = [f.risk_score for f in genuine_frames]
-    imposter_risk = [f.risk_score for f in imposter_frames]
+    genuine_trust = [f.trust_score for f in genuine_frames]
+    imposter_trust = [f.trust_score for f in imposter_frames]
 
-    ax.hist([genuine_risk, imposter_risk], bins=30, label=['Genuine', 'Imposter'],
+    ax.hist([genuine_trust, imposter_trust], bins=30, label=['Genuine', 'Imposter'],
             color=['green', 'red'], alpha=0.6, edgecolor='black')
     ax.axvline(data.threshold, color='black', linestyle='--', linewidth=2, label='Threshold')
-    ax.set_xlabel('Risk Score')
+    ax.set_xlabel('Trust Score')
     ax.set_ylabel('Frequency')
-    ax.set_title('Risk Score Distribution')
+    ax.set_title('Trust Score Distribution')
     ax.legend()
     ax.grid(axis='y', alpha=0.3)
 
@@ -418,7 +435,7 @@ def create_summary_visualization(data: EvaluationData, device_metrics: list[Devi
     gs = fig.add_gridspec(2, 3, hspace=0.3, wspace=0.3)
 
     ax1 = fig.add_subplot(gs[0, 0])
-    plot_risk_distribution(ax1, data)
+    plot_trust_distribution(ax1, data)
 
     ax2 = fig.add_subplot(gs[0, 1:])
     plot_error_rates_by_device(ax2, device_metrics)
@@ -484,16 +501,16 @@ def _add_distance_columns(
     rows: list[list[str]],
     frames: list[FrameData]
 ) -> None:
-    """Add average distance columns to device metrics table."""
-    columns.extend(['Avg Genuine Dist', 'Avg Imposter Dist'])
+    """Add average similarity columns to device metrics table."""
+    columns.extend(['Avg Genuine Sim', 'Avg Imposter Sim'])
 
     for i, dm in enumerate(device_metrics):
         device_frames = [f for f in frames if f.device == dm.device]
-        genuine_distances = [f.distance for f in device_frames if f.segment_type == SegmentType.GENUINE]
-        imposter_distances = [f.distance for f in device_frames if f.segment_type == SegmentType.IMPOSTER]
+        genuine_similarities = [f.similarity for f in device_frames if f.segment_type == SegmentType.GENUINE]
+        imposter_similarities = [f.similarity for f in device_frames if f.segment_type == SegmentType.IMPOSTER]
 
-        avg_genuine = np.mean(genuine_distances) if genuine_distances else 0
-        avg_imposter = np.mean(imposter_distances) if imposter_distances else 0
+        avg_genuine = np.mean(genuine_similarities) if genuine_similarities else 0
+        avg_imposter = np.mean(imposter_similarities) if imposter_similarities else 0
 
         rows[i].extend([f'{avg_genuine:.4f}', f'{avg_imposter:.4f}'])
 

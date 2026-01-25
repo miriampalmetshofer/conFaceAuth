@@ -60,14 +60,14 @@ class ResultWriter:
             "backend": backend
         }
 
-        if backend == "risk_based":
-            risk_config = auth_config.risk_based
+        if backend == "trust_based":
+            trust_config = auth_config.trust_based
             metadata.update({
-                "window_size": risk_config.window_size,
-                "threshold": risk_config.threshold,
-                "similarity_percentile": risk_config.similarity_percentile,
-                "no_face_penalty": risk_config.no_face_penalty,
-                "alpha": risk_config.alpha
+                "window_size": trust_config.window_size,
+                "threshold": trust_config.threshold,
+                "similarity_percentile": trust_config.similarity_percentile,
+                "no_face_penalty": trust_config.no_face_penalty,
+                "alpha": trust_config.alpha
             })
 
         return metadata

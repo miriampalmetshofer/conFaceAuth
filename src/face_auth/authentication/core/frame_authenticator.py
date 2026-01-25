@@ -49,8 +49,8 @@ class FrameAuthenticator:
 
         return AuthenticationResult(
             status=self._get_authentication_status(),
-            distance=None,
-            risk_score=self._authenticator.get_score(),
+            similarity=None,
+            trust=self._authenticator.get_score(),
             face_detected=False,
             bounding_box=None
         )
@@ -62,14 +62,14 @@ class FrameAuthenticator:
             embedding: Face embedding vector
 
         Returns:
-            AuthenticationResult with authentication status and risk score
+            AuthenticationResult with authentication status and trust score
         """
         self._authenticator.update_with_embedding(embedding, datetime.now())
 
         return AuthenticationResult(
             status=self._get_authentication_status(),
-            distance=self._authenticator.get_last_distance(),
-            risk_score=self._authenticator.get_score(),
+            similarity=self._authenticator.get_last_similarity(),
+            trust=self._authenticator.get_score(),
             face_detected=True,
             bounding_box=None
         )

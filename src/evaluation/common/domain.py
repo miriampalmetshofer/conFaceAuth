@@ -127,8 +127,8 @@ class FrameData:
     """Single frame data point."""
     frame: int
     predicted_state: str
-    distance: float
-    risk_score: float
+    similarity: float
+    trust_score: float
     face_detected: bool
     source_type: str
     participant: str
