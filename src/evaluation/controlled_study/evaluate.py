@@ -21,10 +21,10 @@ DEVICES = ['desktop', 'mobile']
 SCENARIOS = ['easy', 'angle', 'lighting']
 
 PROJECT_ROOT = Path(__file__).parent.parent.parent.parent
-RESULTS_FOLDER = "data/controlled_study/_results_archive"
+RESULTS_FOLDER = "data/controlled_study/"
 
-RESULTS_PATH = PROJECT_ROOT / RESULTS_FOLDER / "bigger_window/results.csv"
-CONFIG_PATH = PROJECT_ROOT / RESULTS_FOLDER / "bigger_window/config.json"
+RESULTS_PATH = PROJECT_ROOT / RESULTS_FOLDER / "results.csv"
+CONFIG_PATH = PROJECT_ROOT / RESULTS_FOLDER / "config.json"
 
 OUTPUT_PATH = PROJECT_ROOT / "src/evaluation/controlled_study/output"
 

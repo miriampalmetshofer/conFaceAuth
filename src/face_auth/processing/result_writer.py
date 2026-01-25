@@ -69,5 +69,14 @@ class ResultWriter:
                 "no_face_penalty": trust_config.no_face_penalty,
                 "alpha": trust_config.alpha
             })
+        elif backend == "temporal_decay":
+            temporal_config = auth_config.temporal_decay
+            metadata.update({
+                "threshold": temporal_config.threshold,
+                "similarity_percentile": temporal_config.similarity_percentile,
+                "k_weight": temporal_config.k_weight,
+                "k_decay": temporal_config.k_decay,
+                "initial_confidence": temporal_config.initial_confidence
+            })
 
         return metadata

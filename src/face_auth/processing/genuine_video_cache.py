@@ -27,11 +27,23 @@ class VideoCache:
         cached = self._cache.get(key)
 
         if cached:
-            logger.info(f"Cache HIT for {key.video_path.name} -  trust_score: {cached.authenticator_state.trust_score}, last_frame_index: {cached.last_frame_index}")
+            score = self._get_score(cached.authenticator_state)
+            logger.info(f"Cache HIT for {key.video_path.name} - score: {score}, last_frame_index: {cached.last_frame_index}")
         else:
             logger.debug(f"Cache MISS for {key.video_path.name}")
 
         return cached
+
+    def _get_score(self, state) -> str:
+        """Get score from state (handles different backend types)."""
+        if hasattr(state, 'trust_score'):
+            return f"{state.trust_score:.4f}"
+        elif hasattr(state, 'confidence_score'):
+            return f"{state.confidence_score:.4f}"
+        elif hasattr(state, 'risk_score'):
+            return f"{state.risk_score:.4f}"
+        else:
+            return "N/A"
 
     def save(self, key: CacheKey, value: CacheValue) -> None:
         """Save video processing results to cache.
@@ -41,10 +53,11 @@ class VideoCache:
             value: CacheValue containing frame results and authenticator state
         """
         self._cache[key] = value
+        score = self._get_score(value.authenticator_state)
         logger.info(
             f"Caching results for {key.video_path.name}: "
             f"{len(value.frame_results)} frames, last_index={value.last_frame_index}, "
-            f"trust_score={value.authenticator_state.trust_score:.4f}"
+            f"score={score}"
         )
 
     def clear(self) -> None:

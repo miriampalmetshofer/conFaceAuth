@@ -64,11 +64,23 @@ class TrustBasedConfigModel(BaseModel):
     model_config = ConfigDict(frozen=True)
 
 
+class TemporalDecayConfigModel(BaseModel):
+    """Configuration for temporal decay authentication using time-weighted confidence."""
+    threshold: float = Field(..., ge=-1.0, le=1.0)
+    similarity_percentile: float = Field(..., ge=0, le=100)
+    k_weight: float = Field(..., gt=0)
+    k_decay: float = Field(..., gt=0)
+    initial_confidence: float = Field(..., ge=-1.0, le=1.0)
+
+    model_config = ConfigDict(frozen=True)
+
+
 class AuthenticationConfig(BaseModel):
     """Authentication parameters configuration."""
 
     backend: str = Field(..., description="Authentication backend type")
     trust_based: Optional[TrustBasedConfigModel] = None
+    temporal_decay: Optional[TemporalDecayConfigModel] = None
 
     model_config = ConfigDict(frozen=True)
 
@@ -76,6 +88,8 @@ class AuthenticationConfig(BaseModel):
         """Validate that correct config is provided for selected backend."""
         if self.backend == "trust_based" and self.trust_based is None:
             raise ValueError("trust_based configuration required when backend='trust_based'")
+        if self.backend == "temporal_decay" and self.temporal_decay is None:
+            raise ValueError("temporal_decay configuration required when backend='temporal_decay'")
 
 
 class EnrollmentVideoPreference(BaseModel):

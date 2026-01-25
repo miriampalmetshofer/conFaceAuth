@@ -28,14 +28,14 @@
     },
     "num_workers": 4
   },
-  "authentication": {
-    "backend": "trust_based",
-    "trust_based": {
-      "threshold": 0.6,
-      "window_size": 10,
+ "authentication": {
+    "backend": "temporal_decay",
+    "temporal_decay": {
+      "threshold": 0.5,
       "similarity_percentile": 0.90,
-      "alpha": 1.0,
-      "no_face_penalty": -0.5
+      "k_weight": 1500,
+      "k_decay": 1000,
+      "initial_confidence": 1
     }
   },
   "enrollment": {

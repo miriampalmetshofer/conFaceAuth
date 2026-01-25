@@ -1,0 +1,1 @@
+"""Temporal decay authentication backend."""
