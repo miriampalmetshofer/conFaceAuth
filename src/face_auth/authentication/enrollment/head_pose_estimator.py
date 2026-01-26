@@ -24,7 +24,7 @@ FACE_MODEL_POINTS = np.array([
 class HeadPoseEstimator:
     """Estimates head pose angles from facial landmarks using MediaPipe."""
 
-    def __init__(self, model_path: str = "src/face_auth/core/enrollment/face_landmarker.task"):
+    def __init__(self, model_path: str = "src/face_auth/authentication/enrollment/face_landmarker.task"):
         """Initialize head pose estimator with MediaPipe FaceLandmarker (Tasks API)."""
         BaseOptions = mp.tasks.BaseOptions
         FaceLandmarker = mp.tasks.vision.FaceLandmarker
