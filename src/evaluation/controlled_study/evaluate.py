@@ -38,9 +38,9 @@ def main():
     data = load_evaluation_data(RESULTS_PATH, parse_scenario=True)
     print(f"Loaded {len(data.frames)} frames from {len(data.videos)} videos")
 
-    device_metrics = calculate_metrics_by_device(data.frames, DEVICES)
-    scenario_metrics = calculate_metrics_by_scenario(data.frames, SCENARIOS)
-    scenario_device_metrics = calculate_metrics_by_scenario_and_device(data.frames, SCENARIOS, DEVICES)
+    device_metrics = calculate_metrics_by_device(data.frames, DEVICES, data.fps)
+    scenario_metrics = calculate_metrics_by_scenario(data.frames, SCENARIOS, data.fps)
+    scenario_device_metrics = calculate_metrics_by_scenario_and_device(data.frames, SCENARIOS, DEVICES, data.fps)
 
     print_metrics_by_device(device_metrics)
     print_metrics_by_scenario(scenario_metrics)

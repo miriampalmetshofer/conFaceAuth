@@ -71,7 +71,7 @@ def print_device_comparison(device_metrics1: list[DeviceMetrics], device_metrics
         ('TRR (%)', 'true_reject_rate', 'percentage', False),
         ('FAR (%)', 'false_accept_rate', 'percentage', True),
         ('EER (%)', 'equal_error_rate', 'percentage', True),
-        ('Lockout (f)', 'imposter_lockout_time', 'lockout', False)
+        ('Lockout (s)', 'imposter_lockout_time', 'lockout', False)
     ]
 
     for device in devices:
@@ -95,13 +95,14 @@ def print_scenario_comparison(scenario_metrics1: list[ScenarioMetrics], scenario
     print(f"\n{'Metric':<20} {'Scenario':<10} {variant1_name:<20} {variant2_name:<20} {'Diff':<15}")
     print("-" * 90)
 
+    # m
     metric_configs = [
         ('TAR (%)', 'true_accept_rate', 'percentage', False),
         ('FRR (%)', 'false_reject_rate', 'percentage', True),
         ('TRR (%)', 'true_reject_rate', 'percentage', False),
         ('FAR (%)', 'false_accept_rate', 'percentage', True),
         ('EER (%)', 'equal_error_rate', 'percentage', True),
-        ('Lockout (f)', 'imposter_lockout_time', 'lockout', False)
+        ('Lockout (s)', 'imposter_lockout_time', 'lockout', True)
     ]
 
     for scenario in scenarios:

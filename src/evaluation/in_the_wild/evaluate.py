@@ -18,10 +18,10 @@ from evaluation.in_the_wild.annotation_validator import (
 )
 
 
-DEVICES = ['mobile', 'desktop']
+DEVICES = ['mobile']
 
 PROJECT_ROOT = Path(__file__).parent.parent.parent.parent
-RESULTS_FOLDER = "data/controlled_study/_results_archive/threshold_1"
+RESULTS_FOLDER = "data/in_the_wild/_results_archive/very_loose"
 
 RESULTS_PATH = PROJECT_ROOT / RESULTS_FOLDER / "results.csv"
 CONFIG_PATH = PROJECT_ROOT / RESULTS_FOLDER / "config.json"
@@ -48,7 +48,7 @@ def main():
     data = load_evaluation_data(RESULTS_PATH, parse_scenario=False)
     print(f"\nLoaded {len(data.frames)} frames from {len(data.videos)} videos")
 
-    device_metrics = calculate_metrics_by_device(data.frames, DEVICES)
+    device_metrics = calculate_metrics_by_device(data.frames, DEVICES, data.fps)
 
     print_metrics_by_device(device_metrics)
 

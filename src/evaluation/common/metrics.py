@@ -14,7 +14,7 @@ from evaluation.common.domain import (
 )
 
 
-def calculate_metrics(frames: list[FrameData]) -> AuthenticationMetrics:
+def calculate_metrics(frames: list[FrameData], fps: int) -> AuthenticationMetrics:
     """Calculate authentication metrics from frames."""
     genuine_frames = [f for f in frames if f.segment_type == SegmentType.GENUINE]
     imposter_frames = [f for f in frames if f.segment_type == SegmentType.IMPOSTER]
@@ -34,7 +34,7 @@ def calculate_metrics(frames: list[FrameData]) -> AuthenticationMetrics:
     eer = (far + frr) / 2
 
     all_frames = genuine_frames + imposter_frames
-    lockout_time = calculate_imposter_lockout_time(frames)
+    lockout_time = calculate_imposter_lockout_time(frames, fps)
 
     counts = FrameCounts(
         total_frames=len(all_frames),
@@ -53,8 +53,8 @@ def calculate_metrics(frames: list[FrameData]) -> AuthenticationMetrics:
     )
 
 
-def calculate_imposter_lockout_time(frames: list[FrameData]) -> Optional[float]:
-    """Calculate mean time until imposter is locked out per video."""
+def calculate_imposter_lockout_time(frames: list[FrameData], fps: int) -> Optional[float]:
+    """Calculate mean time until imposter is locked out per video in seconds."""
     videos = {}
     for frame in frames:
         if frame.video_path not in videos:
@@ -62,6 +62,8 @@ def calculate_imposter_lockout_time(frames: list[FrameData]) -> Optional[float]:
         videos[frame.video_path].append(frame)
 
     lockout_times = []
+    never_locked_out = []
+
     for video_path, video_frames in videos.items():
         video_frames.sort(key=lambda f: f.frame)
 
@@ -80,34 +82,46 @@ def calculate_imposter_lockout_time(frames: list[FrameData]) -> Optional[float]:
             continue
 
         # Look for transition from Unlocked to Locked
+        found_lockout = False
         for i in range(first_imposter_idx, len(video_frames) - 1):
             if (video_frames[i].predicted_state == 'Unlocked' and
                 video_frames[i + 1].predicted_state == 'Locked'):
                 lockout_frames = video_frames[i + 1].frame - video_frames[first_imposter_idx].frame
-                lockout_times.append(lockout_frames)
+                lockout_seconds = lockout_frames / fps
+                lockout_times.append(lockout_seconds)
+                found_lockout = True
                 break
+
+        if not found_lockout:
+            never_locked_out.append(video_path)
+
+    if never_locked_out:
+        print(f"\n⚠️  WARNING: {len(never_locked_out)} video(s) where imposter was NEVER locked out:")
+        for vp in never_locked_out:
+            print(f"    - {vp}")
+        print()
 
     return np.mean(lockout_times) if lockout_times else None
 
 
-def calculate_metrics_by_device(frames: list[FrameData], devices: list[str]) -> list[DeviceMetrics]:
+def calculate_metrics_by_device(frames: list[FrameData], devices: list[str], fps: int) -> list[DeviceMetrics]:
     """Calculate metrics grouped by device."""
     device_metrics = []
     for device in devices:
         device_frames = [f for f in frames if f.device == device]
         if device_frames:
-            metrics = calculate_metrics(device_frames)
+            metrics = calculate_metrics(device_frames, fps)
             device_metrics.append(DeviceMetrics(device=device, metrics=metrics))
     return device_metrics
 
 
-def calculate_metrics_by_scenario(frames: list[FrameData], scenarios: list[str]) -> list[ScenarioMetrics]:
+def calculate_metrics_by_scenario(frames: list[FrameData], scenarios: list[str], fps: int) -> list[ScenarioMetrics]:
     """Calculate metrics grouped by scenario."""
     scenario_metrics = []
     for scenario in scenarios:
         scenario_frames = [f for f in frames if get_frame_scenario(f, scenarios) == scenario]
         if scenario_frames:
-            metrics = calculate_metrics(scenario_frames)
+            metrics = calculate_metrics(scenario_frames, fps)
             scenario_metrics.append(ScenarioMetrics(scenario=scenario, metrics=metrics))
     return scenario_metrics
 
@@ -123,7 +137,8 @@ def get_frame_scenario(frame: FrameData, scenarios: list[str]) -> Optional[str]:
 def calculate_metrics_by_scenario_and_device(
     frames: list[FrameData],
     scenarios: list[str],
-    devices: list[str]
+    devices: list[str],
+    fps: int
 ) -> list[ScenarioDeviceMetrics]:
     """Calculate metrics grouped by scenario and device combination."""
     scenario_device_metrics = []
@@ -134,7 +149,7 @@ def calculate_metrics_by_scenario_and_device(
                 if get_frame_scenario(f, scenarios) == scenario and f.device == device
             ]
             if filtered_frames:
-                metrics = calculate_metrics(filtered_frames)
+                metrics = calculate_metrics(filtered_frames, fps)
                 scenario_device_metrics.append(
                     ScenarioDeviceMetrics(scenario=scenario, device=device, metrics=metrics)
                 )

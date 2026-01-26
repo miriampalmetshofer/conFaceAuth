@@ -79,7 +79,7 @@ class AuthenticationMetrics:
         ),
         MetricDefinition(
             "imposter_lockout_time",
-            "Lockout (frames)",
+            "Lockout (s)",
             "Lockout",
             format_spec=".1f",
             include_in_plots=False
@@ -143,6 +143,8 @@ class EvaluationData:
     frames: list[FrameData]
     threshold: float
     videos: list[VideoMetadata]
+    skip_frames: int
+    fps: int
 
 
 @dataclass

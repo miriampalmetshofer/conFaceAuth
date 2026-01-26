@@ -1,5 +1,6 @@
 """Data loading and parsing utilities."""
 import re
+import json
 from pathlib import Path
 from typing import Optional
 
@@ -17,6 +18,12 @@ def load_evaluation_data(csv_path: Path, parse_scenario: bool = False) -> Evalua
     """Load CSV and convert to domain objects."""
     df = pd.read_csv(csv_path)
     threshold = df['threshold'].iloc[0]
+    skip_frames = int(df['skip_frames'].iloc[0])
+
+    config_path = csv_path.parent / "config.json"
+    with open(config_path, 'r') as f:
+        config = json.load(f)
+    fps = config['imposter_creation']['fps']
 
     videos = extract_video_metadata(df, parse_scenario)
     frames = []
@@ -38,7 +45,7 @@ def load_evaluation_data(csv_path: Path, parse_scenario: bool = False) -> Evalua
             segment_type=segment_type
         ))
 
-    return EvaluationData(frames=frames, threshold=threshold, videos=videos)
+    return EvaluationData(frames=frames, threshold=threshold, videos=videos, skip_frames=skip_frames, fps=fps)
 
 
 def extract_video_metadata(df: pd.DataFrame, parse_scenario: bool) -> list[VideoMetadata]:

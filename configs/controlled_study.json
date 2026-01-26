@@ -31,8 +31,8 @@
     "temporal_decay": {
       "threshold": 0.5,
       "similarity_percentile": 0.90,
-      "k_weight": 1500,
-      "k_decay": 1000,
+      "k_weight": 5000,
+      "k_decay": 10000,
       "initial_confidence": 1
     }
   },

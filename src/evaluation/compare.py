@@ -8,14 +8,14 @@ from evaluation.common.metrics import calculate_metrics_by_device, calculate_met
 from evaluation.common.comparison import print_device_comparison, print_scenario_comparison
 from evaluation.common.reporting import print_section
 
-
+STUDY = 'in_the_wild'
 
 # Configure the two variants to compare
-VARIANT1_PATH = Path("data/controlled_study/_results_archive/altenhofer")
-VARIANT2_PATH = Path("data/controlled_study/_results_archive/altenhofer_tolerant")
+VARIANT1_PATH = Path("data/" + STUDY + "/_results_archive/less_decay_less_weight")
+VARIANT2_PATH = Path("data/" + STUDY + "/_results_archive/very_loose")
 
-VARIANT1_NAME = "altenhofer"
-VARIANT2_NAME = "altenhofer tolerant"
+VARIANT1_NAME = "less_decay_less_weight"
+VARIANT2_NAME = "very_loose"
 
 
 def main():
@@ -44,16 +44,16 @@ def main():
     devices = _get_unique_devices(data1)
 
     print("\nCalculating metrics...")
-    device_metrics1 = calculate_metrics_by_device(data1.frames, devices)
-    device_metrics2 = calculate_metrics_by_device(data2.frames, devices)
+    device_metrics1 = calculate_metrics_by_device(data1.frames, devices, data1.fps)
+    device_metrics2 = calculate_metrics_by_device(data2.frames, devices, data2.fps)
 
     print_section("DEVICE METRICS COMPARISON")
     print_device_comparison(device_metrics1, device_metrics2, VARIANT1_NAME, VARIANT2_NAME, devices)
 
     if has_scenarios:
         scenarios = _get_unique_scenarios(data1)
-        scenario_metrics1 = calculate_metrics_by_scenario(data1.frames, scenarios)
-        scenario_metrics2 = calculate_metrics_by_scenario(data2.frames, scenarios)
+        scenario_metrics1 = calculate_metrics_by_scenario(data1.frames, scenarios, data1.fps)
+        scenario_metrics2 = calculate_metrics_by_scenario(data2.frames, scenarios, data2.fps)
 
         print_section("SCENARIO METRICS COMPARISON")
         print_scenario_comparison(scenario_metrics1, scenario_metrics2, VARIANT1_NAME, VARIANT2_NAME, scenarios)
