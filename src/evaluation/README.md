@@ -1,6 +1,6 @@
 # Evaluation Module
 
-This module provides a unified framework for evaluating face authentication system performance across different study types (controlled and in-the-wild).
+This module provides scripts for evaluating face authentication system performance.
 
 ## Architecture
 
