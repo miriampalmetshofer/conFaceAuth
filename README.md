@@ -24,11 +24,13 @@ data/
 │       └── [participant_name]/
 │           ├── [name]_enrollment_*.mp4         # Enrollment video
 │           └── [enrollment_video_name]/        # Subfolder for processed images
-│               └── *.jpg
+│               └── *.jpg     
+│               
 ├── in_the_wild/                    # Mobile-only videos
 │   ├── videos/mobile/
 │   │   └── [name]_[timestamp].mp4
 │   └── results.csv
+│ 
 ├── controlled_study/               # Mobile + desktop videos
 │   ├── videos/
 │   │   ├── mobile/
@@ -37,18 +39,8 @@ data/
 │   │       └── [name]_[mode]_[timestamp].mp4
 │   └── results.csv
 └── annotations/                    # For evaluation
-    ├── in_the_wild_annotations.csv
-    └── controlled_study_annotations.csv
+    |__*.json
 ```
-
-### Key Structure Details
-
-- **Enrollments are organized by device**: Each device (mobile/desktop) has its own enrollment folder hierarchy
-- **Device-specific enrollment videos**: Each participant can have different enrollment videos for mobile and desktop
-- **Processed images in subfolders**: Enrollment images are stored in a subfolder named after the enrollment video (without extension)
-- **Multiple enrollments supported**: Each enrollment video gets its own subfolder for processed images
-- **Shared across pools**: Enrollments can be used by both in_the_wild and controlled_study pools
-- **Results per pool**: Each pool generates its own `results.csv` file
 
 ## Quick Start Guide
 
@@ -97,7 +89,7 @@ These models download automatically on first use:
 - Size: ~92 MB total
 
 
-#### Manual Downloads (Required)
+#### Manual Downloads (REQUIRED)
 
 **1. MediaPipe FaceLandmarker** (for head pose estimation during enrollment)
 ```bash
@@ -105,7 +97,7 @@ curl -L -o src/face_auth/core/enrollment/face_landmarker.task \
   https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task
 ```
 - Size: 3.6 MB
-- Location: `src/face_auth/core/enrollment/face_landmarker.task`
+- Location: `face_auth/authentication/enrollment/face_landmarker.task`
 - Used by: HeadPoseEstimator for enrollment video processing
 
 **2. MediaPipe BlazeFace** (for face detection)
@@ -119,90 +111,155 @@ curl -L -o src/face_auth/core/detection/backend/impl/blaze_face_short_range.tfli
 
 ### Quick Testing with live.py
 
-For quick testing, use `live.py`. This script will:
+For quick testing with real-time webcam authentication, use `live.py`. This script will:
 - Access your webcam
 - Perform real-time face authentication
-- Display the authentication results on screen
+- Display authentication results with visual feedback on screen
 
-#### Setting Up Enrollment Data for Quick Testing
-
-Before running live.py, create a folder with images of yourself:
-
-1. Create a folder to store your enrollment images (e.g., `data/my_enrollment`)
-2. Take several photos of yourself using your webcam
-3. Update the `enrollment_folder` path in `src/live_config.json`:
-
-```json
-"enrollment": {
-  "enrollment_folder": "../data/my_enrollment"
-}
-```
-
-### Batch Processing with main.py
-
-The processing pipeline now focuses solely on computing trust scores without comparing to annotations. Evaluation against ground truth happens separately.
+The script needs an enrollment video. This should be you recording yourself looking at the camera and turning your head up, down and sideways for about 15 seconds. Add the path to the enrollment video in the configuration file described below.
 
 #### Configuration
 
-Two configuration files are available:
+Before running, you must configure `live_config.json` in the project root. Here's what each field means:
 
-1. **`controlled_study_config.json`** - For controlled study pool (mobile + desktop)
-2. **`in_the_wild_config.json`** - For in-the-wild pool (mobile only)
+```json
+{
+  "enrollment_video": "data/enrollments/mobile/your_name/your_enrollment_video.mp4",
+  "camera_index": 0,
+  "fps": 30,
+  "embedder": {
+    "model": "insightface",
+    "config": {
+      "model_name": "buffalo_sc",
+      "det_size": [640, 640]
+    }
+  },
+  "temporal_decay": {
+    "threshold": 0.5,
+    "similarity_percentile": 0.90,
+    "k_weight": 40000,
+    "k_decay": 30000,
+    "initial_confidence": 1.0
+  },
+  "enrollment": {
+    "frame_sampling_interval": 30
+  }
+}
+```
+
+**Configuration Fields:**
+- `enrollment_video`: Path to your enrollment video (must already exist, see batch processing for creating enrollments)
+- `camera_index`: Camera device number (0 for default webcam, 1 for external camera, etc.)
+- `fps`: Target frames per second for authentication updates
+- `embedder.model`: Embedding model to use (`"insightface"` or `"facenet"`)
+- `embedder.config.model_name`: Specific model variant (e.g., `"buffalo_sc"` for compact, `"buffalo_l"` for accuracy)
+- `temporal_decay.threshold`: Trust score threshold (0.0-1.0) - user is locked when score drops below this
+- `temporal_decay.k_weight`: Time constant weighting new observations (higher = longer memory)
+- `temporal_decay.k_decay`: Time constant for confidence decay when no face detected
+- `temporal_decay.initial_confidence`: Starting confidence score (typically 1.0)
+- `enrollment.frame_sampling_interval`: Process every Nth frame from enrollment video
+
+#### Running Live Authentication
+
+```bash
+python src/live.py
+```
+
+Press 'q' to quit the live authentication window.
+
+### Batch Processing with main.py
+
+The batch processing pipeline computes frame-by-frame authentication results (trust scores and lock/unlock states) for all participant videos in a study pool. Results are saved to CSV for later evaluation.
+
+#### Configuration Files
+
+Two configuration files are provided in `configs/`:
+
+1. **`controlled_study.json`** - For controlled study pool (mobile + desktop videos)
+2. **`in_the_wild.json`** - For in-the-wild pool (mobile-only videos)
 
 Example configuration structure:
 ```json
 {
   "pool": "controlled_study",
-  "base_path": "../data/controlled_study",
-  "enrollment_base_path": "../data/enrollments",
+  "devices": ["desktop", "mobile"],
+  "paths": {
+    "base_path": "data/controlled_study",
+    "enrollment_base_path": "data/enrollments",
+    "results_file": "{base_path}/results.csv"
+  },
+  "models": {
+    "detector": "mediapipe",
+    "embedder": {
+      "model": "insightface",
+      "config": {
+        "min_detection_confidence": 0.6
+      }
+    }
+  },
+  "processing": {
+    "skip_frames": 30,
+    "matching_strategy": {
+      "type": "scenario",
+      "config": {}
+    },
+    "num_workers": 4
+  },
+  "authentication": {
+    "backend": "trust_based",
+    "trust_based": {
+      "threshold": 0.65,
+      "window_size": 10,
+      "similarity_percentile": 0.90,
+      "alpha": 0.3,
+      "no_face_penalty": 0.5
+    },
+    "fps": 30
+  },
+  "enrollment": {
+    "enrollment_video_preference": {
+      "scenario": "easy",
+      "rotations": ["cw", "ccw"]
+    },
+    "frames_per_direction": 5,
+    "frame_sampling_interval": 5
+  },
+  "imposter_creation": {
+    "fps": 30,
+    "genuine_user_seconds": 180,
+    "black_screen_seconds": 3,
+    "impostor_seconds": 180
+  },
   "participants": [
     {"name": "participant1"},
     {"name": "participant2"}
-  ],
-  "devices": ["mobile", "desktop"],
-  "skip_frames": 30,
-  "window_size": 5,
-  "threshold": 0.8,
-  "embedder": "FaceNet",
-  "detector": "MTCNN",
-  "similarity_computation": 0.1,
-  "enrollment_frames_per_direction": 5,
-  "no_face_penalty": 1.0,
-  "alpha": 1.0
+  ]
 }
 ```
 
-**Note:** The pipeline automatically discovers all videos for each participant based on the naming conventions above. You don't need to specify individual video files or sessions.
+**Key Configuration Fields:**
 
-**File Naming Conventions:**
+- `pool`: Study pool identifier (`"controlled_study"` or `"in_the_wild"`)
+- `devices`: List of devices to process (`["mobile"]` or `["mobile", "desktop"]`)
+- `paths.base_path`: Directory containing study videos
+- `paths.enrollment_base_path`: Directory containing enrollment data
+- `paths.results_file`: Output CSV path (supports `{base_path}` placeholder)
+- `models.detector`: Face detector (`"mediapipe"`, `"mtcnn"`, or `"insightface"`)
+- `models.embedder.model`: Embedding model (`"insightface"` or `"facenet"`)
+- `models.embedder.config`: Model-specific configuration (e.g., detection confidence threshold)
+- `processing.skip_frames`: Process every Nth frame (30 = 1 frame per second at 30 FPS)
+- `processing.matching_strategy.type`: Video pairing strategy (`"scenario"` matches same scenarios)
+- `processing.num_workers`: Number of parallel processing workers. Set to 1 for debugging.
+- `authentication.backend`: Authentication algorithm (`"trust_based"` or `"temporal_decay"`)
+- `authentication.fps`: Video frame rate
+- `enrollment.frames_per_direction`: How many frames to extract per head rotation direction
+- `imposter_creation.genuine_user_seconds`: Duration of genuine user footage in composed videos
+- `imposter_creation.impostor_seconds`: Duration of imposter footage in composed videos
+- `participants`: List of participants to process
 
-The pipeline automatically discovers videos based on these naming patterns:
-
-1. **Enrollment videos** (in `data/enrollments/{device}/{participant_name}/`):
-   - Pattern: `{name}_enrollment_{mode}_{rotation}_{timestamp}.mp4`
-   - Mobile example: `miriam_enrollment_easy_cw_2025-10-31_11-16-15.MP4`
-   - Desktop example: `miriam_enrollment_easy_cw_2025-10-31_08-01-23.mp4`
-
-2. **Controlled study videos** (in `data/controlled_study/videos/{device}/`):
-   - Pattern: `{name}_{mode}_{timestamp}.mp4`
-   - Example: `miriam_easy_2025-10-31_08-01-47.mp4`
-   - The `mode` field (e.g., "easy", "hard") is included in the filename
-
-3. **In the wild videos** (in `data/in_the_wild/videos/mobile/`):
-   - Pattern: `{name}_{timestamp}.mp4`
-   - Example: `miriam_2025-10-29_11-20-10.mp4`
-   - No mode field in the filename
-
-4. **Processed enrollment images** (generated automatically):
-   - Path: `data/enrollments/{device}/{participant_name}/{enrollment_video_name}/*.jpg`
-   - Stored in a subfolder named after the enrollment video (without extension)
-   - Example: `data/enrollments/mobile/miriam/miriam_enrollment_easy_cw_2025-10-31_11-16-15/*.jpg`
-
-The pipeline will process all videos matching these patterns for each configured participant.
+**Note:** Individual models can be configured by changing the `models.detector` and `models.embedder.model` fields. See the "Model Sizes" section below for available options.
 
 #### Running the Pipeline
-
-You can run the pipeline in two ways:
 
 1. **Interactive mode** (will prompt you to choose a config):
 ```bash
@@ -210,68 +267,35 @@ cd src
 python main.py
 ```
 
-2. **Command line with config file**:
-```bash
-cd src
-python main.py controlled_study_config.json
-# or
-python main.py in_the_wild_config.json
-```
 
 #### Output CSV Format
 
-The pipeline outputs a CSV file with the following columns:
-- `frame` - Frame number
-- `predicted_state` - "Unlocked" or "Locked" (determined by risk_score)
-- `distance` - Distance metric between embedding and enrollment
-- `risk_score` - Computed trust/risk score
+The pipeline outputs a CSV file (`results.csv`) with the following columns:
+- `frame` - Frame number within the video
+- `predicted_state` - Authentication state: "Unlocked" or "Locked"
+- `similarity` - Cosine similarity to enrollment embeddings (0.0-1.0, higher = more similar)
+- `trust_score` - Computed trust/confidence score (0.0-1.0)
 - `face_detected` - Boolean indicating whether a face was detected in the frame
-- `video_path` - Path to the processed video
-- Configuration parameters (for reproducibility)
-
-## Video Orientation Handling
-
-The pipeline automatically handles video rotation using metadata-based detection:
-
-- **Automatic Detection**: Uses `ffprobe` to read rotation metadata from video files
-- **All Angles Supported**: Handles 0°, 90°, 180°, and 270° rotations
-- **Consistent Processing**: Same rotation is applied to enrollment and authentication videos
-- **No Manual Configuration**: No need to specify device type or manually rotate videos
-
-**How it works:**
-1. When processing starts, the system reads rotation metadata from the video file
-2. Every frame is automatically rotated to the correct orientation
-3. Frames are processed and saved already corrected
-4. Works for both enrollment videos and authentication videos
-
-**Fallback**: If `ffprobe` is not installed or rotation metadata is unavailable, videos are processed as-is (0° rotation assumed).
+- `source_type` - Video segment type (e.g., "genuine", "imposter", "black_screen")
+- `video_path` - Path to the processed video file
+- `participant` - Participant name
+- `device` - Device used for recording (mobile/desktop)
+- `scenario` - Recording scenario (controlled study only, e.g., "easy", "angle", "lighting")
 
 ## Evaluation
 
-Annotations are stored separately in `data/annotations/` and should be used in subsequent evaluation scripts to compare predicted states against ground truth. This separation allows the processing pipeline to focus on prediction while keeping evaluation as a distinct step.
+For detailed evaluation instructions, see [src/evaluation/README.md](src/evaluation/README.md).
 
-## Project Structure
+The evaluation module analyzes authentication results from `results.csv` and generates:
+- Interactive HTML timelines showing trust scores over time
+- Summary visualizations with key performance metrics
+- Detailed metrics tables broken down by device and scenario
 
-- `src/` - Source code directory
-  - `face_auth/` - Core authentication components
-  - `analysis/` - Jupyter notebooks for analysis
-  - `live.py` - Script for live webcam authentication
-  - `main.py` - Script for batch processing
-  - `live_config.json` - Configuration for live mode
-  - `controlled_study_config.json` - Configuration for controlled study pool
-  - `in_the_wild_config.json` - Configuration for in-the-wild pool
-- `data/` - Directory for storing data
-  - `in_the_wild/` - In-the-wild video pool (mobile only)
-  - `controlled_study/` - Controlled study pool (mobile + desktop)
-  - `annotations/` - Ground truth annotations (for evaluation)
-  - `_archive/` - Archived data from previous structure
-
-
-## Sizes
+## Model Sizes
  Face Detection:
 
-  - MTCNN: ~2.2 MB (very lightweight!)
-  - MediaPipe BlazeFace: ~2-3 MB (embedded in package)
+  - MTCNN: ~2.2 MB 
+  - MediaPipe BlazeFace: ~2-3 MB
   - InsightFace RetinaFace (det_10g): 16 MB
 
   Face Recognition (Embeddings):
