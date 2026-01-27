@@ -1,7 +1,8 @@
 """Frame iterators for composing video streams without physical file creation."""
 
 from abc import ABC, abstractmethod
-from typing import Iterator
+from pathlib import Path
+from typing import Iterator, Optional
 import numpy as np
 from face_auth.config.logging_config import get_logger
 
@@ -24,5 +25,11 @@ class FrameIterator(ABC):
     @abstractmethod
     def get_source_name(self) -> str:
         """Return name of the source (for debugging/logging)."""
+        pass
+
+    @property
+    @abstractmethod
+    def video_path(self) -> Optional[Path]:
+        """Return the video path if this iterator reads from a file, None otherwise."""
         pass
 

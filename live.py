@@ -12,8 +12,6 @@ if src_path.exists():
 
 import json
 import cv2
-import numpy as np
-from datetime import datetime
 import logging
 import argparse
 
@@ -31,34 +29,6 @@ logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
-
-
-def list_available_cameras(max_cameras=10):
-    """List available camera devices and their indices."""
-    logger.info("Scanning for available cameras...")
-    available_cameras = []
-
-    for i in range(max_cameras):
-        cap = cv2.VideoCapture(i)
-        if cap.isOpened():
-            ret, frame = cap.read()
-            if ret:
-                # Get camera properties
-                width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
-                height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
-                backend = cap.getBackendName()
-                available_cameras.append({
-                    'index': i,
-                    'resolution': f"{width}x{height}",
-                    'backend': backend
-                })
-                logger.info(f"Camera {i}: {width}x{height} (backend: {backend})")
-            cap.release()
-
-    if not available_cameras:
-        logger.warning("No cameras found!")
-
-    return available_cameras
 
 
 class LiveFaceAuth:
@@ -166,7 +136,8 @@ class LiveFaceAuth:
             self.enrollment_embeddings
         )
 
-        self.authenticator = FrameAuthenticator(self.embedder, authenticator_backend)
+        fps = self.config.get("fps")
+        self.authenticator = FrameAuthenticator(self.embedder, authenticator_backend, fps, use_wall_clock_time=True)
         logger.info("Authenticator initialized")
 
     def run_live_authentication(self):
@@ -174,17 +145,13 @@ class LiveFaceAuth:
         if self.authenticator is None:
             raise RuntimeError("Must process enrollment video first!")
 
-        # List available cameras
-        available_cameras = list_available_cameras()
-
-        camera_index = self.config.get("camera_index", 0)
+        camera_index = self.config.get("camera_index")
         logger.info(f"Attempting to open camera {camera_index}...")
 
         cap = cv2.VideoCapture(camera_index)
         if not cap.isOpened():
             error_msg = (
                 f"Could not open camera {camera_index}!\n"
-                f"Available cameras: {[c['index'] for c in available_cameras]}\n"
                 f"Update 'camera_index' in live_config.json to use a different camera."
             )
             raise IOError(error_msg)
@@ -197,6 +164,7 @@ class LiveFaceAuth:
 
         logger.info("Starting live authentication. Press 'q' to quit.")
 
+        frame_index = 1
         try:
             while True:
                 ret, frame = cap.read()
@@ -208,7 +176,8 @@ class LiveFaceAuth:
                 frame = cv2.flip(frame, 1)
 
                 # Authenticate frame
-                auth_result = self.authenticator.authenticate(frame)
+                auth_result = self.authenticator.authenticate(frame, frame_index)
+                frame_index += 1
 
                 # Get bounding box using InsightFace directly
                 frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)

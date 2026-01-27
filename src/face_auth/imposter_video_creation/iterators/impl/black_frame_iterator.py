@@ -1,4 +1,5 @@
-from typing import Iterator
+from pathlib import Path
+from typing import Iterator, Optional
 import numpy as np
 from face_auth.config.logging_config import get_logger
 from face_auth.imposter_video_creation.iterators.frame_iterator import FrameIterator
@@ -39,3 +40,8 @@ class BlackFrameGenerator(FrameIterator):
     def get_source_name(self) -> str:
         """Return name of the source (black frames have no source)."""
         return "black_frames"
+
+    @property
+    def video_path(self) -> Optional[Path]:
+        """Return None since black frames don't come from a video file."""
+        return None

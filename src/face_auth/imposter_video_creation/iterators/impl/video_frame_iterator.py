@@ -26,7 +26,7 @@ class VideoFrameIterator(FrameIterator):
             fps: Frames per second (from config, already validated)
             start_second: Start time in seconds (default: 0, beginning of video)
         """
-        self.video_path = video_path
+        self._video_path = video_path
         self.start_second = start_second
         self.duration_seconds = duration_seconds
         self.fps = fps
@@ -44,7 +44,7 @@ class VideoFrameIterator(FrameIterator):
 
     def __iter__(self) -> Iterator[np.ndarray]:
         """Yield frames from the video."""
-        cap = cv2.VideoCapture(str(self.video_path))
+        cap = cv2.VideoCapture(str(self._video_path))
 
         # Seek to start frame
         if self.start_frame > 0:
@@ -72,4 +72,9 @@ class VideoFrameIterator(FrameIterator):
 
     def get_source_name(self) -> str:
         """Return name of the source video file."""
-        return self.video_path.stem
+        return self._video_path.stem
+
+    @property
+    def video_path(self) -> Path:
+        """Return the video file path."""
+        return self._video_path

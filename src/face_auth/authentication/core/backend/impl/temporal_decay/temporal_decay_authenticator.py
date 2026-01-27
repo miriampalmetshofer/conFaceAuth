@@ -1,5 +1,4 @@
 """Temporal decay authenticator using time-weighted confidence scoring."""
-from datetime import datetime
 from typing import Optional
 import numpy as np
 
@@ -38,7 +37,7 @@ class TemporalDecayAuthenticator(AuthenticatorBackend):
         self._confidence_scorer = ConfidenceScorer(config.k_weight, config.k_decay)
 
         self._current_confidence: float = config.initial_confidence
-        self._last_timestamp: Optional[datetime] = None
+        self._last_timestamp_ms: Optional[float] = None
         self._last_similarity: Optional[float] = None
 
     def _compute_similarity_to_enrollment(self, embedding: np.ndarray) -> float:
@@ -52,56 +51,55 @@ class TemporalDecayAuthenticator(AuthenticatorBackend):
         """
         return self._enrollment_matcher.compute_similarity(embedding)
 
-    def _get_delta_t_milliseconds(self, current_timestamp: datetime) -> float:
+    def _get_delta_t_milliseconds(self, current_timestamp_ms: float) -> float:
         """Calculate elapsed time since last observation.
 
         Args:
-            current_timestamp: Current observation timestamp
+            current_timestamp_ms: Current observation timestamp in milliseconds
 
         Returns:
             Elapsed time in milliseconds
         """
-        if self._last_timestamp is None:
+        if self._last_timestamp_ms is None:
             return 0.0
 
-        delta = current_timestamp - self._last_timestamp
-        return delta.total_seconds() * 1000
+        return current_timestamp_ms - self._last_timestamp_ms
 
-    def update_with_embedding(self, embedding: np.ndarray, timestamp: datetime) -> None:
+    def update_with_embedding(self, embedding: np.ndarray, timestamp_ms: float) -> None:
         """Update internal state with face embedding.
 
         Args:
             embedding: Face embedding vector
-            timestamp: Time when measurement was taken
+            timestamp_ms: Video timestamp in milliseconds
         """
         similarity = self._compute_similarity_to_enrollment(embedding)
         self._last_similarity = similarity
 
-        delta_t = self._get_delta_t_milliseconds(timestamp)
+        delta_t = self._get_delta_t_milliseconds(timestamp_ms)
         self._current_confidence = self._confidence_scorer.compute_with_face(
             self._current_confidence,
             similarity,
             delta_t
         )
-        self._last_timestamp = timestamp
+        self._last_timestamp_ms = timestamp_ms
 
         logger.debug(
             f"Updated with face: similarity={similarity:.4f}, delta_t={delta_t:.1f}ms, "
             f"confidence={self._current_confidence:.4f}"
         )
 
-    def update_with_no_face(self, timestamp: datetime) -> None:
+    def update_with_no_face(self, timestamp_ms: float) -> None:
         """Update internal state when no face was detected.
 
         Args:
-            timestamp: Time when measurement was taken
+            timestamp_ms: Video timestamp in milliseconds
         """
-        delta_t = self._get_delta_t_milliseconds(timestamp)
+        delta_t = self._get_delta_t_milliseconds(timestamp_ms)
         self._current_confidence = self._confidence_scorer.compute_with_no_face(
             self._current_confidence,
             delta_t
         )
-        self._last_timestamp = timestamp
+        self._last_timestamp_ms = timestamp_ms
 
         logger.debug(
             f"Updated with no face: delta_t={delta_t:.1f}ms, "
@@ -168,7 +166,7 @@ class TemporalDecayAuthenticator(AuthenticatorBackend):
 
         return TemporalDecayState(
             confidence_score=self._current_confidence,
-            last_timestamp=self._last_timestamp
+            last_timestamp_ms=self._last_timestamp_ms
         )
 
     def restore_state(self, state: TemporalDecayState) -> None:
@@ -178,14 +176,14 @@ class TemporalDecayAuthenticator(AuthenticatorBackend):
             state: Previously saved authenticator state
         """
         self._current_confidence = state.confidence_score
-        self._last_timestamp = state.last_timestamp
+        self._last_timestamp_ms = state.last_timestamp_ms
 
         logger.debug(
             f"Restored authenticator state: confidence={state.confidence_score:.4f}, "
-            f"last_timestamp={state.last_timestamp}"
+            f"last_timestamp_ms={state.last_timestamp_ms}"
         )
 
     def reset_timestamp(self) -> None:
         """Reset timestamp to avoid stale delta_t after cache restore."""
-        self._last_timestamp = None
+        self._last_timestamp_ms = None
         logger.debug("Reset timestamp to None")

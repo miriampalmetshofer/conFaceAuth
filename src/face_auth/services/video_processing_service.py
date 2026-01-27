@@ -174,5 +174,6 @@ class VideoProcessingService:
         """Create frame authenticator instance."""
         return FrameAuthenticator(
             embedder=self.embedder,
-            authenticator=authenticator
+            authenticator=authenticator,
+            fps=self.config.fps
         )

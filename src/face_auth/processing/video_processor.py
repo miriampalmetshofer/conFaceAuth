@@ -49,7 +49,7 @@ class VideoProcessor:
         for frame in iterator:
             try:
                 if frame_index == 1 or frame_index % skip_frames == 0:
-                    auth_result = self.frame_authenticator.authenticate(frame)
+                    auth_result = self.frame_authenticator.authenticate(frame, frame_index)
 
                     if not auth_result.face_detected:
                         no_face_count += 1

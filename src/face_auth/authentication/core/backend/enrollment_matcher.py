@@ -1,7 +1,6 @@
 """Component for matching query embeddings against enrollment set."""
 import numpy as np
 
-from face_auth.authentication.core.backend.similarity_calculator import SimilarityCalculator
 from face_auth.authentication.core.backend.percentile_filter import PercentileFilter
 from face_auth.config.logging_config import get_logger
 
@@ -12,9 +11,9 @@ class EnrollmentMatcher:
     """Computes similarities from query embeddings to enrollment set."""
 
     def __init__(
-        self,
-        enrollment_embeddings: list[np.ndarray],
-        similarity_percentile: float
+            self,
+            enrollment_embeddings: list[np.ndarray],
+            similarity_percentile: float
     ):
         """Initialize enrollment matcher.
 
@@ -23,7 +22,6 @@ class EnrollmentMatcher:
             similarity_percentile: Percentile for filtering enrollment embeddings
         """
         self._enrollment_embeddings = enrollment_embeddings
-        self._similarity_calculator = SimilarityCalculator()
         self._percentile_filter = PercentileFilter(similarity_percentile)
 
     def compute_similarity(self, embedding: np.ndarray) -> float:
@@ -37,7 +35,7 @@ class EnrollmentMatcher:
         Returns:
             Average similarity to most similar enrollment embeddings
         """
-        similarities = self._similarity_calculator.compute_similarities_to_all(
+        similarities = self.compute_similarities_to_all(
             embedding, self._enrollment_embeddings
         )
         logger.debug(f"Similarities to enrollment embeddings: {similarities}")
@@ -46,3 +44,38 @@ class EnrollmentMatcher:
         logger.debug(f"Average similarity to most similar embeddings: {avg_similarity:.4f}")
 
         return avg_similarity
+
+    def compute(
+            self,
+            embedding: np.ndarray,
+            reference_embedding: np.ndarray
+    ) -> float:
+        """Compute cosine similarity between two embeddings.
+
+        Args:
+            embedding: Query embedding vector
+            reference_embedding: Reference embedding vector to compare against
+
+        Returns:
+            Cosine similarity in range [-1, 1] (higher = more similar)
+        """
+        return float(np.dot(embedding, reference_embedding))
+
+    def compute_similarities_to_all(
+            self,
+            embedding: np.ndarray,
+            reference_embeddings: list[np.ndarray]
+    ) -> list[float]:
+        """Compute similarities from embedding to all reference embeddings.
+
+        Args:
+            embedding: Query embedding vector
+            reference_embeddings: List of reference embeddings
+
+        Returns:
+            List of similarities in same order as reference_embeddings
+        """
+        return [
+            self.compute(embedding, ref_embedding)
+            for ref_embedding in reference_embeddings
+        ]

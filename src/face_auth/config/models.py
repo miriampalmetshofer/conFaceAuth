@@ -81,6 +81,7 @@ class AuthenticationConfig(BaseModel):
     backend: str = Field(..., description="Authentication backend type")
     trust_based: Optional[TrustBasedConfigModel] = None
     temporal_decay: Optional[TemporalDecayConfigModel] = None
+    fps: int = Field(..., gt=0, description="Frames per second for video processing")
 
     model_config = ConfigDict(frozen=True)
 

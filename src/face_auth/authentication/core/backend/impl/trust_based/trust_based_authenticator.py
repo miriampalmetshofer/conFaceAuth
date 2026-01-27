@@ -1,5 +1,4 @@
 """Risk-based authenticator using windowed exponentially-weighted similarities."""
-from datetime import datetime
 from typing import Optional
 import numpy as np
 
@@ -63,21 +62,21 @@ class RiskBasedAuthenticator(AuthenticatorBackend):
         )
         logger.debug(f"Updated trust_score: {self._current_trust_score:.4f}")
 
-    def update_with_embedding(self, embedding: np.ndarray, timestamp: datetime) -> None:
+    def update_with_embedding(self, embedding: np.ndarray, timestamp_ms: float) -> None:
         """Update internal state with face embedding.
 
         Args:
             embedding: Face embedding vector
-            timestamp: Time when measurement was taken (unused for risk-based)
+            timestamp_ms: Video timestamp in milliseconds (unused for risk-based)
         """
         similarity = self._compute_similarity_to_enrollment(embedding)
         self._update_state(similarity)
 
-    def update_with_no_face(self, timestamp: datetime) -> None:
+    def update_with_no_face(self, timestamp_ms: float) -> None:
         """Update internal state when no face was detected.
 
         Args:
-            timestamp: Time when measurement was taken (unused for risk-based)
+            timestamp_ms: Video timestamp in milliseconds (unused for risk-based)
         """
         self._update_state(self.config.no_face_penalty)
 

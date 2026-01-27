@@ -1,6 +1,5 @@
 """Data models for temporal decay authenticator."""
 from dataclasses import dataclass
-from datetime import datetime
 from typing import Optional
 from face_auth.authentication.core.backend.authenticator_backend import AuthenticationState
 
@@ -19,4 +18,4 @@ class TemporalDecayConfig:
 class TemporalDecayState(AuthenticationState):
     """State for temporal decay authenticator."""
     confidence_score: float
-    last_timestamp: Optional[datetime]
+    last_timestamp_ms: Optional[float]
