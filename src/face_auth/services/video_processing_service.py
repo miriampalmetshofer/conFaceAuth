@@ -124,6 +124,11 @@ class VideoProcessingService:
 
         if is_in_cache:
             authenticator.restore_state(is_in_cache.authenticator_state)
+
+            # Reset timestamp to avoid stale delta_t on next frame
+            if hasattr(authenticator, 'reset_timestamp'):
+                authenticator.reset_timestamp()
+
             logger.info(f"Using cached results for {iterator.get_source_name()} ({len(is_in_cache.frame_results)} frames)")
             return is_in_cache.frame_results, is_in_cache.last_frame_index + 1
 
