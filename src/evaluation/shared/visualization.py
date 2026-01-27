@@ -8,7 +8,7 @@ import numpy as np
 import plotly.graph_objects as go
 import matplotlib.pyplot as plt
 
-from evaluation.common.domain import (
+from evaluation.shared.models import (
     EvaluationData,
     DeviceMetrics,
     ScenarioDeviceMetrics,
@@ -98,7 +98,7 @@ class MetricsTableBuilder:
         MetricsTableBuilder.render_table(ax, columns, rows, title, bbox, fontsize, scale_height)
 
 
-def _load_segment_config(config_path: Optional[Path]) -> Optional[tuple[dict, int]]:
+def _load_segment_config(config_path: Path) -> Optional[tuple[dict, int]]:
     """Load segment boundaries from config file.
 
     Returns:
@@ -230,8 +230,7 @@ def _add_video_traces(fig: go.Figure, video_frames_dict: dict[str, list[FrameDat
         ))
 
 
-def create_trust_timeline_all_videos(data: EvaluationData, study_name: str,
-                                     config_path: Optional[Path] = None) -> go.Figure:
+def create_trust_timeline_all_videos(data: EvaluationData, study_name: str, config_path: Path) -> go.Figure:
     """Create interactive trust score timeline showing all videos.
 
     Args:

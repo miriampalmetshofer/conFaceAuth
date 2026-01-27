@@ -1,10 +1,10 @@
 """Evaluation orchestration for in-the-wild study."""
 from pathlib import Path
 
-from evaluation.common.data_loader import load_evaluation_data
-from evaluation.common.metrics import calculate_metrics_by_device
-from evaluation.common.reporting import print_section, print_metrics_by_device
-from evaluation.common.visualization import (
+from evaluation.shared.data_loader import load_evaluation_data
+from evaluation.shared.metrics import calculate_metrics_by_device
+from evaluation.shared.reporting import print_section, print_metrics_by_device
+from evaluation.shared.visualization import (
     create_trust_timeline_all_videos,
     create_trust_timeline_by_device,
     create_summary_visualization,
@@ -21,7 +21,7 @@ from evaluation.in_the_wild.annotation_validator import (
 DEVICES = ['mobile']
 
 PROJECT_ROOT = Path(__file__).parent.parent.parent.parent
-RESULTS_FOLDER = "data/in_the_wild/_results_archive/very_loose"
+RESULTS_FOLDER = "data/in_the_wild/_results_archive/little_less_loose"
 
 RESULTS_PATH = PROJECT_ROOT / RESULTS_FOLDER / "results.csv"
 CONFIG_PATH = PROJECT_ROOT / RESULTS_FOLDER / "config.json"
@@ -67,7 +67,7 @@ def main():
     )
     output_files.append(save_png(fig_summary, OUTPUT_PATH, 'summary.png'))
 
-    fig_device_table = create_device_metrics_table(device_metrics)
+    fig_device_table = create_device_metrics_table(device_metrics, data.frames)
     output_files.append(save_png(fig_device_table, OUTPUT_PATH, 'table_devices.png'))
 
     print_section("EVALUATION COMPLETE")

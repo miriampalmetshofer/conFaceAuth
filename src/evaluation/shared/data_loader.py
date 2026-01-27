@@ -6,7 +6,7 @@ from typing import Optional
 
 import pandas as pd
 
-from evaluation.common.domain import (
+from evaluation.shared.models import (
     EvaluationData,
     FrameData,
     VideoMetadata,

@@ -1,7 +1,7 @@
 """Comparison utilities for evaluation results."""
 from typing import Optional
 
-from evaluation.common.domain import DeviceMetrics, ScenarioMetrics
+from evaluation.shared.models import DeviceMetrics, ScenarioMetrics
 
 
 def format_metric_value(value: Optional[float], metric_type: str) -> str:

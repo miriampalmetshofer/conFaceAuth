@@ -3,10 +3,10 @@ from pathlib import Path
 import pandas as pd
 import re
 
-from evaluation.common.data_loader import load_evaluation_data
-from evaluation.common.metrics import calculate_metrics_by_device, calculate_metrics_by_scenario
-from evaluation.common.comparison import print_device_comparison, print_scenario_comparison
-from evaluation.common.reporting import print_section
+from evaluation.shared.data_loader import load_evaluation_data
+from evaluation.shared.metrics import calculate_metrics_by_device, calculate_metrics_by_scenario
+from evaluation.shared.comparison import print_device_comparison, print_scenario_comparison
+from evaluation.shared.reporting import print_section
 
 STUDY = 'in_the_wild'
 

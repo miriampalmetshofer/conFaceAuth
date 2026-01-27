@@ -3,7 +3,7 @@ from typing import Optional
 
 import numpy as np
 
-from evaluation.common.domain import (
+from evaluation.shared.models import (
     AuthenticationMetrics,
     FrameData,
     SegmentType,

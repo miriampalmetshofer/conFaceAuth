@@ -1,14 +1,14 @@
 """Evaluation orchestration for controlled study."""
 from pathlib import Path
 
-from evaluation.common.data_loader import load_evaluation_data
-from evaluation.common.metrics import (
+from evaluation.shared.data_loader import load_evaluation_data
+from evaluation.shared.metrics import (
     calculate_metrics_by_device,
     calculate_metrics_by_scenario,
     calculate_metrics_by_scenario_and_device
 )
-from evaluation.common.reporting import print_section, print_metrics_by_device, print_metrics_by_scenario
-from evaluation.common.visualization import (
+from evaluation.shared.reporting import print_section, print_metrics_by_device, print_metrics_by_scenario
+from evaluation.shared.visualization import (
     create_trust_timeline_all_videos,
     create_trust_timeline_by_device,
     create_summary_visualization,
@@ -60,7 +60,7 @@ def main():
     )
     output_files.append(save_png(fig_summary, OUTPUT_PATH, 'summary.png'))
 
-    fig_tables = create_combined_metrics_tables(device_metrics, scenario_device_metrics, data.frames)
+    fig_tables = create_combined_metrics_tables(device_metrics, scenario_device_metrics, data.frames, data.videos)
     output_files.append(save_png(fig_tables, OUTPUT_PATH, 'metrics_tables.png'))
 
     print_section("EVALUATION COMPLETE")

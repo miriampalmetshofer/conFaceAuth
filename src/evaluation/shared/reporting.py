@@ -1,5 +1,5 @@
 """Console reporting utilities."""
-from evaluation.common.domain import DeviceMetrics, ScenarioMetrics
+from evaluation.shared.models import DeviceMetrics, ScenarioMetrics
 
 
 def print_section(title: str) -> None:
