@@ -31,29 +31,29 @@ class MetricsTableBuilder:
 
     @staticmethod
     def build_table_data(
-        items: list,
-        spec: TableSpec
+            items: list,
+            spec: TableSpec
     ) -> tuple[list[str], list[list[str]]]:
         """Build table columns and rows from metrics items."""
-        columns = [spec.row_label_header] + AuthenticationMetrics.get_column_labels()
+        columns = [spec.row_label_header] + AuthenticationMetrics.get_table_column_labels()
 
         rows = []
         for item in items:
             metrics = item.metrics if hasattr(item, 'metrics') else item
-            row = [spec.row_label_fn(item)] + metrics.to_formatted_values()
+            row = [spec.row_label_fn(item)] + metrics.to_table_values()
             rows.append(row)
 
         return columns, rows
 
     @staticmethod
     def render_table(
-        ax: plt.Axes,
-        columns: list[str],
-        rows: list[list[str]],
-        title: str,
-        bbox: Optional[list] = None,
-        fontsize: int = 11,
-        scale_height: float = 3.0
+            ax: plt.Axes,
+            columns: list[str],
+            rows: list[list[str]],
+            title: str,
+            bbox: Optional[list] = None,
+            fontsize: int = 11,
+            scale_height: float = 3.0
     ) -> None:
         """Render table on matplotlib axes with standard styling."""
         ax.axis('off')
@@ -83,13 +83,13 @@ class MetricsTableBuilder:
 
     @staticmethod
     def render_table_with_title(
-        ax: plt.Axes,
-        columns: list[str],
-        rows: list[list[str]],
-        title: str,
-        bbox: Optional[list] = None,
-        fontsize: int = 10,
-        scale_height: float = 2.5
+            ax: plt.Axes,
+            columns: list[str],
+            rows: list[list[str]],
+            title: str,
+            bbox: Optional[list] = None,
+            fontsize: int = 10,
+            scale_height: float = 2.5
     ) -> None:
         """Render table with title text above it (for combined figures)."""
         ax.axis('off')
@@ -114,10 +114,10 @@ def _load_segment_config(config_path: Optional[Path]) -> Optional[tuple[dict, in
         config = json.load(f)
 
     imposter_config = config['imposter_creation']
-    fps = imposter_config.get('fps', 30)
-    genuine_seconds = imposter_config.get('genuine_user_seconds', 0)
-    black_seconds = imposter_config.get('black_screen_seconds', 0)
-    imposter_seconds = imposter_config.get('impostor_seconds', 0)
+    fps = imposter_config.get('fps')
+    genuine_seconds = imposter_config.get('genuine_user_seconds')
+    black_seconds = imposter_config.get('black_screen_seconds')
+    imposter_seconds = imposter_config.get('impostor_seconds')
 
     genuine_end = genuine_seconds
     black_end = genuine_end + black_seconds
@@ -130,15 +130,15 @@ def _load_segment_config(config_path: Optional[Path]) -> Optional[tuple[dict, in
     }, fps
 
 
-def _add_segment_backgrounds(fig: go.Figure, segments: Optional[dict]) -> None:
+def _add_segment_backgrounds(fig: go.Figure, segments: dict) -> None:
     """Add colored background regions and boundary lines for video segments."""
     if not segments:
         return
 
     colors = {
         'genuine': 'rgba(46, 204, 113, 0.1)',  # Green
-        'black': 'rgba(149, 165, 166, 0.1)',     # Gray
-        'imposter': 'rgba(231, 76, 60, 0.1)'     # Red
+        'black': 'rgba(149, 165, 166, 0.1)',  # Gray
+        'imposter': 'rgba(231, 76, 60, 0.1)'  # Red
     }
 
     line_colors = {
@@ -230,7 +230,8 @@ def _add_video_traces(fig: go.Figure, video_frames_dict: dict[str, list[FrameDat
         ))
 
 
-def create_trust_timeline_all_videos(data: EvaluationData, study_name: str, config_path: Optional[Path] = None) -> go.Figure:
+def create_trust_timeline_all_videos(data: EvaluationData, study_name: str,
+                                     config_path: Optional[Path] = None) -> go.Figure:
     """Create interactive trust score timeline showing all videos.
 
     Args:
@@ -254,11 +255,7 @@ def create_trust_timeline_all_videos(data: EvaluationData, study_name: str, conf
     segments, fps = config_result
     _add_segment_backgrounds(fig, segments)
 
-    videos = {}
-    for frame in data.frames:
-        if frame.video_path not in videos:
-            videos[frame.video_path] = []
-        videos[frame.video_path].append(frame)
+    videos = _group_frames_by_video_path(data)
 
     _add_video_traces(fig, videos, fps)
 
@@ -294,7 +291,17 @@ def create_trust_timeline_all_videos(data: EvaluationData, study_name: str, conf
     return fig
 
 
-def create_trust_timeline_by_device(data: EvaluationData, devices: list[str], study_name: str, config_path: Optional[Path] = None) -> list[go.Figure]:
+def _group_frames_by_video_path(data: EvaluationData) -> dict[str, list[FrameData]]:
+    videos = {}
+    for frame in data.frames:
+        if frame.video_path not in videos:
+            videos[frame.video_path] = []
+        videos[frame.video_path].append(frame)
+    return videos
+
+
+def create_trust_timeline_by_device(data: EvaluationData, devices: list[str], study_name: str,
+                                    config_path: Optional[Path] = None) -> list[go.Figure]:
     if not config_path:
         raise ValueError("config_path is required to determine FPS for time axis")
 
@@ -454,8 +461,8 @@ def create_summary_visualization(data: EvaluationData, device_metrics: list[Devi
     return fig
 
 
-def create_device_metrics_table(device_metrics: list[DeviceMetrics]) -> plt.Figure:
-    """Create overall device metrics table."""
+def create_device_metrics_table(device_metrics: list[DeviceMetrics], frames: list[FrameData]) -> plt.Figure:
+    """Create overall device metrics table with similarity columns."""
     fig, ax = plt.subplots(figsize=(16, 4))
 
     spec = TableSpec(
@@ -465,6 +472,7 @@ def create_device_metrics_table(device_metrics: list[DeviceMetrics]) -> plt.Figu
     )
 
     columns, rows = MetricsTableBuilder.build_table_data(device_metrics, spec)
+    _add_distance_columns(device_metrics, columns, rows, frames)
     MetricsTableBuilder.render_table(ax, columns, rows, spec.title)
 
     fig.suptitle(spec.title, fontsize=16, y=0.95)
@@ -473,8 +481,8 @@ def create_device_metrics_table(device_metrics: list[DeviceMetrics]) -> plt.Figu
 
 
 def create_device_scenario_metrics_table(
-    scenario_device_metrics: list[ScenarioDeviceMetrics],
-    device: str
+        scenario_device_metrics: list[ScenarioDeviceMetrics],
+        device: str
 ) -> plt.Figure:
     """Create scenario breakdown table for a specific device."""
     fig, ax = plt.subplots(figsize=(16, 6))
@@ -496,18 +504,68 @@ def create_device_scenario_metrics_table(
 
 
 def _add_distance_columns(
-    device_metrics: list[DeviceMetrics],
-    columns: list[str],
-    rows: list[list[str]],
-    frames: list[FrameData]
+        device_metrics: list[DeviceMetrics],
+        columns: list[str],
+        rows: list[list[str]],
+        frames: list[FrameData]
 ) -> None:
     """Add average similarity columns to device metrics table."""
     columns.extend(['Avg Genuine Sim', 'Avg Imposter Sim'])
 
     for i, dm in enumerate(device_metrics):
         device_frames = [f for f in frames if f.device == dm.device]
-        genuine_similarities = [f.similarity for f in device_frames if f.segment_type == SegmentType.GENUINE]
-        imposter_similarities = [f.similarity for f in device_frames if f.segment_type == SegmentType.IMPOSTER]
+        genuine_similarities = [
+            f.similarity for f in device_frames
+            if f.segment_type == SegmentType.GENUINE
+               and f.similarity is not None
+               and not np.isnan(f.similarity)
+        ]
+        imposter_similarities = [
+            f.similarity for f in device_frames
+            if f.segment_type == SegmentType.IMPOSTER
+               and f.similarity is not None
+               and not np.isnan(f.similarity)
+        ]
+
+        avg_genuine = np.mean(genuine_similarities) if genuine_similarities else 0
+        avg_imposter = np.mean(imposter_similarities) if imposter_similarities else 0
+
+        rows[i].extend([f'{avg_genuine:.4f}', f'{avg_imposter:.4f}'])
+
+
+def _add_scenario_distance_columns(
+        scenario_device_metrics: list[ScenarioDeviceMetrics],
+        columns: list[str],
+        rows: list[list[str]],
+        frames: list[FrameData],
+        device: str,
+        video_metadata: list
+) -> None:
+    """Add average similarity columns to scenario breakdown table."""
+    columns.extend(['Avg Genuine Sim', 'Avg Imposter Sim'])
+
+    # Build mapping of video_path to scenario
+    video_to_scenario = {vm.video_path: vm.scenario for vm in video_metadata if vm.scenario}
+
+    for i, sdm in enumerate(scenario_device_metrics):
+        # Filter frames by device and scenario
+        scenario_frames = [
+            f for f in frames
+            if f.device == device and video_to_scenario.get(f.video_path) == sdm.scenario
+        ]
+
+        genuine_similarities = [
+            f.similarity for f in scenario_frames
+            if f.segment_type == SegmentType.GENUINE
+               and f.similarity is not None
+               and not np.isnan(f.similarity)
+        ]
+        imposter_similarities = [
+            f.similarity for f in scenario_frames
+            if f.segment_type == SegmentType.IMPOSTER
+               and f.similarity is not None
+               and not np.isnan(f.similarity)
+        ]
 
         avg_genuine = np.mean(genuine_similarities) if genuine_similarities else 0
         avg_imposter = np.mean(imposter_similarities) if imposter_similarities else 0
@@ -516,9 +574,9 @@ def _add_distance_columns(
 
 
 def _render_device_overview_table(
-    ax: plt.Axes,
-    device_metrics: list[DeviceMetrics],
-    frames: list[FrameData]
+        ax: plt.Axes,
+        device_metrics: list[DeviceMetrics],
+        frames: list[FrameData]
 ) -> None:
     """Render overall device metrics table with distance columns."""
     spec = TableSpec(
@@ -535,9 +593,11 @@ def _render_device_overview_table(
 
 
 def _render_scenario_breakdown_table(
-    ax: plt.Axes,
-    scenario_device_metrics: list[ScenarioDeviceMetrics],
-    device: str
+        ax: plt.Axes,
+        scenario_device_metrics: list[ScenarioDeviceMetrics],
+        device: str,
+        frames: list[FrameData],
+        video_metadata: list
 ) -> None:
     """Render scenario breakdown table for a specific device."""
     device_scenario_metrics = [sdm for sdm in scenario_device_metrics if sdm.device == device]
@@ -551,6 +611,7 @@ def _render_scenario_breakdown_table(
         row_label_header='Scenario'
     )
     columns, rows = MetricsTableBuilder.build_table_data(device_scenario_metrics, spec)
+    _add_scenario_distance_columns(device_scenario_metrics, columns, rows, frames, device, video_metadata)
     MetricsTableBuilder.render_table_with_title(
         ax, columns, rows, spec.title,
         bbox=[0, 0, 1, 0.8], fontsize=10, scale_height=2.2
@@ -558,9 +619,10 @@ def _render_scenario_breakdown_table(
 
 
 def create_combined_metrics_tables(
-    device_metrics: list[DeviceMetrics],
-    scenario_device_metrics: list[ScenarioDeviceMetrics],
-    frames: list[FrameData]
+        device_metrics: list[DeviceMetrics],
+        scenario_device_metrics: list[ScenarioDeviceMetrics],
+        frames: list[FrameData],
+        video_metadata: list
 ) -> plt.Figure:
     """Create combined figure with device overview and per-device scenario breakdowns."""
     devices_with_scenarios = sorted(set(sdm.device for sdm in scenario_device_metrics))
@@ -572,7 +634,8 @@ def create_combined_metrics_tables(
     _render_device_overview_table(fig.add_subplot(gs[0]), device_metrics, frames)
 
     for i, device in enumerate(devices_with_scenarios, start=1):
-        _render_scenario_breakdown_table(fig.add_subplot(gs[i]), scenario_device_metrics, device)
+        _render_scenario_breakdown_table(fig.add_subplot(gs[i]), scenario_device_metrics, device, frames,
+                                         video_metadata)
 
     return fig
 

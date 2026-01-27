@@ -48,7 +48,8 @@ class AuthenticationMetrics:
             "TAR (%)",
             "TAR",
             plot_color='#2ecc71',
-            plot_order=0
+            plot_order=0,
+            include_in_tables=False
         ),
         MetricDefinition(
             "false_reject_rate",
@@ -69,13 +70,15 @@ class AuthenticationMetrics:
             "FAR (%)",
             "FAR",
             plot_color='#f39c12',
-            plot_order=3
+            plot_order=3,
+            include_in_tables=False
         ),
         MetricDefinition(
             "equal_error_rate",
             "EER (%)",
             "EER",
-            include_in_plots=False
+            include_in_plots=False,
+            include_in_tables=False
         ),
         MetricDefinition(
             "imposter_lockout_time",
@@ -87,9 +90,22 @@ class AuthenticationMetrics:
     ]
 
     def to_formatted_values(self) -> list[str]:
-        """Return formatted metric values in standard order."""
+        """Return formatted metric values for all metrics."""
         values = []
         for defn in self.METRIC_DEFINITIONS:
+            value = getattr(self, defn.field_name)
+            if value is None:
+                values.append("N/A")
+            else:
+                values.append(f"{value:{defn.format_spec}}")
+        return values
+
+    def to_table_values(self) -> list[str]:
+        """Return formatted metric values for table display only."""
+        values = []
+        for defn in self.METRIC_DEFINITIONS:
+            if not defn.include_in_tables:
+                continue
             value = getattr(self, defn.field_name)
             if value is None:
                 values.append("N/A")
@@ -101,6 +117,11 @@ class AuthenticationMetrics:
     def get_column_labels(cls) -> list[str]:
         """Return display labels for all metrics."""
         return [defn.display_label for defn in cls.METRIC_DEFINITIONS]
+
+    @classmethod
+    def get_table_column_labels(cls) -> list[str]:
+        """Return display labels for table display only."""
+        return [defn.display_label for defn in cls.METRIC_DEFINITIONS if defn.include_in_tables]
 
     @classmethod
     def get_plot_metrics(cls) -> list[MetricDefinition]:

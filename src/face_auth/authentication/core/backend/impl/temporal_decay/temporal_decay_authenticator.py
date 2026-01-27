@@ -37,7 +37,7 @@ class TemporalDecayAuthenticator(AuthenticatorBackend):
         )
         self._confidence_scorer = ConfidenceScorer(config.k_weight, config.k_decay)
 
-        self._current_confidence: Optional[float] = config.initial_confidence
+        self._current_confidence: float = config.initial_confidence
         self._last_timestamp: Optional[datetime] = None
         self._last_similarity: Optional[float] = None
 
@@ -184,3 +184,8 @@ class TemporalDecayAuthenticator(AuthenticatorBackend):
             f"Restored authenticator state: confidence={state.confidence_score:.4f}, "
             f"last_timestamp={state.last_timestamp}"
         )
+
+    def reset_timestamp(self) -> None:
+        """Reset timestamp to avoid stale delta_t after cache restore."""
+        self._last_timestamp = None
+        logger.debug("Reset timestamp to None")

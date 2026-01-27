@@ -22,7 +22,7 @@ def print_metrics_by_device(device_metrics: list[DeviceMetrics]) -> None:
         print(f"  FAR (False Accept Rate):       {m.false_accept_rate:6.2f}%")
         print(f"  EER (Equal Error Rate):        {m.equal_error_rate:6.2f}%")
         if m.imposter_lockout_time is not None:
-            print(f"  Mean Imposter Lockout Time:    {m.imposter_lockout_time:6.1f} frames")
+            print(f"  Mean Imposter Lockout Time:    {m.imposter_lockout_time:6.1f}s")
         else:
             print(f"  Mean Imposter Lockout Time:    N/A")
         print()
@@ -41,7 +41,7 @@ def print_metrics_by_scenario(scenario_metrics: list[ScenarioMetrics]) -> None:
         print(f"  FAR (False Accept Rate):       {m.false_accept_rate:6.2f}%")
         print(f"  EER (Equal Error Rate):        {m.equal_error_rate:6.2f}%")
         if m.imposter_lockout_time is not None:
-            print(f"  Mean Imposter Lockout Time:    {m.imposter_lockout_time:6.1f} frames")
+            print(f"  Mean Imposter Lockout Time:    {m.imposter_lockout_time:6.1f}s")
         else:
             print(f"  Mean Imposter Lockout Time:    N/A")
         print()
