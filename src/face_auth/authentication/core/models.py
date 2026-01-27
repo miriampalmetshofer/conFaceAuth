@@ -39,10 +39,3 @@ class FrameAuthenticationResult:
             'face_detected': self.auth_result.face_detected,
             'source_type': self.source_type
         }
-
-@dataclass
-class AuthenticatorState:
-    """Snapshot of authenticator state after processing genuine video."""
-
-    similarity_window: list[float]
-    trust_score: float
