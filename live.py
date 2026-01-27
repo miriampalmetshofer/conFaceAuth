@@ -360,11 +360,7 @@ class LiveFaceAuth:
 def main():
     """Main entry point."""
     parser = argparse.ArgumentParser(description="Live face authentication demo")
-    parser.add_argument(
-        "--list-cameras",
-        action="store_true",
-        help="List available cameras and exit"
-    )
+
     parser.add_argument(
         "--config",
         default="live_config.json",
@@ -372,18 +368,6 @@ def main():
     )
 
     args = parser.parse_args()
-
-    # List cameras and exit
-    if args.list_cameras:
-        cameras = list_available_cameras()
-        if cameras:
-            print("\nAvailable cameras:")
-            for cam in cameras:
-                print(f"  Index {cam['index']}: {cam['resolution']} (backend: {cam['backend']})")
-            print("\nUpdate 'camera_index' in live_config.json to use a specific camera.")
-        else:
-            print("No cameras found!")
-        return
 
     try:
         # Initialize
