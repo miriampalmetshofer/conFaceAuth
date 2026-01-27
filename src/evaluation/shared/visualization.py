@@ -471,7 +471,6 @@ def create_device_metrics_table(device_metrics: list[DeviceMetrics], frames: lis
     )
 
     columns, rows = MetricsTableBuilder.build_table_data(device_metrics, spec)
-    _add_distance_columns(device_metrics, columns, rows, frames)
     MetricsTableBuilder.render_table(ax, columns, rows, spec.title)
 
     fig.suptitle(spec.title, fontsize=16, y=0.95)
@@ -501,37 +500,6 @@ def create_device_scenario_metrics_table(
 
     return fig
 
-
-def _add_distance_columns(
-        device_metrics: list[DeviceMetrics],
-        columns: list[str],
-        rows: list[list[str]],
-        frames: list[FrameData]
-) -> None:
-    """Add average similarity columns to device metrics table."""
-    columns.extend(['Avg Genuine Sim', 'Avg Imposter Sim'])
-
-    for i, dm in enumerate(device_metrics):
-        device_frames = [f for f in frames if f.device == dm.device]
-        genuine_similarities = [
-            f.similarity for f in device_frames
-            if f.segment_type == SegmentType.GENUINE
-               and f.similarity is not None
-               and not np.isnan(f.similarity)
-        ]
-        imposter_similarities = [
-            f.similarity for f in device_frames
-            if f.segment_type == SegmentType.IMPOSTER
-               and f.similarity is not None
-               and not np.isnan(f.similarity)
-        ]
-
-        avg_genuine = np.mean(genuine_similarities) if genuine_similarities else 0
-        avg_imposter = np.mean(imposter_similarities) if imposter_similarities else 0
-
-        rows[i].extend([f'{avg_genuine:.4f}', f'{avg_imposter:.4f}'])
-
-
 def _add_scenario_distance_columns(
         scenario_device_metrics: list[ScenarioDeviceMetrics],
         columns: list[str],
@@ -541,35 +509,7 @@ def _add_scenario_distance_columns(
         video_metadata: list
 ) -> None:
     """Add average similarity columns to scenario breakdown table."""
-    columns.extend(['Avg Genuine Sim', 'Avg Imposter Sim'])
-
-    # Build mapping of video_path to scenario
-    video_to_scenario = {vm.video_path: vm.scenario for vm in video_metadata if vm.scenario}
-
-    for i, sdm in enumerate(scenario_device_metrics):
-        # Filter frames by device and scenario
-        scenario_frames = [
-            f for f in frames
-            if f.device == device and video_to_scenario.get(f.video_path) == sdm.scenario
-        ]
-
-        genuine_similarities = [
-            f.similarity for f in scenario_frames
-            if f.segment_type == SegmentType.GENUINE
-               and f.similarity is not None
-               and not np.isnan(f.similarity)
-        ]
-        imposter_similarities = [
-            f.similarity for f in scenario_frames
-            if f.segment_type == SegmentType.IMPOSTER
-               and f.similarity is not None
-               and not np.isnan(f.similarity)
-        ]
-
-        avg_genuine = np.mean(genuine_similarities) if genuine_similarities else 0
-        avg_imposter = np.mean(imposter_similarities) if imposter_similarities else 0
-
-        rows[i].extend([f'{avg_genuine:.4f}', f'{avg_imposter:.4f}'])
+    pass
 
 
 def _render_device_overview_table(
@@ -584,7 +524,6 @@ def _render_device_overview_table(
         row_label_header='Device'
     )
     columns, rows = MetricsTableBuilder.build_table_data(device_metrics, spec)
-    _add_distance_columns(device_metrics, columns, rows, frames)
     MetricsTableBuilder.render_table_with_title(
         ax, columns, rows, spec.title,
         bbox=[0, 0, 1, 0.8], fontsize=10, scale_height=2.5

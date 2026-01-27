@@ -4,11 +4,8 @@
 import sys
 from pathlib import Path
 
-# Add src directory to Python path
-project_root = Path(__file__).parent
-src_path = project_root / "src"
-if src_path.exists():
-    sys.path.insert(0, str(src_path))
+project_root = Path(__file__).parent.parent
+sys.path.insert(0, str(project_root / "src"))
 
 import json
 import cv2
@@ -34,14 +31,18 @@ logger = logging.getLogger(__name__)
 class LiveFaceAuth:
     """Live face authentication using webcam."""
 
-    def __init__(self, config_path: str = "live_config.json"):
+    def __init__(self, config_path: str = "../configs/live_config.json"):
         """Initialize live face authentication.
 
         Args:
-            config_path: Path to configuration file
+            config_path: Path to configuration file (relative to project root)
         """
+        # Resolve config path relative to project root
+        if not Path(config_path).is_absolute():
+            config_path = project_root / config_path
+
         logger.info("Loading configuration...")
-        self.config = self._load_config(config_path)
+        self.config = self._load_config(str(config_path))
 
         logger.info("Initializing InsightFace embedder...")
         self.embedder = Embedder(
@@ -363,7 +364,7 @@ def main():
 
     parser.add_argument(
         "--config",
-        default="live_config.json",
+        default="configs/live_config.json",
         help="Path to configuration file (default: live_config.json)"
     )
 

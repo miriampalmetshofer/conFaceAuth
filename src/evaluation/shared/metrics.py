@@ -36,6 +36,17 @@ def calculate_metrics(frames: list[FrameData], fps: int) -> AuthenticationMetric
     all_frames = genuine_frames + imposter_frames
     lockout_time = calculate_imposter_lockout_time(frames, fps)
 
+    # Calculate similarity difference (genuine avg - imposter avg)
+    genuine_similarities = [f.similarity for f in genuine_frames if f.face_detected]
+    imposter_similarities = [f.similarity for f in imposter_frames if f.face_detected]
+
+    if genuine_similarities and imposter_similarities:
+        avg_genuine_sim = np.mean(genuine_similarities)
+        avg_imposter_sim = np.mean(imposter_similarities)
+        similarity_difference = avg_genuine_sim - avg_imposter_sim
+    else:
+        similarity_difference = None
+
     counts = FrameCounts(
         total_frames=len(all_frames),
         unlocked_frames=genuine_unlocked + imposter_unlocked,
@@ -49,6 +60,7 @@ def calculate_metrics(frames: list[FrameData], fps: int) -> AuthenticationMetric
         false_accept_rate=far,
         equal_error_rate=eer,
         imposter_lockout_time=lockout_time,
+        similarity_difference=similarity_difference,
         counts=counts
     )
 

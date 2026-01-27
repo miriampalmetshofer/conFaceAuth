@@ -40,6 +40,7 @@ class AuthenticationMetrics:
     false_accept_rate: float
     equal_error_rate: float
     imposter_lockout_time: Optional[float]
+    similarity_difference: Optional[float]
     counts: FrameCounts
 
     METRIC_DEFINITIONS: ClassVar[list[MetricDefinition]] = [
@@ -63,7 +64,8 @@ class AuthenticationMetrics:
             "TRR (%)",
             "TRR",
             plot_color='#3498db',
-            plot_order=2
+            plot_order=2,
+            include_in_tables=False
         ),
         MetricDefinition(
             "false_accept_rate",
@@ -86,6 +88,14 @@ class AuthenticationMetrics:
             "Lockout",
             format_spec=".1f",
             include_in_plots=False
+        ),
+        MetricDefinition(
+            "similarity_difference",
+            "Sim Δ",
+            "SimΔ",
+            format_spec=".3f",
+            include_in_plots=False,
+            include_in_tables=True
         ),
     ]
 
