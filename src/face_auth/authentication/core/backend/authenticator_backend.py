@@ -1,13 +1,6 @@
 """Abstract base class for authenticator backends."""
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
 import numpy as np
-
-
-@dataclass
-class AuthenticationState:
-    """Base class for internal state that can be persisted/restored."""
-    pass
 
 
 class AuthenticatorBackend(ABC):
@@ -45,18 +38,4 @@ class AuthenticatorBackend(ABC):
     @abstractmethod
     def get_last_similarity(self) -> float:
         """Get the last computed similarity value."""
-        pass
-
-    @abstractmethod
-    def get_state(self) -> AuthenticationState:
-        """Get current state for caching."""
-        pass
-
-    @abstractmethod
-    def restore_state(self, state: AuthenticationState) -> None:
-        """Restore from cached state.
-
-        Args:
-            state: Previously saved state
-        """
         pass

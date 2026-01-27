@@ -3,10 +3,7 @@ from typing import Optional
 import numpy as np
 
 from face_auth.authentication.core.backend.authenticator_backend import AuthenticatorBackend
-from face_auth.authentication.core.backend.impl.temporal_decay.models import (
-    TemporalDecayConfig,
-    TemporalDecayState
-)
+from face_auth.authentication.core.backend.impl.temporal_decay.models import TemporalDecayConfig
 from face_auth.authentication.core.backend.impl.temporal_decay.confidence_scorer import ConfidenceScorer
 from face_auth.authentication.core.backend.enrollment_matcher import EnrollmentMatcher
 from face_auth.config.logging_config import get_logger
@@ -152,38 +149,3 @@ class TemporalDecayAuthenticator(AuthenticatorBackend):
             raise ValueError("No similarity available before processing frames")
         return self._last_similarity
 
-    def get_state(self) -> TemporalDecayState:
-        """Get current authenticator state for caching.
-
-        Returns:
-            Current state including confidence score and last timestamp
-
-        Raises:
-            ValueError: If no state available yet (no frames processed)
-        """
-        if self._current_confidence is None:
-            raise ValueError("Cannot get state before processing any frames")
-
-        return TemporalDecayState(
-            confidence_score=self._current_confidence,
-            last_timestamp_ms=self._last_timestamp_ms
-        )
-
-    def restore_state(self, state: TemporalDecayState) -> None:
-        """Restore authenticator state from cache.
-
-        Args:
-            state: Previously saved authenticator state
-        """
-        self._current_confidence = state.confidence_score
-        self._last_timestamp_ms = state.last_timestamp_ms
-
-        logger.debug(
-            f"Restored authenticator state: confidence={state.confidence_score:.4f}, "
-            f"last_timestamp_ms={state.last_timestamp_ms}"
-        )
-
-    def reset_timestamp(self) -> None:
-        """Reset timestamp to avoid stale delta_t after cache restore."""
-        self._last_timestamp_ms = None
-        logger.debug("Reset timestamp to None")

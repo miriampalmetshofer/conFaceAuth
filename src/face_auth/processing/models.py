@@ -7,8 +7,6 @@ from typing import List, Optional
 
 from face_auth.config import Participant
 from face_auth.config.models import Scenario, HeadRotation
-from face_auth.authentication.core import FrameAuthenticationResult
-from face_auth.authentication.core.backend.authenticator_backend import AuthenticationState
 from face_auth.imposter_video_creation.iterators.frame_iterator import FrameIterator
 
 VIDEO_EXTENSIONS = ("mp4", "MP4")
@@ -51,29 +49,3 @@ class ImposterSamplePair:
 class ComposedVideo(Video):
     """Virtual video composed from multiple frame iterators without physical file."""
     iterators: List['FrameIterator']
-    cacheable_iterator: Optional['FrameIterator'] = None
-
-@dataclass
-class CacheValue:
-    """Cached results from processing a genuine video."""
-
-    authenticator_state: AuthenticationState
-    frame_results: List[FrameAuthenticationResult]
-    last_frame_index: int
-
-
-@dataclass(frozen=True)
-class CacheKey:
-    """Composite key for caching video processing results."""
-
-    video_path: Path
-
-    def __hash__(self):
-        """Make hashable for use as dict key."""
-        return hash(str(self.video_path))
-
-    def __eq__(self, other):
-        """Compare cache keys."""
-        if not isinstance(other, CacheKey):
-            return False
-        return self.video_path == other.video_path

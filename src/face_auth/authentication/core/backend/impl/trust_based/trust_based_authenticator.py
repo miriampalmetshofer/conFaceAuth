@@ -3,7 +3,7 @@ from typing import Optional
 import numpy as np
 
 from face_auth.authentication.core.backend.authenticator_backend import AuthenticatorBackend
-from face_auth.authentication.core.backend.impl.trust_based.models import TrustBasedConfig, TrustBasedState
+from face_auth.authentication.core.backend.impl.trust_based.models import TrustBasedConfig
 from face_auth.authentication.core.backend.impl.trust_based.trust_scorer import TrustScorer
 from face_auth.authentication.core.backend.impl.trust_based.temporal_window import TemporalWindow
 from face_auth.authentication.core.backend.enrollment_matcher import EnrollmentMatcher
@@ -125,37 +125,3 @@ class RiskBasedAuthenticator(AuthenticatorBackend):
         if self._last_similarity is None:
             raise ValueError("No similarity available before processing frames")
         return self._last_similarity
-
-    def get_state(self) -> TrustBasedState:
-        """Get current authenticator state for caching.
-
-        Returns:
-            Current state including similarity window and risk score
-
-        Raises:
-            ValueError: If no state available yet (no frames processed)
-        """
-        if self._current_trust_score is None:
-            raise ValueError("Cannot get state before processing any frames")
-
-        return TrustBasedState(
-            similarity_window=self._similarity_window.get_values(),
-            trust_score=self._current_trust_score
-        )
-
-    def restore_state(self, state: TrustBasedState) -> None:
-        """Restore authenticator state from cache.
-
-        Args:
-            state: Previously saved authenticator state
-        """
-        self._similarity_window = TemporalWindow[float](self.config.window_size)
-        for similarity in state.similarity_window:
-            self._similarity_window.append(similarity)
-
-        self._current_trust_score = state.trust_score
-
-        logger.debug(
-            f"Restored authenticator state: window_size={len(state.similarity_window)}, "
-            f"trust_score={state.trust_score:.4f}"
-        )

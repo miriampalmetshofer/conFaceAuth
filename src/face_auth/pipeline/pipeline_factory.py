@@ -4,7 +4,6 @@ from face_auth.config.models import ApplicationConfig, Pool
 from face_auth.authentication.embedder.embedder import Embedder
 from face_auth.imposter_video_creation.matching.matching_strategy_factory import create_matching_strategy
 from face_auth.processing import VideoParser, ControlledStudyParser
-from face_auth.processing.genuine_video_cache import VideoCache
 from face_auth.processing.video_parser import InTheWildStudyParser
 from face_auth.services.enrollment_service import EnrollmentService
 from face_auth.services.video_processing_service import VideoProcessingService
@@ -50,8 +49,7 @@ class PipelineFactory:
         """Create video processing service with all dependencies."""
         return VideoProcessingService(
             config=self.config.authentication,
-            embedder=self._create_embedder(),
-            genuine_cache=VideoCache()
+            embedder=self._create_embedder()
         )
 
     def _create_imposter_creation_service(self) -> ImposterVideoCreationService:
