@@ -66,17 +66,54 @@ def calculate_metrics(frames: list[FrameData], fps: int) -> AuthenticationMetric
     )
 
 
+def group_frames_by_video(frames: list[FrameData]) -> dict[str, list[FrameData]]:
+    """Group frames by video path."""
+    videos = {}
+    for frame in frames:
+        if frame.video_path not in videos:
+            videos[frame.video_path] = []
+        videos[frame.video_path].append(frame)
+    return videos
+
+
+def find_first_imposter_frame_index(video_frames: list[FrameData]) -> int:
+    """Find index of first imposter frame in video."""
+    for i, f in enumerate(video_frames):
+        if f.segment_type == SegmentType.IMPOSTER:
+            return i
+    return None
+
+
+def find_lockout_transition(video_frames: list[FrameData], first_imposter_idx: int, fps: int) -> Optional[float]:
+    """Find transition from Unlocked to Locked and return lockout time in seconds."""
+    if video_frames[first_imposter_idx].predicted_state == 'Locked':
+        return 0
+
+    for i in range(first_imposter_idx, len(video_frames) - 1):
+        if (video_frames[i].predicted_state == 'Unlocked' and
+            video_frames[i + 1].predicted_state == 'Locked'):
+            lockout_frames = video_frames[i + 1].frame - video_frames[first_imposter_idx].frame
+            return lockout_frames / fps
+
+    return None
+
+
+def report_never_locked_out_videos(never_locked_out: list[str]):
+    """Print warning about videos where imposter was never locked out."""
+    if never_locked_out:
+        print(f"\n⚠️  WARNING: {len(never_locked_out)} video(s) where imposter was NEVER locked out:")
+        for vp in never_locked_out:
+            print(f"    - {vp}")
+        print()
+
+
 def calculate_imposter_lockout_time(frames: list[FrameData], fps: int) -> tuple[Optional[float], Optional[float]]:
     """Calculate mean and max time until imposter is locked out per video in seconds.
 
     Returns:
         Tuple of (mean_lockout_time, max_lockout_time)
     """
-    videos = {}
-    for frame in frames:
-        if frame.video_path not in videos:
-            videos[frame.video_path] = []
-        videos[frame.video_path].append(frame)
+    videos = group_frames_by_video(frames)
 
     lockout_times = []
     never_locked_out = []
@@ -84,39 +121,18 @@ def calculate_imposter_lockout_time(frames: list[FrameData], fps: int) -> tuple[
     for video_path, video_frames in videos.items():
         video_frames.sort(key=lambda f: f.frame)
 
-        first_imposter_idx = None
-        for i, f in enumerate(video_frames):
-            if f.segment_type == SegmentType.IMPOSTER:
-                first_imposter_idx = i
-                break
-
+        first_imposter_idx = find_first_imposter_frame_index(video_frames)
         if first_imposter_idx is None:
             raise ValueError(f"No imposter frames found in video: {video_path}")
 
-        # Check if imposter is immediately locked from first frame
-        if video_frames[first_imposter_idx].predicted_state == 'Locked':
-            lockout_times.append(0)
-            continue
+        lockout_time = find_lockout_transition(video_frames, first_imposter_idx, fps)
 
-        # Look for transition from Unlocked to Locked
-        found_lockout = False
-        for i in range(first_imposter_idx, len(video_frames) - 1):
-            if (video_frames[i].predicted_state == 'Unlocked' and
-                video_frames[i + 1].predicted_state == 'Locked'):
-                lockout_frames = video_frames[i + 1].frame - video_frames[first_imposter_idx].frame
-                lockout_seconds = lockout_frames / fps
-                lockout_times.append(lockout_seconds)
-                found_lockout = True
-                break
-
-        if not found_lockout:
+        if lockout_time is not None:
+            lockout_times.append(lockout_time)
+        else:
             never_locked_out.append(video_path)
 
-    if never_locked_out:
-        print(f"\n⚠️  WARNING: {len(never_locked_out)} video(s) where imposter was NEVER locked out:")
-        for vp in never_locked_out:
-            print(f"    - {vp}")
-        print()
+    report_never_locked_out_videos(never_locked_out)
 
     if lockout_times:
         return np.mean(lockout_times), np.max(lockout_times)

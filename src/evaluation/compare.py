@@ -11,11 +11,11 @@ from evaluation.shared.reporting import print_section
 STUDY = 'in_the_wild'
 
 # Configure the two variants to compare
-VARIANT1_PATH = Path("data/" + STUDY + "/_results_archive/less_decay_less_weight")
-VARIANT2_PATH = Path("data/" + STUDY + "/_results_archive/very_loose")
+VARIANT1_PATH = Path("data/" + STUDY + "/_results_archive/V01")
+VARIANT2_PATH = Path("data/" + STUDY + "/_results_archive/V02")
 
-VARIANT1_NAME = "less_decay_less_weight"
-VARIANT2_NAME = "very_loose"
+VARIANT1_NAME = "V01"
+VARIANT2_NAME = "V02"
 
 
 def main():
@@ -50,7 +50,7 @@ def main():
     print_section("DEVICE METRICS COMPARISON")
     print_device_comparison(device_metrics1, device_metrics2, VARIANT1_NAME, VARIANT2_NAME, devices)
 
-    if has_scenarios:
+    if has_scenarios: # only for controlled study data
         scenarios = _get_unique_scenarios(data1)
         scenario_metrics1 = calculate_metrics_by_scenario(data1.frames, scenarios, data1.fps)
         scenario_metrics2 = calculate_metrics_by_scenario(data2.frames, scenarios, data2.fps)

@@ -59,20 +59,21 @@ def print_metric_row(metric_name: str, category: str, v1_val: Optional[float], v
     print(f"{metric_name:<20} {category:<10} {v1_str:<20} {v2_str:<20} {diff_str:<15} {indicator}")
 
 
+METRIC_CONFIGS = [
+    ('TAR (%)', 'true_accept_rate', 'percentage', False),
+    ('FRR (%)', 'false_reject_rate', 'percentage', True),
+    ('TRR (%)', 'true_reject_rate', 'percentage', False),
+    ('FAR (%)', 'false_accept_rate', 'percentage', True),
+    ('EER (%)', 'equal_error_rate', 'percentage', True),
+    ('Lockout (s)', 'imposter_lockout_time', 'lockout', True)
+]
+
+
 def print_device_comparison(device_metrics1: list[DeviceMetrics], device_metrics2: list[DeviceMetrics],
                             variant1_name: str, variant2_name: str, devices: list[str]) -> None:
     """Print device metrics comparison."""
     print(f"\n{'Metric':<20} {'Device':<10} {variant1_name:<20} {variant2_name:<20} {'Diff':<15}")
     print("-" * 90)
-
-    metric_configs = [
-        ('TAR (%)', 'true_accept_rate', 'percentage', False),
-        ('FRR (%)', 'false_reject_rate', 'percentage', True),
-        ('TRR (%)', 'true_reject_rate', 'percentage', False),
-        ('FAR (%)', 'false_accept_rate', 'percentage', True),
-        ('EER (%)', 'equal_error_rate', 'percentage', True),
-        ('Lockout (s)', 'imposter_lockout_time', 'lockout', False)
-    ]
 
     for device in devices:
         v1_device = next((dm for dm in device_metrics1 if dm.device == device), None)
@@ -81,7 +82,7 @@ def print_device_comparison(device_metrics1: list[DeviceMetrics], device_metrics
         if not v1_device or not v2_device:
             continue
 
-        for metric_name, metric_attr, metric_type, lower_is_better in metric_configs:
+        for metric_name, metric_attr, metric_type, lower_is_better in METRIC_CONFIGS:
             v1_val = getattr(v1_device.metrics, metric_attr)
             v2_val = getattr(v2_device.metrics, metric_attr)
             print_metric_row(metric_name, device.upper(), v1_val, v2_val, metric_type, lower_is_better)
@@ -95,16 +96,6 @@ def print_scenario_comparison(scenario_metrics1: list[ScenarioMetrics], scenario
     print(f"\n{'Metric':<20} {'Scenario':<10} {variant1_name:<20} {variant2_name:<20} {'Diff':<15}")
     print("-" * 90)
 
-    # m
-    metric_configs = [
-        ('TAR (%)', 'true_accept_rate', 'percentage', False),
-        ('FRR (%)', 'false_reject_rate', 'percentage', True),
-        ('TRR (%)', 'true_reject_rate', 'percentage', False),
-        ('FAR (%)', 'false_accept_rate', 'percentage', True),
-        ('EER (%)', 'equal_error_rate', 'percentage', True),
-        ('Lockout (s)', 'imposter_lockout_time', 'lockout', True)
-    ]
-
     for scenario in scenarios:
         v1_scenario = next((sm for sm in scenario_metrics1 if sm.scenario == scenario), None)
         v2_scenario = next((sm for sm in scenario_metrics2 if sm.scenario == scenario), None)
@@ -112,7 +103,7 @@ def print_scenario_comparison(scenario_metrics1: list[ScenarioMetrics], scenario
         if not v1_scenario or not v2_scenario:
             continue
 
-        for metric_name, metric_attr, metric_type, lower_is_better in metric_configs:
+        for metric_name, metric_attr, metric_type, lower_is_better in METRIC_CONFIGS:
             v1_val = getattr(v1_scenario.metrics, metric_attr)
             v2_val = getattr(v2_scenario.metrics, metric_attr)
             print_metric_row(metric_name, scenario.upper(), v1_val, v2_val, metric_type, lower_is_better)
