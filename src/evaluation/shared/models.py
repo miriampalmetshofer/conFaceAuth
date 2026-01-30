@@ -40,6 +40,7 @@ class AuthenticationMetrics:
     false_accept_rate: float
     equal_error_rate: float
     imposter_lockout_time: Optional[float]
+    max_lockout_time: Optional[float]
     similarity_difference: Optional[float]
     counts: FrameCounts
 
@@ -86,6 +87,13 @@ class AuthenticationMetrics:
             "imposter_lockout_time",
             "Lockout (s)",
             "Lockout",
+            format_spec=".1f",
+            include_in_plots=False
+        ),
+        MetricDefinition(
+            "max_lockout_time",
+            "Max Lockout (s)",
+            "MaxLock",
             format_spec=".1f",
             include_in_plots=False
         ),

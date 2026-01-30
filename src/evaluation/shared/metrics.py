@@ -34,7 +34,7 @@ def calculate_metrics(frames: list[FrameData], fps: int) -> AuthenticationMetric
     eer = (far + frr) / 2
 
     all_frames = genuine_frames + imposter_frames
-    lockout_time = calculate_imposter_lockout_time(frames, fps)
+    mean_lockout_time, max_lockout_time = calculate_imposter_lockout_time(frames, fps)
 
     # Calculate similarity difference (genuine avg - imposter avg)
     genuine_similarities = [f.similarity for f in genuine_frames if f.face_detected]
@@ -59,14 +59,19 @@ def calculate_metrics(frames: list[FrameData], fps: int) -> AuthenticationMetric
         true_reject_rate=trr,
         false_accept_rate=far,
         equal_error_rate=eer,
-        imposter_lockout_time=lockout_time,
+        imposter_lockout_time=mean_lockout_time,
+        max_lockout_time=max_lockout_time,
         similarity_difference=similarity_difference,
         counts=counts
     )
 
 
-def calculate_imposter_lockout_time(frames: list[FrameData], fps: int) -> Optional[float]:
-    """Calculate mean time until imposter is locked out per video in seconds."""
+def calculate_imposter_lockout_time(frames: list[FrameData], fps: int) -> tuple[Optional[float], Optional[float]]:
+    """Calculate mean and max time until imposter is locked out per video in seconds.
+
+    Returns:
+        Tuple of (mean_lockout_time, max_lockout_time)
+    """
     videos = {}
     for frame in frames:
         if frame.video_path not in videos:
@@ -113,7 +118,10 @@ def calculate_imposter_lockout_time(frames: list[FrameData], fps: int) -> Option
             print(f"    - {vp}")
         print()
 
-    return np.mean(lockout_times) if lockout_times else None
+    if lockout_times:
+        return np.mean(lockout_times), np.max(lockout_times)
+    else:
+        return None, None
 
 
 def calculate_metrics_by_device(frames: list[FrameData], devices: list[str], fps: int) -> list[DeviceMetrics]:
