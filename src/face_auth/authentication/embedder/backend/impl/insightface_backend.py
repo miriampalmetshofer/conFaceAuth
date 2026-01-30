@@ -67,12 +67,21 @@ class InsightFaceBackend(EmbedderBackend):
         if not faces or len(faces) == 0:
             return EmbeddingResult.no_face()
 
-        face = faces[0]
+        face = self._select_largest_face(faces)
         embedding = face.embedding
 
         normalized_embedding = self._l2_normalize_embeddings(embedding)
 
         return EmbeddingResult.success(normalized_embedding)
+
+    def _select_largest_face(self, faces):
+        return max(faces, key=self._calculate_bbox_area)
+
+    def _calculate_bbox_area(self, face):
+        bbox = face.bbox
+        width = bbox[2] - bbox[0]
+        height = bbox[3] - bbox[1]
+        return width * height
 
     def _l2_normalize_embeddings(self, embedding):
         norm = np.linalg.norm(embedding)

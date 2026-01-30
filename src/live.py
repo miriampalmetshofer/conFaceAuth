@@ -204,6 +204,15 @@ class LiveFaceAuth:
             cap.release()
             cv2.destroyAllWindows()
 
+    def _select_largest_face(self, faces):
+        return max(faces, key=self._calculate_bbox_area)
+
+    def _calculate_bbox_area(self, face):
+        bbox = face.bbox
+        width = bbox[2] - bbox[0]
+        height = bbox[3] - bbox[1]
+        return width * height
+
     def _draw_overlays(self, frame, auth_result, faces, threshold):
         """Draw authentication status and bounding boxes on frame."""
         display_frame = frame.copy()
@@ -215,7 +224,7 @@ class LiveFaceAuth:
 
         # Draw bounding box if face detected
         if faces and len(faces) > 0:
-            face = faces[0]  # Take first face
+            face = self._select_largest_face(faces)
             bbox = face.bbox.astype(int)
             x1, y1, x2, y2 = bbox[0], bbox[1], bbox[2], bbox[3]
 
