@@ -65,7 +65,8 @@ METRIC_CONFIGS = [
     ('TRR (%)', 'true_reject_rate', 'percentage', False),
     ('FAR (%)', 'false_accept_rate', 'percentage', True),
     ('EER (%)', 'equal_error_rate', 'percentage', True),
-    ('Lockout (s)', 'imposter_lockout_time', 'lockout', True)
+    ('Lockout (s)', 'imposter_lockout_time', 'lockout', True),
+    ('Max Lockout (s)', 'max_lockout_time', 'lockout', True)
 ]
 
 

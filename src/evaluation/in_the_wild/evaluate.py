@@ -1,5 +1,9 @@
 """Evaluation orchestration for in-the-wild study."""
+import sys
 from pathlib import Path
+
+# Add src to path to enable imports
+sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 from evaluation.shared.data_loader import load_evaluation_data
 from evaluation.shared.metrics import calculate_metrics_by_device
@@ -21,10 +25,13 @@ from evaluation.in_the_wild.annotation_validator import (
 DEVICES = ['mobile']
 
 PROJECT_ROOT = Path(__file__).parent.parent.parent.parent
-RESULTS_FOLDER = "data/in_the_wild/_results_archive/little_less_loose"
+RESULTS_FOLDER = "data/in_the_wild/"
+CONTROLLED_STUDY_FOLDER = "data/controlled_study/"
 
 RESULTS_PATH = PROJECT_ROOT / RESULTS_FOLDER / "results.csv"
 CONFIG_PATH = PROJECT_ROOT / RESULTS_FOLDER / "config.json"
+
+CONTROLLED_STUDY_RESULTS_PATH = PROJECT_ROOT / CONTROLLED_STUDY_FOLDER / "results.csv"
 
 ANNOTATIONS_PATH = PROJECT_ROOT / "data/in_the_wild"
 OUTPUT_PATH = PROJECT_ROOT / "src/evaluation/in_the_wild/output"
