@@ -5,8 +5,8 @@ This repository contains a prototype for a continuous face authentication pipeli
 ## Overview
 
 The system provides two main execution modes:
-1. **Live Mode** - For quick testing and real-time authentication using your webcam
-2. **Batch Processing Mode** - For processing multiple pre-recorded participant videos from two study pools
+1. **Live Mode (live.py)** - For quick testing and real-time authentication using your webcam
+2. **Batch Processing Mode (main.py)** - For processing multiple pre-recorded participant videos from two study pools
 
 ## Data Organization
 
@@ -43,8 +43,6 @@ data/
 ```
 
 ## Quick Start Guide
-
-Make sure to execute commands from the `src` folder.
 
 ### Prerequisites
 - Python 3.7+
@@ -263,8 +261,7 @@ Example configuration structure:
 
 1. **Interactive mode** (will prompt you to choose a config):
 ```bash
-cd src
-python main.py
+python src/main.py
 ```
 
 
