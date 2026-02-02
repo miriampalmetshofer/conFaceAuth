@@ -11,6 +11,7 @@ import matplotlib.pyplot as plt
 from evaluation.shared.models import (
     EvaluationData,
     DeviceMetrics,
+    ScenarioMetrics,
     ScenarioDeviceMetrics,
     SegmentType,
     FrameData,
@@ -471,6 +472,24 @@ def create_device_metrics_table(device_metrics: list[DeviceMetrics], frames: lis
     )
 
     columns, rows = MetricsTableBuilder.build_table_data(device_metrics, spec)
+    MetricsTableBuilder.render_table(ax, columns, rows, spec.title)
+
+    fig.suptitle(spec.title, fontsize=16, y=0.95)
+
+    return fig
+
+
+def create_scenario_metrics_table(scenario_metrics: list[ScenarioMetrics]) -> plt.Figure:
+    """Create aggregated scenario metrics table (across all devices)."""
+    fig, ax = plt.subplots(figsize=(16, 4))
+
+    spec = TableSpec(
+        title='Scenario Metrics (Aggregated across Devices)',
+        row_label_fn=lambda sm: sm.scenario.upper(),
+        row_label_header='Scenario'
+    )
+
+    columns, rows = MetricsTableBuilder.build_table_data(scenario_metrics, spec)
     MetricsTableBuilder.render_table(ax, columns, rows, spec.title)
 
     fig.suptitle(spec.title, fontsize=16, y=0.95)

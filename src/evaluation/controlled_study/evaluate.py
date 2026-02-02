@@ -17,6 +17,7 @@ from evaluation.shared.visualization import (
     create_trust_timeline_by_device,
     create_summary_visualization,
     create_combined_metrics_tables,
+    create_scenario_metrics_table,
     save_html,
     save_png
 )
@@ -25,7 +26,7 @@ DEVICES = ['desktop', 'mobile']
 SCENARIOS = ['easy', 'angle', 'lighting']
 
 PROJECT_ROOT = Path(__file__).parent.parent.parent.parent
-RESULTS_FOLDER = "data/controlled_study/"
+RESULTS_FOLDER = "data/controlled_study/_results_archive/V02"
 
 RESULTS_PATH = PROJECT_ROOT / RESULTS_FOLDER / "results.csv"
 CONFIG_PATH = PROJECT_ROOT / RESULTS_FOLDER / "config.json"
@@ -66,6 +67,9 @@ def main():
 
     fig_tables = create_combined_metrics_tables(device_metrics, scenario_device_metrics, data.frames, data.videos)
     output_files.append(save_png(fig_tables, OUTPUT_PATH, 'metrics_tables.png'))
+
+    fig_scenario_table = create_scenario_metrics_table(scenario_metrics)
+    output_files.append(save_png(fig_scenario_table, OUTPUT_PATH, 'table_scenarios_aggregated.png'))
 
     print_section("EVALUATION COMPLETE")
     print(f"All outputs saved to: {OUTPUT_PATH}")
