@@ -28,13 +28,14 @@
     },
     "num_workers": 4
   },
- "authentication": {
+  "authentication": {
     "backend": "temporal_decay",
+    "fps": 30,
     "temporal_decay": {
       "threshold": 0.5,
       "similarity_percentile": 0.90,
-      "k_weight": 1500,
-      "k_decay": 1000,
+      "k_weight": 45000,
+      "k_decay": 60000,
       "initial_confidence": 1
     }
   },
@@ -88,6 +89,15 @@
     },
     {
       "name": "max"
+    },
+    {
+      "name": "miriam"
+    },
+    {
+      "name": "elias"
+    },
+    {
+      "name": "lea"
     }
   ]
 }

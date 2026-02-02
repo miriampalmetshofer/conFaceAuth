@@ -2,7 +2,7 @@
   "pool": "controlled_study",
   "devices": [
     "desktop",
-     "mobile"
+    "mobile"
   ],
   "paths": {
     "base_path": "data/controlled_study",
@@ -28,11 +28,12 @@
   },
   "authentication": {
     "backend": "temporal_decay",
+    "fps": 30,
     "temporal_decay": {
       "threshold": 0.5,
       "similarity_percentile": 0.90,
-      "k_weight": 5000,
-      "k_decay": 10000,
+      "k_weight": 45000,
+      "k_decay": 60000,
       "initial_confidence": 1
     }
   },
