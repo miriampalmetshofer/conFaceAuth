@@ -15,6 +15,8 @@ from evaluation.shared.reporting import print_section, print_metrics_by_device, 
 from evaluation.shared.visualization import (
     create_trust_timeline_all_videos,
     create_trust_timeline_by_device,
+    create_trust_timeline_by_scenario,
+    create_aggregated_trust_timeline_by_scenario,
     create_summary_visualization,
     create_combined_metrics_tables,
     create_scenario_metrics_table,
@@ -26,7 +28,7 @@ DEVICES = ['desktop', 'mobile']
 SCENARIOS = ['easy', 'angle', 'lighting']
 
 PROJECT_ROOT = Path(__file__).parent.parent.parent.parent
-RESULTS_FOLDER = "data/controlled_study/_results_archive/V02"
+RESULTS_FOLDER = "data/controlled_study"
 
 RESULTS_PATH = PROJECT_ROOT / RESULTS_FOLDER / "results.csv"
 CONFIG_PATH = PROJECT_ROOT / RESULTS_FOLDER / "config.json"
@@ -57,6 +59,12 @@ def main():
 
     figs_devices = create_trust_timeline_by_device(data, DEVICES, "Controlled Study", CONFIG_PATH)
     output_files.append(save_html(figs_devices, OUTPUT_PATH, 'trust_timeline_by_device.html'))
+
+    figs_scenarios = create_trust_timeline_by_scenario(data, SCENARIOS, "Controlled Study", CONFIG_PATH)
+    output_files.append(save_html(figs_scenarios, OUTPUT_PATH, 'trust_timeline_by_scenario.html'))
+
+    fig_aggregated_scenarios = create_aggregated_trust_timeline_by_scenario(data, SCENARIOS, "Controlled Study", CONFIG_PATH)
+    output_files.append(save_html(fig_aggregated_scenarios, OUTPUT_PATH, 'trust_timeline_scenarios_aggregated.html'))
 
     fig_summary = create_summary_visualization(
         data,

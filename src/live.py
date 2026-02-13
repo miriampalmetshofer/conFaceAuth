@@ -31,7 +31,7 @@ logger = logging.getLogger(__name__)
 class LiveFaceAuth:
     """Live face authentication using webcam."""
 
-    def __init__(self, config_path: str = "../configs/live_config.json"):
+    def __init__(self, config_path: str = "configs/live_config.json"):
         """Initialize live face authentication.
 
         Args:

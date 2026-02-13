@@ -42,7 +42,8 @@ def load_evaluation_data(csv_path: Path, parse_scenario: bool = False) -> Evalua
             participant=row['participant'],
             device=row['device'],
             video_path=row['video_path'],
-            segment_type=segment_type
+            segment_type=segment_type,
+            scenario=video_meta.scenario if video_meta else None
         ))
 
     return EvaluationData(frames=frames, threshold=threshold, videos=videos, skip_frames=skip_frames, fps=fps)

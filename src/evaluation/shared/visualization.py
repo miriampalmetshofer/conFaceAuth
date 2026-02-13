@@ -231,44 +231,53 @@ def _add_video_traces(fig: go.Figure, video_frames_dict: dict[str, list[FrameDat
         ))
 
 
-def create_trust_timeline_all_videos(data: EvaluationData, study_name: str, config_path: Path) -> go.Figure:
-    """Create interactive trust score timeline showing all videos.
+def _group_frames_by_video_path(frames: list[FrameData]) -> dict[str, list[FrameData]]:
+    """Group frames by video path."""
+    videos = {}
+    for frame in frames:
+        if frame.video_path not in videos:
+            videos[frame.video_path] = []
+        videos[frame.video_path].append(frame)
+    return videos
+
+
+def _create_trust_timeline_figure(
+        frames: list[FrameData],
+        title: str,
+        threshold: float,
+        segments: dict,
+        fps: int
+) -> go.Figure:
+    """Create a single trust timeline figure from frames.
 
     Args:
-        data: Evaluation data containing frames and videos
-        study_name: Name of the study for plot title
-        config_path: Path to config file (required for FPS and segment boundaries)
+        frames: Frame data to visualize
+        title: Figure title
+        threshold: Trust threshold value
+        segments: Segment boundaries for background coloring
+        fps: Frames per second for time axis conversion
 
-    Raises:
-        ValueError: If config_path is not provided
+    Returns:
+        Configured Plotly figure
     """
-    if not config_path:
-        raise ValueError("config_path is required to determine FPS for time axis")
-
     fig = go.Figure()
 
-    # Load segment config and FPS
-    config_result = _load_segment_config(config_path)
-    if not config_result:
-        raise ValueError(f"Failed to load config from {config_path}")
-
-    segments, fps = config_result
     _add_segment_backgrounds(fig, segments)
 
-    videos = _group_frames_by_video_path(data)
-
+    videos = _group_frames_by_video_path(frames)
     _add_video_traces(fig, videos, fps)
 
     fig.add_hline(
-        y=data.threshold,
+        y=threshold,
         line_dash="dash",
         line_color="black"
     )
 
     fig.update_layout(
-        title=f"{study_name} - Trust Score Timeline (All Videos)<br><sub>Device: All | Threshold: {data.threshold}</sub>",
+        title=title,
         xaxis_title="Time (seconds)",
         yaxis_title="Trust Score",
+        yaxis_range=[0, 1],
         hovermode='closest',
         height=600,
         margin=dict(t=100),
@@ -291,21 +300,19 @@ def create_trust_timeline_all_videos(data: EvaluationData, study_name: str, conf
     return fig
 
 
-def _group_frames_by_video_path(data: EvaluationData) -> dict[str, list[FrameData]]:
-    videos = {}
-    for frame in data.frames:
-        if frame.video_path not in videos:
-            videos[frame.video_path] = []
-        videos[frame.video_path].append(frame)
-    return videos
+def create_trust_timeline_all_videos(data: EvaluationData, study_name: str, config_path: Path) -> go.Figure:
+    """Create interactive trust score timeline showing all videos.
 
+    Args:
+        data: Evaluation data containing frames and videos
+        study_name: Name of the study for plot title
+        config_path: Path to config file (required for FPS and segment boundaries)
 
-def create_trust_timeline_by_device(data: EvaluationData, devices: list[str], study_name: str,
-                                    config_path: Optional[Path] = None) -> list[go.Figure]:
+    Raises:
+        ValueError: If config_path is not provided
+    """
     if not config_path:
         raise ValueError("config_path is required to determine FPS for time axis")
-
-    figures = []
 
     config_result = _load_segment_config(config_path)
     if not config_result:
@@ -313,58 +320,197 @@ def create_trust_timeline_by_device(data: EvaluationData, devices: list[str], st
 
     segments, fps = config_result
 
-    for device in devices:
-        device_frames = [f for f in data.frames if f.device == device]
+    title = f"{study_name} - Trust Score Timeline (All Videos)<br><sub>Device: All | Threshold: {data.threshold}</sub>"
 
-        # Skip devices with no data
-        if not device_frames:
-            raise ValueError(f"No frames found for device: {device}")
+    return _create_trust_timeline_figure(data.frames, title, data.threshold, segments, fps)
 
-        fig = go.Figure()
 
-        # Add segment backgrounds
-        _add_segment_backgrounds(fig, segments)
+def _create_timelines_by_attribute(
+        data: EvaluationData,
+        attribute_values: list[str],
+        attribute_name: str,
+        filter_fn: Callable[[FrameData, str], bool],
+        study_name: str,
+        config_path: Path
+) -> list[go.Figure]:
+    """Generic function to create timelines grouped by a specific attribute.
 
-        videos = {}
-        for frame in device_frames:
-            if frame.video_path not in videos:
-                videos[frame.video_path] = []
-            videos[frame.video_path].append(frame)
+    Args:
+        data: Evaluation data containing frames and videos
+        attribute_values: List of attribute values to create timelines for
+        attribute_name: Name of the attribute (for error messages)
+        filter_fn: Function to filter frames by attribute value
+        study_name: Name of the study for plot title
+        config_path: Path to config file (required for FPS and segment boundaries)
 
-        _add_video_traces(fig, videos, fps)
+    Returns:
+        List of Plotly figures, one per attribute value
 
-        fig.add_hline(
-            y=data.threshold,
-            line_dash="dash",
-            line_color="black"
-        )
+    Raises:
+        ValueError: If config_path is not provided or attribute value has no data
+    """
+    if not config_path:
+        raise ValueError("config_path is required to determine FPS for time axis")
 
-        fig.update_layout(
-            title=f"{study_name} - {device.upper()}<br><sub>Threshold: {data.threshold}</sub>",
-            xaxis_title="Time (seconds)",
-            yaxis_title="Trust Score",
-            hovermode='closest',
-            height=600,
-            margin=dict(t=100),
-            template='plotly_white',
-            updatemenus=[
-                dict(
-                    type="buttons",
-                    direction="left",
-                    buttons=_create_show_hide_buttons(len(videos)),
-                    pad={"r": 10, "t": 10},
-                    showactive=False,
-                    x=0.0,
-                    xanchor="left",
-                    y=1.08,
-                    yanchor="top"
-                )
-            ]
-        )
+    config_result = _load_segment_config(config_path)
+    if not config_result:
+        raise ValueError(f"Failed to load config from {config_path}")
 
+    segments, fps = config_result
+    figures = []
+
+    for value in attribute_values:
+        filtered_frames = [f for f in data.frames if filter_fn(f, value)]
+
+        if not filtered_frames:
+            raise ValueError(f"No frames found for {attribute_name}: {value}")
+
+        title = f"{study_name} - {value.upper()}<br><sub>Threshold: {data.threshold}</sub>"
+        fig = _create_trust_timeline_figure(filtered_frames, title, data.threshold, segments, fps)
         figures.append(fig)
 
     return figures
+
+
+def create_trust_timeline_by_device(data: EvaluationData, devices: list[str], study_name: str,
+                                    config_path: Optional[Path] = None) -> list[go.Figure]:
+    """Create interactive trust score timeline for each device.
+
+    Args:
+        data: Evaluation data containing frames and videos
+        devices: List of device names to create timelines for
+        study_name: Name of the study for plot title
+        config_path: Path to config file (required for FPS and segment boundaries)
+
+    Returns:
+        List of Plotly figures, one per device
+
+    Raises:
+        ValueError: If config_path is not provided or device has no data
+    """
+    return _create_timelines_by_attribute(
+        data, devices, "device",
+        lambda f, device: f.device == device,
+        study_name, config_path
+    )
+
+
+def create_trust_timeline_by_scenario(data: EvaluationData, scenarios: list[str], study_name: str,
+                                       config_path: Optional[Path] = None) -> list[go.Figure]:
+    """Create interactive trust score timeline for each scenario (aggregated across all devices).
+
+    Args:
+        data: Evaluation data containing frames and videos
+        scenarios: List of scenario names to create timelines for
+        study_name: Name of the study for plot title
+        config_path: Path to config file (required for FPS and segment boundaries)
+
+    Returns:
+        List of Plotly figures, one per scenario
+
+    Raises:
+        ValueError: If config_path is not provided or scenario has no data
+    """
+    return _create_timelines_by_attribute(
+        data, scenarios, "scenario",
+        lambda f, scenario: f.scenario == scenario,
+        study_name, config_path
+    )
+
+
+def create_aggregated_trust_timeline_by_scenario(data: EvaluationData, scenarios: list[str], study_name: str,
+                                                  config_path: Optional[Path] = None) -> go.Figure:
+    """Create single timeline with one aggregated line per scenario.
+
+    Args:
+        data: Evaluation data containing frames and videos
+        scenarios: List of scenario names to aggregate
+        study_name: Name of the study for plot title
+        config_path: Path to config file (required for FPS and segment boundaries)
+
+    Returns:
+        Single Plotly figure with one line per scenario
+
+    Raises:
+        ValueError: If config_path is not provided or scenarios have no data
+    """
+    if not config_path:
+        raise ValueError("config_path is required to determine FPS for time axis")
+
+    config_result = _load_segment_config(config_path)
+    if not config_result:
+        raise ValueError(f"Failed to load config from {config_path}")
+
+    segments, fps = config_result
+    fig = go.Figure()
+
+    _add_segment_backgrounds(fig, segments)
+
+    scenario_colors = {
+        'easy': '#2ecc71',
+        'angle': '#3498db',
+        'lighting': '#f39c12'
+    }
+
+    for scenario in scenarios:
+        scenario_frames = [f for f in data.frames if f.scenario == scenario]
+
+        if not scenario_frames:
+            raise ValueError(f"No frames found for scenario: {scenario}")
+
+        frames_by_time = {}
+        for frame in scenario_frames:
+            time_in_seconds = frame.frame / fps
+            if time_in_seconds not in frames_by_time:
+                frames_by_time[time_in_seconds] = []
+            frames_by_time[time_in_seconds].append(frame.trust_score)
+
+        times = sorted(frames_by_time.keys())
+        avg_trust_scores = [np.mean(frames_by_time[t]) for t in times]
+
+        fig.add_trace(go.Scatter(
+            x=times,
+            y=avg_trust_scores,
+            mode='lines',
+            name=scenario.upper(),
+            line=dict(
+                color=scenario_colors.get(scenario, '#95a5a6'),
+                width=3
+            ),
+            hovertemplate=(
+                f'<b>{scenario.upper()}</b><br>'
+                'Time: %{x:.2f}s<br>'
+                'Avg Trust: %{y:.4f}'
+                '<extra></extra>'
+            )
+        ))
+
+    fig.add_hline(
+        y=data.threshold,
+        line_dash="dash",
+        line_color="black",
+        annotation_text=f"Threshold ({data.threshold})",
+        annotation_position="right"
+    )
+
+    fig.update_layout(
+        title=f"{study_name} - Aggregated Trust Score by Scenario<br><sub>Averaged across all devices and videos | Threshold: {data.threshold}</sub>",
+        xaxis_title="Time (seconds)",
+        yaxis_title="Trust Score",
+        yaxis_range=[0, 1],
+        hovermode='closest',
+        height=600,
+        margin=dict(t=100),
+        template='plotly_white',
+        legend=dict(
+            yanchor="top",
+            y=0.99,
+            xanchor="left",
+            x=0.01
+        )
+    )
+
+    return fig
 
 
 def plot_trust_distribution(ax: plt.Axes, data: EvaluationData) -> None:

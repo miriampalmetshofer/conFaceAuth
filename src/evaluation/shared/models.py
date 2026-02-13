@@ -174,6 +174,7 @@ class FrameData:
     device: str
     video_path: str
     segment_type: SegmentType
+    scenario: Optional[str] = None
 
 
 @dataclass
