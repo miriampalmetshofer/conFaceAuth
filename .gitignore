@@ -26,6 +26,7 @@ src/no_face/
 
 # PNG output files
 *.png
+*.pdf
 
 # Jupyter Notebook checkpoints
 .ipynb_checkpoints/
