@@ -35,6 +35,7 @@ def calculate_metrics(frames: list[FrameData], fps: int) -> AuthenticationMetric
 
     all_frames = genuine_frames + imposter_frames
     mean_lockout_time, max_lockout_time = calculate_imposter_lockout_time(frames, fps)
+    genuine_kickout_rate, genuine_kickout_time = calculate_genuine_kickout_metrics(frames, fps)
 
     # Calculate similarity difference (genuine avg - imposter avg)
     genuine_similarities = [f.similarity for f in genuine_frames if f.face_detected]
@@ -62,6 +63,8 @@ def calculate_metrics(frames: list[FrameData], fps: int) -> AuthenticationMetric
         imposter_lockout_time=mean_lockout_time,
         max_lockout_time=max_lockout_time,
         similarity_difference=similarity_difference,
+        genuine_kickout_rate=genuine_kickout_rate,
+        genuine_kickout_time=genuine_kickout_time,
         counts=counts
     )
 
@@ -138,6 +141,60 @@ def calculate_imposter_lockout_time(frames: list[FrameData], fps: int) -> tuple[
         return np.mean(lockout_times), np.max(lockout_times)
     else:
         return None, None
+
+
+def find_genuine_kickout_transition(video_frames: list[FrameData], fps: int) -> Optional[float]:
+    """Find when genuine user gets kicked out (Unlocked -> Locked during genuine segment).
+
+    Returns:
+        Time in seconds from start of video until genuine user kickout, or None if never kicked out.
+    """
+    for i in range(len(video_frames) - 1):
+        current_frame = video_frames[i]
+        next_frame = video_frames[i + 1]
+
+        # Check if both frames are in genuine segment and transition from Unlocked to Locked
+        if (current_frame.segment_type == SegmentType.GENUINE and
+            next_frame.segment_type == SegmentType.GENUINE and
+            current_frame.predicted_state == 'Unlocked' and
+            next_frame.predicted_state == 'Locked'):
+
+            kickout_frames = next_frame.frame
+            return kickout_frames / fps
+
+    return None
+
+
+def calculate_genuine_kickout_metrics(frames: list[FrameData], fps: int) -> tuple[Optional[float], Optional[float]]:
+    """Calculate genuine user kickout metrics across all videos.
+
+    Returns:
+        Tuple of (genuine_kickout_rate, mean_genuine_kickout_time)
+        - genuine_kickout_rate: percentage of videos where genuine user got kicked out
+        - mean_genuine_kickout_time: mean time until kickout (only for videos where kickout occurred)
+    """
+    videos = group_frames_by_video(frames)
+
+    total_videos = len(videos)
+    videos_with_kickout = 0
+    kickout_times = []
+
+    for video_path, video_frames in videos.items():
+        video_frames.sort(key=lambda f: f.frame)
+
+        kickout_time = find_genuine_kickout_transition(video_frames, fps)
+
+        if kickout_time is not None:
+            videos_with_kickout += 1
+            kickout_times.append(kickout_time)
+
+    # Calculate kickout rate as percentage
+    genuine_kickout_rate = (videos_with_kickout / total_videos * 100) if total_videos > 0 else None
+
+    # Calculate mean kickout time (only for videos where it happened)
+    mean_kickout_time = np.mean(kickout_times) if kickout_times else None
+
+    return genuine_kickout_rate, mean_kickout_time
 
 
 def calculate_metrics_by_device(frames: list[FrameData], devices: list[str], fps: int) -> list[DeviceMetrics]:

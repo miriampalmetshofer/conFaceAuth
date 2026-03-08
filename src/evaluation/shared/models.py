@@ -42,6 +42,8 @@ class AuthenticationMetrics:
     imposter_lockout_time: Optional[float]
     max_lockout_time: Optional[float]
     similarity_difference: Optional[float]
+    genuine_kickout_rate: Optional[float]
+    genuine_kickout_time: Optional[float]
     counts: FrameCounts
 
     METRIC_DEFINITIONS: ClassVar[list[MetricDefinition]] = [
@@ -102,6 +104,22 @@ class AuthenticationMetrics:
             "Sim Δ",
             "SimΔ",
             format_spec=".3f",
+            include_in_plots=False,
+            include_in_tables=True
+        ),
+        MetricDefinition(
+            "genuine_kickout_rate",
+            "Genuine Kickout (%)",
+            "GKO%",
+            format_spec=".1f",
+            include_in_plots=False,
+            include_in_tables=True
+        ),
+        MetricDefinition(
+            "genuine_kickout_time",
+            "Genuine Kickout Time (s)",
+            "GKOTime",
+            format_spec=".1f",
             include_in_plots=False,
             include_in_tables=True
         ),

@@ -29,6 +29,14 @@ def print_metrics_by_device(device_metrics: list[DeviceMetrics]) -> None:
             print(f"  Max Imposter Lockout Time:     {m.max_lockout_time:6.1f}s")
         else:
             print(f"  Max Imposter Lockout Time:     N/A")
+        if m.genuine_kickout_rate is not None:
+            print(f"  Genuine Kickout Rate:          {m.genuine_kickout_rate:6.1f}%")
+        else:
+            print(f"  Genuine Kickout Rate:          N/A")
+        if m.genuine_kickout_time is not None:
+            print(f"  Mean Genuine Kickout Time:     {m.genuine_kickout_time:6.1f}s")
+        else:
+            print(f"  Mean Genuine Kickout Time:     N/A")
         print()
 
 
@@ -52,4 +60,12 @@ def print_metrics_by_scenario(scenario_metrics: list[ScenarioMetrics]) -> None:
             print(f"  Max Imposter Lockout Time:     {m.max_lockout_time:6.1f}s")
         else:
             print(f"  Max Imposter Lockout Time:     N/A")
+        if m.genuine_kickout_rate is not None:
+            print(f"  Genuine Kickout Rate:          {m.genuine_kickout_rate:6.1f}%")
+        else:
+            print(f"  Genuine Kickout Rate:          N/A")
+        if m.genuine_kickout_time is not None:
+            print(f"  Mean Genuine Kickout Time:     {m.genuine_kickout_time:6.1f}s")
+        else:
+            print(f"  Mean Genuine Kickout Time:     N/A")
         print()

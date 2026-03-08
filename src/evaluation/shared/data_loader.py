@@ -16,6 +16,7 @@ from evaluation.shared.models import (
 
 def load_evaluation_data(csv_path: Path, parse_scenario: bool = False) -> EvaluationData:
     """Load CSV and convert to domain objects."""
+    print("Loading data...")
     df = pd.read_csv(csv_path)
     threshold = df['threshold'].iloc[0]
     skip_frames = int(df['skip_frames'].iloc[0])
@@ -28,7 +29,11 @@ def load_evaluation_data(csv_path: Path, parse_scenario: bool = False) -> Evalua
     videos = extract_video_metadata(df, parse_scenario)
     frames = []
 
-    for _, row in df.iterrows():
+    total = len(df)
+    for idx, row in df.iterrows():
+        if idx % 10000 == 0:
+            print(f"  {idx}/{total} rows...")
+
         video_meta = next((v for v in videos if v.video_path == row['video_path']), None)
         segment_type = determine_segment_type(row['source_type'], video_meta)
 
