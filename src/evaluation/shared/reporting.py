@@ -24,10 +24,10 @@ def print_metrics(m: AuthenticationMetrics) -> None:
         print(f"  Max Imposter Lockout Time:     {m.max_lockout_time:6.1f}s")
     else:
         print(f"  Max Imposter Lockout Time:     N/A")
-    if m.genuine_kickout_rate is not None:
-        print(f"  Genuine Kickout Rate:          {m.genuine_kickout_rate:6.1f}%")
+    if m.genuine_kickout_count is not None and m.genuine_kickout_total is not None:
+        print(f"  Genuine Kickouts:              {m.genuine_kickout_count}/{m.genuine_kickout_total}")
     else:
-        print(f"  Genuine Kickout Rate:          N/A")
+        print(f"  Genuine Kickouts:              N/A")
     if m.genuine_kickout_time is not None:
         print(f"  Mean Genuine Kickout Time:     {m.genuine_kickout_time:6.1f}s")
     else:

@@ -35,7 +35,7 @@ def calculate_metrics(frames: list[FrameData], fps: int) -> AuthenticationMetric
 
     all_frames = genuine_frames + imposter_frames
     mean_lockout_time, max_lockout_time = calculate_imposter_lockout_time(frames, fps)
-    genuine_kickout_rate, genuine_kickout_time = calculate_genuine_kickout_metrics(frames, fps)
+    genuine_kickout_count, genuine_kickout_total, genuine_kickout_time = calculate_genuine_kickout_metrics(frames, fps)
 
     # Calculate similarity difference (genuine avg - imposter avg)
     genuine_similarities = [f.similarity for f in genuine_frames if f.face_detected]
@@ -63,7 +63,8 @@ def calculate_metrics(frames: list[FrameData], fps: int) -> AuthenticationMetric
         imposter_lockout_time=mean_lockout_time,
         max_lockout_time=max_lockout_time,
         similarity_difference=similarity_difference,
-        genuine_kickout_rate=genuine_kickout_rate,
+        genuine_kickout_count=genuine_kickout_count,
+        genuine_kickout_total=genuine_kickout_total,
         genuine_kickout_time=genuine_kickout_time,
         counts=counts
     )
@@ -165,36 +166,51 @@ def find_genuine_kickout_transition(video_frames: list[FrameData], fps: int) -> 
     return None
 
 
-def calculate_genuine_kickout_metrics(frames: list[FrameData], fps: int) -> tuple[Optional[float], Optional[float]]:
-    """Calculate genuine user kickout metrics across all videos.
+def calculate_genuine_kickout_metrics(frames: list[FrameData], fps: int) -> tuple[Optional[int], Optional[int], Optional[float]]:
+    """Calculate genuine user kickout metrics across unique genuine videos.
 
     Returns:
-        Tuple of (genuine_kickout_rate, mean_genuine_kickout_time)
-        - genuine_kickout_rate: percentage of videos where genuine user got kicked out
+        Tuple of (kickout_count, total_unique_genuine_videos, mean_genuine_kickout_time)
+        - kickout_count: number of unique genuine videos where user got kicked out
+        - total_unique_genuine_videos: total number of unique genuine user videos
         - mean_genuine_kickout_time: mean time until kickout (only for videos where kickout occurred)
     """
     videos = group_frames_by_video(frames)
 
-    total_videos = len(videos)
-    videos_with_kickout = 0
-    kickout_times = []
+    # Group by source_type (unique genuine video identifier)
+    unique_genuine_videos = {}
 
     for video_path, video_frames in videos.items():
-        video_frames.sort(key=lambda f: f.frame)
+        if not video_frames:
+            continue
 
+        # Get source_type from genuine segment frames
+        genuine_source_types = set(f.source_type for f in video_frames if f.segment_type == SegmentType.GENUINE)
+
+        if not genuine_source_types:
+            continue
+
+        # Should only be one unique source_type for genuine frames in a video
+        source_type = next(iter(genuine_source_types))
+
+        # Skip if we already processed this unique genuine video
+        if source_type in unique_genuine_videos:
+            continue
+
+        video_frames.sort(key=lambda f: f.frame)
         kickout_time = find_genuine_kickout_transition(video_frames, fps)
 
-        if kickout_time is not None:
-            videos_with_kickout += 1
-            kickout_times.append(kickout_time)
+        unique_genuine_videos[source_type] = kickout_time
 
-    # Calculate kickout rate as percentage
-    genuine_kickout_rate = (videos_with_kickout / total_videos * 100) if total_videos > 0 else None
+    # Count kickouts and collect times
+    videos_with_kickout = sum(1 for t in unique_genuine_videos.values() if t is not None)
+    kickout_times = [t for t in unique_genuine_videos.values() if t is not None]
+    total_unique_videos = len(unique_genuine_videos)
 
     # Calculate mean kickout time (only for videos where it happened)
     mean_kickout_time = np.mean(kickout_times) if kickout_times else None
 
-    return genuine_kickout_rate, mean_kickout_time
+    return videos_with_kickout, total_unique_videos, mean_kickout_time
 
 
 def calculate_metrics_by_device(frames: list[FrameData], devices: list[str], fps: int) -> list[DeviceMetrics]:
