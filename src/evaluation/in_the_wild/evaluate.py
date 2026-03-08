@@ -7,7 +7,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 from evaluation.shared.data_loader import load_evaluation_data
 from evaluation.shared.metrics import calculate_metrics_by_device
-from evaluation.shared.reporting import print_section, print_metrics_by_device
+from evaluation.shared.reporting import print_section, print_metrics_by_device, print_dataset_summary
 from evaluation.shared.visualization import (
     create_trust_timeline_all_videos,
     create_trust_timeline_by_device,
@@ -57,6 +57,7 @@ def main():
 
     device_metrics = calculate_metrics_by_device(data.frames, DEVICES, data.fps)
 
+    print_dataset_summary(data.frames, len(data.videos))
     print_metrics_by_device(device_metrics)
 
     output_files = []

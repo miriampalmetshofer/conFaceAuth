@@ -39,12 +39,16 @@ class AuthenticationMetrics:
     true_reject_rate: float
     false_accept_rate: float
     equal_error_rate: float
+    imposter_lockout_count: Optional[int]
+    imposter_lockout_total: Optional[int]
     imposter_lockout_time: Optional[float]
+    imposter_lockout_time_p90: Optional[float]
     max_lockout_time: Optional[float]
     similarity_difference: Optional[float]
     genuine_kickout_count: Optional[int]
     genuine_kickout_total: Optional[int]
     genuine_kickout_time: Optional[float]
+    genuine_kickout_time_p90: Optional[float]
     counts: FrameCounts
 
     METRIC_DEFINITIONS: ClassVar[list[MetricDefinition]] = [
@@ -88,10 +92,18 @@ class AuthenticationMetrics:
         ),
         MetricDefinition(
             "imposter_lockout_time",
-            "Lockout (s)",
-            "Lockout",
+            "Lockout Median (s)",
+            "LockMed",
             format_spec=".1f",
             include_in_plots=False
+        ),
+        MetricDefinition(
+            "imposter_lockout_time_p90",
+            "Lockout P90 (s)",
+            "LockP90",
+            format_spec=".1f",
+            include_in_plots=False,
+            include_in_tables=True
         ),
         MetricDefinition(
             "max_lockout_time",
@@ -110,8 +122,16 @@ class AuthenticationMetrics:
         ),
         MetricDefinition(
             "genuine_kickout_time",
-            "Genuine Kickout Time (s)",
-            "GKOTime",
+            "Genuine Kickout Median (s)",
+            "GKOMed",
+            format_spec=".1f",
+            include_in_plots=False,
+            include_in_tables=True
+        ),
+        MetricDefinition(
+            "genuine_kickout_time_p90",
+            "Genuine Kickout P90 (s)",
+            "GKOP90",
             format_spec=".1f",
             include_in_plots=False,
             include_in_tables=True
@@ -161,6 +181,39 @@ class AuthenticationMetrics:
     def get_plot_values(self) -> list[float]:
         """Return values for plotted metrics in correct order."""
         return [getattr(self, m.field_name) for m in self.get_plot_metrics()]
+
+    def print_console(self, indent: str) -> None:
+        """Print metrics to console with custom indentation."""
+        print(f"{indent}TAR (True Accept Rate):        {self.true_accept_rate:6.2f}%")
+        print(f"{indent}FRR (False Reject Rate):       {self.false_reject_rate:6.2f}%")
+        print(f"{indent}TRR (True Reject Rate):        {self.true_reject_rate:6.2f}%")
+        print(f"{indent}FAR (False Accept Rate):       {self.false_accept_rate:6.2f}%")
+        print(f"{indent}EER (Equal Error Rate):        {self.equal_error_rate:6.2f}%")
+
+        if self.imposter_lockout_count is not None and self.imposter_lockout_total is not None:
+            print(f"{indent}Imposter Lockouts:             {self.imposter_lockout_count}/{self.imposter_lockout_total}")
+        else:
+            print(f"{indent}Imposter Lockouts:             N/A")
+
+        lockout_median = f"{self.imposter_lockout_time:6.1f}s" if self.imposter_lockout_time is not None else "N/A"
+        print(f"{indent}Imposter Lockout Median:       {lockout_median}")
+
+        lockout_p90 = f"{self.imposter_lockout_time_p90:6.1f}s" if self.imposter_lockout_time_p90 is not None else "N/A"
+        print(f"{indent}Imposter Lockout P90:          {lockout_p90}")
+
+        max_lockout = f"{self.max_lockout_time:6.1f}s" if self.max_lockout_time is not None else "N/A"
+        print(f"{indent}Max Imposter Lockout Time:     {max_lockout}")
+
+        if self.genuine_kickout_count is not None and self.genuine_kickout_total is not None:
+            print(f"{indent}Genuine Kickouts:              {self.genuine_kickout_count}/{self.genuine_kickout_total}")
+        else:
+            print(f"{indent}Genuine Kickouts:              N/A")
+
+        kickout_median = f"{self.genuine_kickout_time:6.1f}s" if self.genuine_kickout_time is not None else "N/A"
+        print(f"{indent}Genuine Kickout Median:        {kickout_median}")
+
+        kickout_p90 = f"{self.genuine_kickout_time_p90:6.1f}s" if self.genuine_kickout_time_p90 is not None else "N/A"
+        print(f"{indent}Genuine Kickout P90:           {kickout_p90}")
 
 
 @dataclass

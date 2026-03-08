@@ -11,7 +11,7 @@ from evaluation.shared.metrics import (
     calculate_metrics_by_scenario,
     calculate_metrics_by_scenario_and_device
 )
-from evaluation.shared.reporting import print_section, print_metrics_by_device, print_metrics_by_scenario
+from evaluation.shared.reporting import print_section, print_metrics_by_device, print_metrics_by_scenario, print_metrics_by_scenario_and_device, print_dataset_summary
 from evaluation.shared.visualization import (
     create_trust_timeline_all_videos,
     create_trust_timeline_by_device,
@@ -49,8 +49,10 @@ def main():
     scenario_metrics = calculate_metrics_by_scenario(data.frames, SCENARIOS, data.fps)
     scenario_device_metrics = calculate_metrics_by_scenario_and_device(data.frames, SCENARIOS, DEVICES, data.fps)
 
+    print_dataset_summary(data.frames, len(data.videos))
     print_metrics_by_device(device_metrics)
     print_metrics_by_scenario(scenario_metrics)
+    print_metrics_by_scenario_and_device(scenario_device_metrics, DEVICES)
 
     output_files = []
 

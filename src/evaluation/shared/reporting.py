@@ -1,5 +1,5 @@
 """Console reporting utilities."""
-from evaluation.shared.models import DeviceMetrics, ScenarioMetrics, AuthenticationMetrics
+from evaluation.shared.models import DeviceMetrics, ScenarioMetrics, ScenarioDeviceMetrics, AuthenticationMetrics, FrameData, SegmentType
 
 
 def print_section(title: str) -> None:
@@ -9,29 +9,17 @@ def print_section(title: str) -> None:
     print(f"{'=' * 80}\n")
 
 
-def print_metrics(m: AuthenticationMetrics) -> None:
-    """Print authentication metrics."""
-    print(f"  TAR (True Accept Rate):        {m.true_accept_rate:6.2f}%")
-    print(f"  FRR (False Reject Rate):       {m.false_reject_rate:6.2f}%")
-    print(f"  TRR (True Reject Rate):        {m.true_reject_rate:6.2f}%")
-    print(f"  FAR (False Accept Rate):       {m.false_accept_rate:6.2f}%")
-    print(f"  EER (Equal Error Rate):        {m.equal_error_rate:6.2f}%")
-    if m.imposter_lockout_time is not None:
-        print(f"  Mean Imposter Lockout Time:    {m.imposter_lockout_time:6.1f}s")
-    else:
-        print(f"  Mean Imposter Lockout Time:    N/A")
-    if m.max_lockout_time is not None:
-        print(f"  Max Imposter Lockout Time:     {m.max_lockout_time:6.1f}s")
-    else:
-        print(f"  Max Imposter Lockout Time:     N/A")
-    if m.genuine_kickout_count is not None and m.genuine_kickout_total is not None:
-        print(f"  Genuine Kickouts:              {m.genuine_kickout_count}/{m.genuine_kickout_total}")
-    else:
-        print(f"  Genuine Kickouts:              N/A")
-    if m.genuine_kickout_time is not None:
-        print(f"  Mean Genuine Kickout Time:     {m.genuine_kickout_time:6.1f}s")
-    else:
-        print(f"  Mean Genuine Kickout Time:     N/A")
+def print_dataset_summary(frames: list[FrameData], total_videos: int) -> None:
+    """Print summary of dataset including unique genuine videos and total sessions."""
+    unique_genuine_videos = set()
+    for frame in frames:
+        if frame.segment_type == SegmentType.GENUINE:
+            unique_genuine_videos.add(frame.source_type)
+
+    print(f"Total user videos: {len(unique_genuine_videos)}")
+    print(f"Total generated evaluation sessions: {total_videos}")
+
+    print()
 
 
 def print_metrics_by_device(device_metrics: list[DeviceMetrics]) -> None:
@@ -40,7 +28,7 @@ def print_metrics_by_device(device_metrics: list[DeviceMetrics]) -> None:
 
     for dm in device_metrics:
         print(f"{dm.device.upper()}")
-        print_metrics(dm.metrics)
+        dm.metrics.print_console(indent="  ")
         print()
 
 
@@ -50,5 +38,21 @@ def print_metrics_by_scenario(scenario_metrics: list[ScenarioMetrics]) -> None:
 
     for sm in scenario_metrics:
         print(f"{sm.scenario.upper()}")
-        print_metrics(sm.metrics)
+        sm.metrics.print_console(indent="  ")
+        print()
+
+
+def print_metrics_by_scenario_and_device(scenario_device_metrics: list[ScenarioDeviceMetrics], devices: list[str]) -> None:
+    """Print metrics table grouped by scenario and device."""
+    print_section("METRICS BY SCENARIO AND DEVICE")
+
+    for device in devices:
+        print(f"\n{device.upper()}")
+        print("-" * 40)
+
+        device_scenario_metrics = [sdm for sdm in scenario_device_metrics if sdm.device == device]
+
+        for sdm in device_scenario_metrics:
+            print(f"\n  {sdm.scenario.upper()}")
+            sdm.metrics.print_console(indent="    ")
         print()
