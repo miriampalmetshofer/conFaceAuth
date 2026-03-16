@@ -118,9 +118,17 @@ class EnrollmentService:
             Path to enrollment folder
         """
         participant_folder = self.paths.enrollment_base_path / context.device.value / context.participant.name
-        # Use first video's stem as folder name (all should be from same scenario/date)
-        video_name = enrollment_videos[0].path.stem
-        return participant_folder / video_name
+
+        # Extract unique scenarios and rotations from selected videos
+        scenarios = sorted(set(v.scenario.value for v in enrollment_videos))
+        rotations = sorted(set(v.head_rotation.value for v in enrollment_videos))
+
+        # Build predictable folder name: {name}_enrollment_{scenarios}_{rotations}
+        scenarios_str = "+".join(scenarios)
+        rotations_str = "+".join(rotations)
+
+        folder_name = f"{context.participant.name}_enrollment_{scenarios_str}_{rotations_str}"
+        return participant_folder / folder_name
 
     def _select_enrollment_videos(
         self,
@@ -139,23 +147,21 @@ class EnrollmentService:
         Raises:
             EnrollmentException: If any required video is missing
         """
-        # Filter videos matching the preferred scenario
-        scenario_videos = [v for v in available_videos if v.scenario == preference.scenario]
-
-        if not scenario_videos:
-            raise EnrollmentException(
-                f"No enrollment videos found for scenario '{preference.scenario.value}'"
-            )
-
-        # Find videos for each required rotation
         selected_videos = []
-        for rotation in preference.rotations:
-            matching = [v for v in scenario_videos if v.head_rotation == rotation]
-            if not matching:
-                raise EnrollmentException(
-                    f"Required rotation '{rotation.value}' not found for scenario '{preference.scenario.value}'"
-                )
-            selected_videos.append(matching[0])  # Use first match
+
+        # Select videos for each combination of scenario and rotation
+        for scenario in preference.scenarios:
+            for rotation in preference.rotations:
+                matching_videos = [
+                    v for v in available_videos
+                    if v.scenario == scenario and v.head_rotation == rotation
+                ]
+                if not matching_videos:
+                    raise EnrollmentException(
+                        f"No enrollment video found for scenario '{scenario.value}' with rotation '{rotation.value}'"
+                    )
+                # Use first match if multiple videos exist for same scenario+rotation
+                selected_videos.append(matching_videos[0])
 
         logger.info(
             f"Selected {len(selected_videos)} enrollment video(s): "

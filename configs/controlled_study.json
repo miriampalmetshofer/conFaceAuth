@@ -39,7 +39,9 @@
   },
   "enrollment": {
     "enrollment_video_preference": {
-      "scenario": "easy",
+      "scenarios": [
+        "easy"
+      ],
       "rotations": [
         "cw",
         "ccw"

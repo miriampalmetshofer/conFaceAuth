@@ -96,7 +96,7 @@ class AuthenticationConfig(BaseModel):
 class EnrollmentVideoPreference(BaseModel):
     """Preference for enrollment video selection."""
 
-    scenario: Scenario
+    scenarios: List[Scenario]
     rotations: List[HeadRotation] = Field(..., min_length=1)
 
     model_config = ConfigDict(frozen=True)
