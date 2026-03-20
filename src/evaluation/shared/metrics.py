@@ -1,5 +1,5 @@
 """Metric calculation utilities."""
-from typing import Optional
+from typing import Optional, NamedTuple
 
 import numpy as np
 
@@ -7,82 +7,31 @@ from evaluation.shared.models import (
     AuthenticationMetrics,
     FrameData,
     SegmentType,
+    TimeStat,
+    SessionCounts,
     DeviceMetrics,
     ScenarioMetrics,
     ScenarioDeviceMetrics,
-    FrameCounts
 )
 
+class _ImposterLockoutResult(NamedTuple):
+    lockouts: int
+    sessions: int
+    median: Optional[float]
+    p90: Optional[float]
+    max: Optional[float]
 
-def calculate_metrics(frames: list[FrameData], fps: int) -> AuthenticationMetrics:
-    """Calculate authentication metrics from frames."""
-    genuine_frames = [f for f in frames if f.segment_type == SegmentType.GENUINE]
-    imposter_frames = [f for f in frames if f.segment_type == SegmentType.IMPOSTER]
 
-    genuine_unlocked = sum(1 for f in genuine_frames if f.predicted_state == 'Unlocked')
-    genuine_locked = sum(1 for f in genuine_frames if f.predicted_state == 'Locked')
-
-    tar = (genuine_unlocked / len(genuine_frames) * 100) if genuine_frames else 0
-
-    imposter_locked = sum(1 for f in imposter_frames if f.predicted_state == 'Locked')
-    imposter_unlocked = sum(1 for f in imposter_frames if f.predicted_state == 'Unlocked')
-
-    trr = (imposter_locked / len(imposter_frames) * 100) if imposter_frames else 0
-
-    all_frames = genuine_frames + imposter_frames
-    imposter_lockout_count, imposter_lockout_total, mean_lockout_time, p90_lockout_time, max_lockout_time = calculate_imposter_lockout_time(frames, fps)
-    genuine_kickout_count, genuine_kickout_total, mean_kickout_time, p90_kickout_time = calculate_genuine_kickout_metrics(frames, fps)
-
-    frr = (genuine_kickout_count / genuine_kickout_total * 100) if genuine_kickout_total else 0
-    far = ((imposter_lockout_total - imposter_lockout_count) / imposter_lockout_total * 100) if imposter_lockout_total else 0
-
-    eer = (far + frr) / 2
-
-    # Mean genuine trust score
-    genuine_trust_scores = [f.trust_score for f in genuine_frames]
-    mean_genuine_trust = float(np.mean(genuine_trust_scores)) if genuine_trust_scores else None
-
-    # Calculate similarity difference (genuine avg - imposter avg)
-    genuine_similarities = [f.similarity for f in genuine_frames if f.face_detected]
-    imposter_similarities = [f.similarity for f in imposter_frames if f.face_detected]
-
-    if genuine_similarities and imposter_similarities:
-        avg_genuine_sim = np.mean(genuine_similarities)
-        avg_imposter_sim = np.mean(imposter_similarities)
-        similarity_difference = avg_genuine_sim - avg_imposter_sim
-    else:
-        similarity_difference = None
-
-    counts = FrameCounts(
-        total_frames=len(all_frames),
-        unlocked_frames=genuine_unlocked + imposter_unlocked,
-        locked_frames=genuine_locked + imposter_locked
-    )
-
-    return AuthenticationMetrics(
-        true_accept_rate=tar,
-        false_reject_rate=frr,
-        true_reject_rate=trr,
-        false_accept_rate=far,
-        equal_error_rate=eer,
-        mean_genuine_trust=mean_genuine_trust,
-        imposter_lockout_count=imposter_lockout_count,
-        imposter_lockout_total=imposter_lockout_total,
-        imposter_lockout_time=mean_lockout_time,
-        imposter_lockout_time_p90=p90_lockout_time,
-        max_lockout_time=max_lockout_time,
-        similarity_difference=similarity_difference,
-        genuine_kickout_count=genuine_kickout_count,
-        genuine_kickout_total=genuine_kickout_total,
-        genuine_kickout_time=mean_kickout_time,
-        genuine_kickout_time_p90=p90_kickout_time,
-        counts=counts
-    )
+class _GenuineLockoutResult(NamedTuple):
+    lockouts: int
+    sessions: int
+    median: Optional[float]
+    p90: Optional[float]
 
 
 def group_frames_by_video(frames: list[FrameData]) -> dict[str, list[FrameData]]:
     """Group frames by video path."""
-    videos = {}
+    videos: dict[str, list[FrameData]] = {}
     for frame in frames:
         if frame.video_path not in videos:
             videos[frame.video_path] = []
@@ -90,8 +39,8 @@ def group_frames_by_video(frames: list[FrameData]) -> dict[str, list[FrameData]]
     return videos
 
 
-def find_first_imposter_frame_index(video_frames: list[FrameData]) -> int:
-    """Find index of first imposter frame in video."""
+def find_first_imposter_frame_index(video_frames: list[FrameData]) -> Optional[int]:
+    """Return index of the first imposter frame, or None if absent."""
     for i, f in enumerate(video_frames):
         if f.segment_type == SegmentType.IMPOSTER:
             return i
@@ -99,21 +48,31 @@ def find_first_imposter_frame_index(video_frames: list[FrameData]) -> int:
 
 
 def find_lockout_transition(video_frames: list[FrameData], first_imposter_idx: int, fps: int) -> Optional[float]:
-    """Find transition from Unlocked to Locked and return lockout time in seconds."""
+    """Return seconds from imposter segment start until first Unlocked→Locked transition, or None."""
     if video_frames[first_imposter_idx].predicted_state == 'Locked':
-        return 0
-
+        return 0.0
     for i in range(first_imposter_idx, len(video_frames) - 1):
         if (video_frames[i].predicted_state == 'Unlocked' and
-            video_frames[i + 1].predicted_state == 'Locked'):
+                video_frames[i + 1].predicted_state == 'Locked'):
             lockout_frames = video_frames[i + 1].frame - video_frames[first_imposter_idx].frame
             return lockout_frames / fps
-
     return None
 
 
-def report_never_locked_out_videos(never_locked_out: list[str]):
-    """Print warning about videos where imposter was never locked out."""
+def find_genuine_lockout_transition(video_frames: list[FrameData], fps: int) -> Optional[float]:
+    """Return seconds from video start until genuine user is wrongly locked out, or None."""
+    for i in range(len(video_frames) - 1):
+        cur, nxt = video_frames[i], video_frames[i + 1]
+        if (cur.segment_type == SegmentType.GENUINE and
+                nxt.segment_type == SegmentType.GENUINE and
+                cur.predicted_state == 'Unlocked' and
+                nxt.predicted_state == 'Locked'):
+            return nxt.frame / fps
+    return None
+
+
+def report_never_locked_out_videos(never_locked_out: list[str]) -> None:
+    """Print warning for imposter sessions that were never locked out."""
     if never_locked_out:
         print(f"\n⚠️  WARNING: {len(never_locked_out)} video(s) where imposter was NEVER locked out:")
         for vp in never_locked_out:
@@ -121,160 +80,157 @@ def report_never_locked_out_videos(never_locked_out: list[str]):
         print()
 
 
-def calculate_imposter_lockout_time(frames: list[FrameData], fps: int) -> tuple[Optional[int], Optional[int], Optional[float], Optional[float], Optional[float]]:
-    """Calculate imposter lockout metrics.
+def _compute_genuine_trust(frames: list[FrameData]) -> Optional[float]:
+    """Mean trust score across all genuine frames."""
+    scores = [f.trust_score for f in frames if f.segment_type == SegmentType.GENUINE]
+    return float(np.mean(scores)) if scores else None
 
-    Returns:
-        Tuple of (lockout_count, total_videos, mean_lockout_time, p90_lockout_time, max_lockout_time)
-    """
+
+def _compute_imposter_lockout(frames: list[FrameData], fps: int) -> _ImposterLockoutResult:
+    """Compute imposter lockout count, session total, median/P90/max lockout time."""
     videos = group_frames_by_video(frames)
-
-    lockout_times = []
-    never_locked_out = []
+    lockout_times: list[float] = []
+    never_locked_out: list[str] = []
 
     for video_path, video_frames in videos.items():
         video_frames.sort(key=lambda f: f.frame)
-
-        first_imposter_idx = find_first_imposter_frame_index(video_frames)
-        if first_imposter_idx is None:
+        first_idx = find_first_imposter_frame_index(video_frames)
+        if first_idx is None:
             raise ValueError(f"No imposter frames found in video: {video_path}")
-
-        lockout_time = find_lockout_transition(video_frames, first_imposter_idx, fps)
-
-        if lockout_time is not None:
-            lockout_times.append(lockout_time)
+        t = find_lockout_transition(video_frames, first_idx, fps)
+        if t is not None:
+            lockout_times.append(t)
         else:
             never_locked_out.append(video_path)
 
     report_never_locked_out_videos(never_locked_out)
 
-    total_videos = len(videos)
-    lockout_count = len(lockout_times)
-
     if lockout_times:
-        return lockout_count, total_videos, np.mean(lockout_times), np.percentile(lockout_times, 90), np.max(lockout_times)
-    else:
-        return lockout_count, total_videos, None, None, None
+        return _ImposterLockoutResult(
+            lockouts=len(lockout_times),
+            sessions=len(videos),
+            median=float(np.median(lockout_times)),
+            p90=float(np.percentile(lockout_times, 90)),
+            max=float(np.max(lockout_times)),
+        )
+    return _ImposterLockoutResult(lockouts=0, sessions=len(videos), median=None, p90=None, max=None)
 
 
-def find_genuine_kickout_transition(video_frames: list[FrameData], fps: int) -> Optional[float]:
-    """Find when genuine user gets kicked out (Unlocked -> Locked during genuine segment).
+def _compute_genuine_lockout(frames: list[FrameData], fps: int) -> _GenuineLockoutResult:
+    """Compute genuine lockout count, session total, and median/P90 lockout time.
 
-    Returns:
-        Time in seconds from start of video until genuine user kickout, or None if never kicked out.
-    """
-    for i in range(len(video_frames) - 1):
-        current_frame = video_frames[i]
-        next_frame = video_frames[i + 1]
-
-        # Check if both frames are in genuine segment and transition from Unlocked to Locked
-        if (current_frame.segment_type == SegmentType.GENUINE and
-            next_frame.segment_type == SegmentType.GENUINE and
-            current_frame.predicted_state == 'Unlocked' and
-            next_frame.predicted_state == 'Locked'):
-
-            kickout_frames = next_frame.frame
-            return kickout_frames / fps
-
-    return None
-
-
-def calculate_genuine_kickout_metrics(frames: list[FrameData], fps: int) -> tuple[Optional[int], Optional[int], Optional[float], Optional[float]]:
-    """Calculate genuine user kickout metrics across unique genuine videos.
-
-    Returns:
-        Tuple of (kickout_count, total_unique_genuine_videos, mean_genuine_kickout_time, p90_genuine_kickout_time)
-        - kickout_count: number of unique genuine videos where user got kicked out
-        - total_unique_genuine_videos: total number of unique genuine user videos
-        - mean_genuine_kickout_time: mean time until kickout (only for videos where kickout occurred)
-        - p90_genuine_kickout_time: 90th percentile time until kickout
+    Deduplicates by source_type so each unique genuine user video is counted once.
     """
     videos = group_frames_by_video(frames)
+    seen_source_types: set[str] = set()
+    lockout_times: list[float] = []
+    total_sessions = 0
 
-    # Group by source_type (unique genuine video identifier)
-    unique_genuine_videos = {}
-
-    for video_path, video_frames in videos.items():
-        if not video_frames:
-            continue
-
-        # Get source_type from genuine segment frames
-        genuine_source_types = set(f.source_type for f in video_frames if f.segment_type == SegmentType.GENUINE)
-
+    for video_frames in videos.values():
+        genuine_source_types = {f.source_type for f in video_frames if f.segment_type == SegmentType.GENUINE}
         if not genuine_source_types:
             continue
-
-        # Should only be one unique source_type for genuine frames in a video
         source_type = next(iter(genuine_source_types))
-
-        # Skip if we already processed this unique genuine video
-        if source_type in unique_genuine_videos:
+        if source_type in seen_source_types:
             continue
+        seen_source_types.add(source_type)
+        total_sessions += 1
 
         video_frames.sort(key=lambda f: f.frame)
-        kickout_time = find_genuine_kickout_transition(video_frames, fps)
+        t = find_genuine_lockout_transition(video_frames, fps)
+        if t is not None:
+            lockout_times.append(t)
 
-        unique_genuine_videos[source_type] = kickout_time
+    if lockout_times:
+        return _GenuineLockoutResult(
+            lockouts=len(lockout_times),
+            sessions=total_sessions,
+            median=float(np.median(lockout_times)),
+            p90=float(np.percentile(lockout_times, 90)),
+        )
+    return _GenuineLockoutResult(lockouts=0, sessions=total_sessions, median=None, p90=None)
 
-    # Count kickouts and collect times
-    videos_with_kickout = sum(1 for t in unique_genuine_videos.values() if t is not None)
-    kickout_times = [t for t in unique_genuine_videos.values() if t is not None]
-    total_unique_videos = len(unique_genuine_videos)
 
-    # Calculate mean and p90 kickout time (only for videos where it happened)
-    mean_kickout_time = np.mean(kickout_times) if kickout_times else None
-    p90_kickout_time = np.percentile(kickout_times, 90) if kickout_times else None
+def _compute_session_rates(imp: _ImposterLockoutResult, gen: _GenuineLockoutResult) -> tuple[float, float]:
+    """Return (FRR %, FAR %) from imposter and genuine lockout results."""
+    frr = (gen.lockouts / gen.sessions * 100) if gen.sessions else 0.0
+    far = ((imp.sessions - imp.lockouts) / imp.sessions * 100) if imp.sessions else 0.0
+    return frr, far
 
-    return videos_with_kickout, total_unique_videos, mean_kickout_time, p90_kickout_time
+
+# ---------------------------------------------------------------------------
+# Public API
+# ---------------------------------------------------------------------------
+
+def calculate_metrics(frames: list[FrameData], fps: int) -> AuthenticationMetrics:
+    """Calculate all reported authentication metrics from a list of frames."""
+    imp = _compute_imposter_lockout(frames, fps)
+    gen = _compute_genuine_lockout(frames, fps)
+    frr, far = _compute_session_rates(imp, gen)
+
+    return AuthenticationMetrics(
+        false_reject_rate=frr,
+        false_accept_rate=far,
+        mean_genuine_trust=_compute_genuine_trust(frames),
+        imposter_lockout_time=TimeStat(median=imp.median, p90=imp.p90, max=imp.max),
+        genuine_lockout_time=TimeStat(median=gen.median, p90=gen.p90, max=None),
+        session_counts=SessionCounts(
+            genuine_sessions=gen.sessions,
+            genuine_lockouts=gen.lockouts,
+            imposter_sessions=imp.sessions,
+            imposter_lockouts=imp.lockouts,
+        ),
+    )
 
 
 def calculate_metrics_by_device(frames: list[FrameData], devices: list[str], fps: int) -> list[DeviceMetrics]:
     """Calculate metrics grouped by device."""
-    device_metrics = []
-    for device in devices:
-        device_frames = [f for f in frames if f.device == device]
-        if device_frames:
-            metrics = calculate_metrics(device_frames, fps)
-            device_metrics.append(DeviceMetrics(device=device, metrics=metrics))
-    return device_metrics
-
-
-def calculate_metrics_by_scenario(frames: list[FrameData], scenarios: list[str], fps: int) -> list[ScenarioMetrics]:
-    """Calculate metrics grouped by scenario."""
-    scenario_metrics = []
-    for scenario in scenarios:
-        scenario_frames = [f for f in frames if get_frame_scenario(f, scenarios) == scenario]
-        if scenario_frames:
-            metrics = calculate_metrics(scenario_frames, fps)
-            scenario_metrics.append(ScenarioMetrics(scenario=scenario, metrics=metrics))
-    return scenario_metrics
+    return [
+        DeviceMetrics(device=device, metrics=calculate_metrics(
+            [f for f in frames if f.device == device], fps
+        ))
+        for device in devices
+        if any(f.device == device for f in frames)
+    ]
 
 
 def get_frame_scenario(frame: FrameData, scenarios: list[str]) -> Optional[str]:
-    """Get scenario for a frame from source_type."""
+    """Return scenario name if found in frame source_type, else None."""
     for scenario in scenarios:
         if scenario in frame.source_type:
             return scenario
     return None
 
 
+def calculate_metrics_by_scenario(frames: list[FrameData], scenarios: list[str], fps: int) -> list[ScenarioMetrics]:
+    """Calculate metrics grouped by scenario."""
+    return [
+        ScenarioMetrics(scenario=scenario, metrics=calculate_metrics(
+            [f for f in frames if get_frame_scenario(f, scenarios) == scenario], fps
+        ))
+        for scenario in scenarios
+        if any(get_frame_scenario(f, scenarios) == scenario for f in frames)
+    ]
+
+
 def calculate_metrics_by_scenario_and_device(
     frames: list[FrameData],
     scenarios: list[str],
     devices: list[str],
-    fps: int
+    fps: int,
 ) -> list[ScenarioDeviceMetrics]:
     """Calculate metrics grouped by scenario and device combination."""
-    scenario_device_metrics = []
+    results = []
     for scenario in scenarios:
         for device in devices:
-            filtered_frames = [
+            filtered = [
                 f for f in frames
                 if get_frame_scenario(f, scenarios) == scenario and f.device == device
             ]
-            if filtered_frames:
-                metrics = calculate_metrics(filtered_frames, fps)
-                scenario_device_metrics.append(
-                    ScenarioDeviceMetrics(scenario=scenario, device=device, metrics=metrics)
-                )
-    return scenario_device_metrics
+            if filtered:
+                results.append(ScenarioDeviceMetrics(
+                    scenario=scenario,
+                    device=device,
+                    metrics=calculate_metrics(filtered, fps),
+                ))
+    return results

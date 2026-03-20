@@ -48,36 +48,36 @@ def _latex_escape(text: str) -> str:
 
 
 def _fmt(metrics: AuthenticationMetrics, defn: MetricDefinition, latex: bool = False) -> str:
-    value = getattr(metrics, defn.field_name)
+    value = metrics._resolve_field(defn.field_name)
     if value is None:
         return "--"
     cell = f"{value:{defn.format_spec}}"
 
-    if defn.field_name == "false_reject_rate" and metrics.genuine_kickout_count:
-        frac = f"{metrics.genuine_kickout_count}/{metrics.genuine_kickout_total}"
+    if defn.field_name == "false_reject_rate" and metrics.session_counts.genuine_lockouts:
+        frac = f"{metrics.session_counts.genuine_lockouts}/{metrics.session_counts.genuine_sessions}"
         if latex:
             cell += r" {{\scriptsize (" + frac + r")}}"
         else:
             cell += f"  ({frac})"
 
-    elif defn.field_name == "false_accept_rate" and metrics.imposter_lockout_total is not None:
-        not_locked = metrics.imposter_lockout_total - metrics.imposter_lockout_count
+    elif defn.field_name == "false_accept_rate":
+        not_locked = metrics.session_counts.imposter_sessions - metrics.session_counts.imposter_lockouts
         if not_locked:
-            frac = f"{not_locked}/{metrics.imposter_lockout_total}"
+            frac = f"{not_locked}/{metrics.session_counts.imposter_sessions}"
             if latex:
                 cell += r" {{\scriptsize (" + frac + r")}}"
             else:
                 cell += f"  ({frac})"
 
-    elif defn.field_name == "imposter_lockout_time" and metrics.imposter_lockout_time_p90 is not None:
-        p90 = f"{metrics.imposter_lockout_time_p90:.0f}"
+    elif defn.field_name == "imposter_lockout_time.median" and metrics.imposter_lockout_time.p90 is not None:
+        p90 = f"{metrics.imposter_lockout_time.p90:.0f}"
         if latex:
             cell += r" {{\scriptsize (" + p90 + r")}}"
         else:
             cell += f"  ({p90})"
 
-    elif defn.field_name == "genuine_kickout_time" and metrics.genuine_kickout_time_p90 is not None:
-        p90 = f"{metrics.genuine_kickout_time_p90:.0f}"
+    elif defn.field_name == "genuine_lockout_time.median" and metrics.genuine_lockout_time.p90 is not None:
+        p90 = f"{metrics.genuine_lockout_time.p90:.0f}"
         if latex:
             cell += r" {{\scriptsize (" + p90 + r")}}"
         else:

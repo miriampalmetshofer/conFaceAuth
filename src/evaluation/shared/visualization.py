@@ -208,30 +208,30 @@ def _add_metrics_visualization(fig: go.Figure, metrics: AuthenticationMetrics,
 
     imposter_start = segments['imposter'][0]
 
-    if metrics.imposter_lockout_time is not None:
-        ilt_abs = imposter_start + metrics.imposter_lockout_time
+    if metrics.imposter_lockout_time.median is not None:
+        ilt_abs = imposter_start + metrics.imposter_lockout_time.median
         fig.add_trace(go.Scatter(
             x=[ilt_abs],
             y=[threshold],
             mode='markers',
-            name=f'Median ILT ({metrics.imposter_lockout_time:.0f}s)',
+            name=f'Median ILT ({metrics.imposter_lockout_time.median:.0f}s)',
             marker=dict(size=15, color='rgba(142, 68, 173, 0.9)', symbol='diamond',
                         line=dict(width=2, color='white')),
             showlegend=True,
-            hovertemplate=f'Median ILT: {metrics.imposter_lockout_time:.1f}s<extra></extra>'
+            hovertemplate=f'Median ILT: {metrics.imposter_lockout_time.median:.1f}s<extra></extra>'
         ))
 
-    if metrics.max_lockout_time is not None:
-        max_abs = imposter_start + metrics.max_lockout_time
+    if metrics.imposter_lockout_time.max is not None:
+        max_abs = imposter_start + metrics.imposter_lockout_time.max
         fig.add_trace(go.Scatter(
             x=[max_abs],
             y=[threshold],
             mode='markers',
-            name=f'Max ILT ({metrics.max_lockout_time:.0f}s)',
+            name=f'Max ILT ({metrics.imposter_lockout_time.max:.0f}s)',
             marker=dict(size=15, color='rgba(231, 76, 60, 0.9)', symbol='diamond',
                         line=dict(width=2, color='white')),
             showlegend=True,
-            hovertemplate=f'Max ILT: {metrics.max_lockout_time:.1f}s<extra></extra>'
+            hovertemplate=f'Max ILT: {metrics.imposter_lockout_time.max:.1f}s<extra></extra>'
         ))
 
 
@@ -368,11 +368,11 @@ def create_trust_timeline_all_videos(data: EvaluationData, study_name: str, conf
 
     fig = _create_trust_timeline_figure(data.frames, title, data.threshold, segments, fps)
 
-    # Hide individual video legend entries, remove show/hide buttons, and remove the
-    # hline shape (it uses layer="above" which would cover the ILT markers)
+    # Hide individual video legend entries, remove show/hide buttons, and remove only
+    # the threshold hline shape (keep vrect segment backgrounds)
     fig.update_traces(showlegend=False)
     fig.layout.updatemenus = ()
-    fig.layout.shapes = ()
+    fig.layout.shapes = [s for s in fig.layout.shapes if not (s.type == 'line' and s.xref == 'paper')]
 
     # Compute and add mean trust trace across all videos
     videos = _group_frames_by_video_path(data.frames)
@@ -628,9 +628,9 @@ def plot_error_rates_by_device(ax: plt.Axes, device_metrics: list[DeviceMetrics]
     devices = [dm.device for dm in device_metrics]
     plot_metrics = AuthenticationMetrics.get_plot_metrics()
 
-    # Extract all values at once using metadata
+    # Extract all values at once using metadata (dot-path aware)
     metric_values = [
-        [getattr(dm.metrics, metric_def.field_name) for dm in device_metrics]
+        [dm.metrics._resolve_field(metric_def.field_name) for dm in device_metrics]
         for metric_def in plot_metrics
     ]
 
