@@ -12,8 +12,8 @@ class SegmentType(Enum):
 
 @dataclass
 class TimeStat:
-    """Time statistic bundling median, P90, and optional max."""
-    median: Optional[float]
+    """Time statistic bundling mean, P90, and optional max."""
+    mean: Optional[float]
     p90: Optional[float]
     max: Optional[float]
 
@@ -68,7 +68,7 @@ class AuthenticationMetrics:
             plot_order=0,
             include_in_tables=True,
             include_in_plots=True
-        ),
+    ),
         MetricDefinition(
             "false_accept_rate",
             "FAR (%)",
@@ -82,7 +82,7 @@ class AuthenticationMetrics:
         MetricDefinition(
             "mean_genuine_trust",
             "Mean Genuine Trust",
-            "MGT",
+            "GT",
             format_spec=".2f",
             include_in_tables=True,
             include_in_plots=True,
@@ -90,7 +90,7 @@ class AuthenticationMetrics:
             plot_order=2
         ),
         MetricDefinition(
-            "imposter_lockout_time.median",
+            "imposter_lockout_time.mean",
             "ILT (s)",
             "ILT",
             format_spec=".0f",
@@ -106,7 +106,7 @@ class AuthenticationMetrics:
             include_in_plots=False
         ),
         MetricDefinition(
-            "genuine_lockout_time.median",
+            "genuine_lockout_time.mean",
             "GKT (s)",
             "GKT",
             format_spec=".0f",
@@ -116,7 +116,7 @@ class AuthenticationMetrics:
     ]
 
     def _resolve_field(self, field_path: str) -> Optional[float]:
-        """Resolve a dot-path field name (e.g. 'imposter_lockout_time.median')."""
+        """Resolve a dot-path field name (e.g. 'imposter_lockout_time.mean')."""
         obj = self
         for attr in field_path.split('.'):
             obj = getattr(obj, attr, None)
@@ -170,9 +170,9 @@ class AuthenticationMetrics:
                 not_locked = self.session_counts.imposter_sessions - self.session_counts.imposter_lockouts
                 if not_locked:
                     suffix = f"  ({not_locked}/{self.session_counts.imposter_sessions})"
-            elif defn.field_name == "imposter_lockout_time.median" and self.imposter_lockout_time.p90 is not None:
+            elif defn.field_name == "imposter_lockout_time.mean" and self.imposter_lockout_time.p90 is not None:
                 suffix = f"  ({self.imposter_lockout_time.p90:.0f})"
-            elif defn.field_name == "genuine_lockout_time.median" and self.genuine_lockout_time.p90 is not None:
+            elif defn.field_name == "genuine_lockout_time.mean" and self.genuine_lockout_time.p90 is not None:
                 suffix = f"  ({self.genuine_lockout_time.p90:.0f})"
             print(f"{indent}{defn.display_label:<30} {value:{defn.format_spec}}{suffix}")
 

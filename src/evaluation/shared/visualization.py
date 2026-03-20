@@ -195,7 +195,7 @@ def _create_show_hide_buttons(num_traces: int) -> list[dict]:
 
 def _add_metrics_visualization(fig: go.Figure, metrics: AuthenticationMetrics,
                                threshold: float, segments: dict) -> None:
-    """Add ILT markers on the threshold line for median and max imposter lockout times.
+    """Add ILT markers on the threshold line for mean and max imposter lockout times.
 
     Args:
         fig: Plotly figure to add visualizations to
@@ -208,17 +208,17 @@ def _add_metrics_visualization(fig: go.Figure, metrics: AuthenticationMetrics,
 
     imposter_start = segments['imposter'][0]
 
-    if metrics.imposter_lockout_time.median is not None:
-        ilt_abs = imposter_start + metrics.imposter_lockout_time.median
+    if metrics.imposter_lockout_time.mean is not None:
+        ilt_abs = imposter_start + metrics.imposter_lockout_time.mean
         fig.add_trace(go.Scatter(
             x=[ilt_abs],
             y=[threshold],
             mode='markers',
-            name=f'Median ILT ({metrics.imposter_lockout_time.median:.0f}s)',
+            name=f'Mean ILT ({metrics.imposter_lockout_time.mean:.0f}s)',
             marker=dict(size=15, color='rgba(142, 68, 173, 0.9)', symbol='diamond',
                         line=dict(width=2, color='white')),
             showlegend=True,
-            hovertemplate=f'Median ILT: {metrics.imposter_lockout_time.median:.1f}s<extra></extra>'
+            hovertemplate=f'Mean ILT: {metrics.imposter_lockout_time.mean:.1f}s<extra></extra>'
         ))
 
     if metrics.imposter_lockout_time.max is not None:

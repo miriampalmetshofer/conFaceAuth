@@ -17,7 +17,7 @@ from evaluation.shared.models import (
 class _ImposterLockoutResult(NamedTuple):
     lockouts: int
     sessions: int
-    median: Optional[float]
+    mean: Optional[float]
     p90: Optional[float]
     max: Optional[float]
 
@@ -25,7 +25,7 @@ class _ImposterLockoutResult(NamedTuple):
 class _GenuineLockoutResult(NamedTuple):
     lockouts: int
     sessions: int
-    median: Optional[float]
+    mean: Optional[float]
     p90: Optional[float]
 
 
@@ -87,7 +87,7 @@ def _compute_genuine_trust(frames: list[FrameData]) -> Optional[float]:
 
 
 def _compute_imposter_lockout(frames: list[FrameData], fps: int) -> _ImposterLockoutResult:
-    """Compute imposter lockout count, session total, median/P90/max lockout time."""
+    """Compute imposter lockout count, session total, mean/P90/max lockout time."""
     videos = group_frames_by_video(frames)
     lockout_times: list[float] = []
     never_locked_out: list[str] = []
@@ -109,15 +109,15 @@ def _compute_imposter_lockout(frames: list[FrameData], fps: int) -> _ImposterLoc
         return _ImposterLockoutResult(
             lockouts=len(lockout_times),
             sessions=len(videos),
-            median=float(np.median(lockout_times)),
+            mean=float(np.mean(lockout_times)),
             p90=float(np.percentile(lockout_times, 90)),
             max=float(np.max(lockout_times)),
         )
-    return _ImposterLockoutResult(lockouts=0, sessions=len(videos), median=None, p90=None, max=None)
+    return _ImposterLockoutResult(lockouts=0, sessions=len(videos), mean=None, p90=None, max=None)
 
 
 def _compute_genuine_lockout(frames: list[FrameData], fps: int) -> _GenuineLockoutResult:
-    """Compute genuine lockout count, session total, and median/P90 lockout time.
+    """Compute genuine lockout count, session total, and mean/P90 lockout time.
 
     Deduplicates by source_type so each unique genuine user video is counted once.
     """
@@ -145,10 +145,10 @@ def _compute_genuine_lockout(frames: list[FrameData], fps: int) -> _GenuineLocko
         return _GenuineLockoutResult(
             lockouts=len(lockout_times),
             sessions=total_sessions,
-            median=float(np.median(lockout_times)),
+            mean=float(np.mean(lockout_times)),
             p90=float(np.percentile(lockout_times, 90)),
         )
-    return _GenuineLockoutResult(lockouts=0, sessions=total_sessions, median=None, p90=None)
+    return _GenuineLockoutResult(lockouts=0, sessions=total_sessions, mean=None, p90=None)
 
 
 def _compute_session_rates(imp: _ImposterLockoutResult, gen: _GenuineLockoutResult) -> tuple[float, float]:
@@ -172,8 +172,8 @@ def calculate_metrics(frames: list[FrameData], fps: int) -> AuthenticationMetric
         false_reject_rate=frr,
         false_accept_rate=far,
         mean_genuine_trust=_compute_genuine_trust(frames),
-        imposter_lockout_time=TimeStat(median=imp.median, p90=imp.p90, max=imp.max),
-        genuine_lockout_time=TimeStat(median=gen.median, p90=gen.p90, max=None),
+        imposter_lockout_time=TimeStat(mean=imp.mean, p90=imp.p90, max=imp.max),
+        genuine_lockout_time=TimeStat(mean=gen.mean, p90=gen.p90, max=None),
         session_counts=SessionCounts(
             genuine_sessions=gen.sessions,
             genuine_lockouts=gen.lockouts,
