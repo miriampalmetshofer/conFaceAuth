@@ -28,5 +28,8 @@ src/no_face/
 *.png
 *.pdf
 
+# Model files
+*.task
+
 # Jupyter Notebook checkpoints
 .ipynb_checkpoints/

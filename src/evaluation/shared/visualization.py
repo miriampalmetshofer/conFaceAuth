@@ -367,6 +367,7 @@ def create_trust_timeline_all_videos(data: EvaluationData, study_name: str, conf
     title = f"{study_name} - Trust Score Timeline (All Videos)<br><sub>Device: All | Threshold: {data.threshold}</sub>"
 
     fig = _create_trust_timeline_figure(data.frames, title, data.threshold, segments, fps)
+    fig.update_layout(title=None)
 
     # Hide individual video legend entries, remove show/hide buttons, and remove only
     # the threshold hline shape (keep vrect segment backgrounds)
