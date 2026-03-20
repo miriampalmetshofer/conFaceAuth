@@ -1,10 +1,10 @@
-"""Temporal decay authenticator using time-weighted confidence scoring."""
+"""Temporal decay authenticator using time-weighted trust scoring."""
 from typing import Optional
 import numpy as np
 
 from face_auth.authentication.core.backend.authenticator_backend import AuthenticatorBackend
 from face_auth.authentication.core.backend.impl.temporal_decay.models import TemporalDecayConfig
-from face_auth.authentication.core.backend.impl.temporal_decay.confidence_scorer import ConfidenceScorer
+from face_auth.authentication.core.backend.impl.temporal_decay.trust_scorer import TrustScorer
 from face_auth.authentication.core.backend.enrollment_matcher import EnrollmentMatcher
 from face_auth.config.logging_config import get_logger
 
@@ -12,7 +12,7 @@ logger = get_logger(__name__)
 
 
 class TemporalDecayAuthenticator(AuthenticatorBackend):
-    """Makes authentication decisions based on time-weighted confidence scores."""
+    """Makes authentication decisions based on time-weighted trust scores."""
 
     def __init__(
         self,
@@ -31,9 +31,9 @@ class TemporalDecayAuthenticator(AuthenticatorBackend):
             enrollment_embeddings,
             config.similarity_percentile
         )
-        self._confidence_scorer = ConfidenceScorer(config.k_weight, config.k_decay)
+        self._trust_scorer = TrustScorer(config.k_weight, config.k_decay)
 
-        self._current_confidence: float = config.initial_confidence
+        self._current_trust: float = config.initial_confidence
         self._last_timestamp_ms: Optional[float] = None
         self._last_similarity: Optional[float] = None
 
@@ -73,8 +73,8 @@ class TemporalDecayAuthenticator(AuthenticatorBackend):
         self._last_similarity = similarity
 
         delta_t = self._get_delta_t_milliseconds(timestamp_ms)
-        self._current_confidence = self._confidence_scorer.compute_with_face(
-            self._current_confidence,
+        self._current_trust = self._trust_scorer.compute_with_face(
+            self._current_trust,
             similarity,
             delta_t
         )
@@ -82,7 +82,7 @@ class TemporalDecayAuthenticator(AuthenticatorBackend):
 
         logger.debug(
             f"Updated with face: similarity={similarity:.4f}, delta_t={delta_t:.1f}ms, "
-            f"confidence={self._current_confidence:.4f}"
+            f"trust={self._current_trust:.4f}"
         )
 
     def update_with_no_face(self, timestamp_ms: float) -> None:
@@ -92,49 +92,49 @@ class TemporalDecayAuthenticator(AuthenticatorBackend):
             timestamp_ms: Video timestamp in milliseconds
         """
         delta_t = self._get_delta_t_milliseconds(timestamp_ms)
-        self._current_confidence = self._confidence_scorer.compute_with_no_face(
-            self._current_confidence,
+        self._current_trust = self._trust_scorer.compute_with_no_face(
+            self._current_trust,
             delta_t
         )
         self._last_timestamp_ms = timestamp_ms
 
         logger.debug(
             f"Updated with no face: delta_t={delta_t:.1f}ms, "
-            f"confidence={self._current_confidence:.4f}"
+            f"trust={self._current_trust:.4f}"
         )
 
     def is_authenticated(self) -> bool:
-        """Check if current confidence score indicates user is authenticated.
+        """Check if current trust score indicates user is authenticated.
 
         Returns:
-            True if confidence >= threshold, False otherwise
+            True if trust score >= threshold, False otherwise
 
         Raises:
             ValueError: If called before processing any frames
         """
-        if self._current_confidence is None:
+        if self._current_trust is None:
             raise ValueError("Cannot check authentication before processing any frames")
 
-        is_auth = self._current_confidence >= self.config.threshold
+        is_auth = self._current_trust >= self.config.threshold
         logger.debug(
-            f"confidence: {self._current_confidence:.4f}, "
+            f"trust: {self._current_trust:.4f}, "
             f"threshold: {self.config.threshold}, "
             f"authenticated: {is_auth}"
         )
         return is_auth
 
     def get_score(self) -> float:
-        """Get current confidence score.
+        """Get current trust score.
 
         Returns:
-            Current confidence score
+            Current trust score
 
         Raises:
-            ValueError: If no confidence score available yet
+            ValueError: If no trust score available yet
         """
-        if self._current_confidence is None:
-            raise ValueError("No confidence score available before processing frames")
-        return self._current_confidence
+        if self._current_trust is None:
+            raise ValueError("No trust score available before processing frames")
+        return self._current_trust
 
     def get_last_similarity(self) -> float:
         """Get the last computed similarity value.
