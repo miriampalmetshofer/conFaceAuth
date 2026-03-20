@@ -12,14 +12,14 @@ from evaluation.shared.metrics import calculate_metrics_by_device, calculate_met
 from evaluation.shared.comparison import print_device_comparison, print_scenario_comparison
 from evaluation.shared.reporting import print_section
 
-STUDY = 'in_the_wild'
+STUDY = 'controlled_study'
 
 # Configure the two variants to compare
-VARIANT1_PATH = Path("data/" + STUDY + "/_results_archive/V01")
-VARIANT2_PATH = Path("data/" + STUDY + "/_results_archive/V02")
+VARIANT1_PATH = Path("data/" + STUDY + "/_results_archive/V03")
+VARIANT2_PATH = Path("data/" + STUDY + "/_results_archive/V04")
 
-VARIANT1_NAME = "V01"
-VARIANT2_NAME = "V02"
+VARIANT1_NAME = "V03"
+VARIANT2_NAME = "V04"
 
 
 def main():

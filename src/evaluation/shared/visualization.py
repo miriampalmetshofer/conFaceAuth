@@ -193,6 +193,48 @@ def _create_show_hide_buttons(num_traces: int) -> list[dict]:
     ]
 
 
+def _add_metrics_visualization(fig: go.Figure, metrics: AuthenticationMetrics,
+                               threshold: float, segments: dict) -> None:
+    """Add ILT markers on the threshold line for median and max imposter lockout times.
+
+    Args:
+        fig: Plotly figure to add visualizations to
+        metrics: Metrics containing imposter_lockout_time and max_lockout_time
+        threshold: Trust score threshold value for positioning markers
+        segments: Segment boundaries to calculate ILT absolute position
+    """
+    if not segments or 'imposter' not in segments:
+        return
+
+    imposter_start = segments['imposter'][0]
+
+    if metrics.imposter_lockout_time is not None:
+        ilt_abs = imposter_start + metrics.imposter_lockout_time
+        fig.add_trace(go.Scatter(
+            x=[ilt_abs],
+            y=[threshold],
+            mode='markers',
+            name=f'Median ILT ({metrics.imposter_lockout_time:.0f}s)',
+            marker=dict(size=15, color='rgba(142, 68, 173, 0.9)', symbol='diamond',
+                        line=dict(width=2, color='white')),
+            showlegend=True,
+            hovertemplate=f'Median ILT: {metrics.imposter_lockout_time:.1f}s<extra></extra>'
+        ))
+
+    if metrics.max_lockout_time is not None:
+        max_abs = imposter_start + metrics.max_lockout_time
+        fig.add_trace(go.Scatter(
+            x=[max_abs],
+            y=[threshold],
+            mode='markers',
+            name=f'Max ILT ({metrics.max_lockout_time:.0f}s)',
+            marker=dict(size=15, color='rgba(231, 76, 60, 0.9)', symbol='diamond',
+                        line=dict(width=2, color='white')),
+            showlegend=True,
+            hovertemplate=f'Max ILT: {metrics.max_lockout_time:.1f}s<extra></extra>'
+        ))
+
+
 def _add_video_traces(fig: go.Figure, video_frames_dict: dict[str, list[FrameData]], fps: int) -> None:
     """Add video traces to a plotly figure.
 
@@ -300,13 +342,15 @@ def _create_trust_timeline_figure(
     return fig
 
 
-def create_trust_timeline_all_videos(data: EvaluationData, study_name: str, config_path: Path) -> go.Figure:
-    """Create interactive trust score timeline showing all videos.
+def create_trust_timeline_all_videos(data: EvaluationData, study_name: str, config_path: Path,
+                                     metrics: AuthenticationMetrics) -> go.Figure:
+    """Create interactive trust score timeline showing all videos with mean trust and ILT markers.
 
     Args:
         data: Evaluation data containing frames and videos
         study_name: Name of the study for plot title
         config_path: Path to config file (required for FPS and segment boundaries)
+        metrics: Overall authentication metrics for ILT marker positions
 
     Raises:
         ValueError: If config_path is not provided
@@ -322,7 +366,55 @@ def create_trust_timeline_all_videos(data: EvaluationData, study_name: str, conf
 
     title = f"{study_name} - Trust Score Timeline (All Videos)<br><sub>Device: All | Threshold: {data.threshold}</sub>"
 
-    return _create_trust_timeline_figure(data.frames, title, data.threshold, segments, fps)
+    fig = _create_trust_timeline_figure(data.frames, title, data.threshold, segments, fps)
+
+    # Hide individual video legend entries, remove show/hide buttons, and remove the
+    # hline shape (it uses layer="above" which would cover the ILT markers)
+    fig.update_traces(showlegend=False)
+    fig.layout.updatemenus = ()
+    fig.layout.shapes = ()
+
+    # Compute and add mean trust trace across all videos
+    videos = _group_frames_by_video_path(data.frames)
+    frames_by_time: dict[int, list[float]] = {}
+    for frames in videos.values():
+        for f in frames:
+            if f.frame not in frames_by_time:
+                frames_by_time[f.frame] = []
+            frames_by_time[f.frame].append(f.trust_score)
+    sorted_frames = sorted(frames_by_time.keys())
+    mean_times = [frame / fps for frame in sorted_frames]
+    mean_trust = [float(np.mean(frames_by_time[frame])) for frame in sorted_frames]
+
+    fig.add_trace(go.Scatter(
+        x=mean_times,
+        y=mean_trust,
+        mode='lines',
+        name='Mean Trust',
+        line=dict(color='black', width=3),
+        showlegend=True,
+        hovertemplate='Time: %{x:.2f}s<br>Mean Trust: %{y:.4f}<extra></extra>'
+    ))
+
+    # Add threshold as a named trace so it appears in the legend
+    x_end = mean_times[-1] if mean_times else segments.get('imposter', (0, 0))[1]
+    fig.add_trace(go.Scatter(
+        x=[0, x_end],
+        y=[data.threshold, data.threshold],
+        mode='lines',
+        name=f'Threshold ({data.threshold})',
+        line=dict(color='black', width=1, dash='dash'),
+        showlegend=True,
+        hovertemplate=f'Threshold: {data.threshold}<extra></extra>'
+    ))
+
+    _add_metrics_visualization(fig, metrics, data.threshold, segments)
+
+    fig.update_layout(
+        legend=dict(orientation='h', yanchor='bottom', y=1.02, xanchor='right', x=1)
+    )
+
+    return fig
 
 
 def _create_timelines_by_attribute(

@@ -39,6 +39,7 @@ class AuthenticationMetrics:
     true_reject_rate: float
     false_accept_rate: float
     equal_error_rate: float
+    mean_genuine_trust: Optional[float]
     imposter_lockout_count: Optional[int]
     imposter_lockout_total: Optional[int]
     imposter_lockout_time: Optional[float]
@@ -58,14 +59,17 @@ class AuthenticationMetrics:
             "TAR",
             plot_color='#2ecc71',
             plot_order=0,
-            include_in_tables=False
+            include_in_tables=False,
+            include_in_plots=False
         ),
         MetricDefinition(
             "false_reject_rate",
             "FRR (%)",
             "FRR",
+            format_spec=".1f",
             plot_color='#e74c3c',
-            plot_order=1
+            plot_order=1,
+            include_in_tables=True
         ),
         MetricDefinition(
             "true_reject_rate",
@@ -73,15 +77,17 @@ class AuthenticationMetrics:
             "TRR",
             plot_color='#3498db',
             plot_order=2,
-            include_in_tables=False
+            include_in_tables=False,
+            include_in_plots=False
         ),
         MetricDefinition(
             "false_accept_rate",
             "FAR (%)",
             "FAR",
+            format_spec=".1f",
             plot_color='#f39c12',
             plot_order=3,
-            include_in_tables=False
+            include_in_tables=True
         ),
         MetricDefinition(
             "equal_error_rate",
@@ -91,25 +97,35 @@ class AuthenticationMetrics:
             include_in_tables=False
         ),
         MetricDefinition(
+            "mean_genuine_trust",
+            "Mean Genuine Trust",
+            "MGT",
+            format_spec=".2f",
+            include_in_plots=True,
+            include_in_tables=True,
+            plot_color='#27ae60',
+            plot_order=4
+        ),
+        MetricDefinition(
             "imposter_lockout_time",
-            "Lockout Median (s)",
-            "LockMed",
-            format_spec=".1f",
+            "Lockout Mean (s)",
+            "ILT",
+            format_spec=".0f",
             include_in_plots=False
         ),
         MetricDefinition(
             "imposter_lockout_time_p90",
             "Lockout P90 (s)",
-            "LockP90",
-            format_spec=".1f",
+            r"ILT\textsubscript{P90}",
+            format_spec=".0f",
             include_in_plots=False,
-            include_in_tables=True
+            include_in_tables=False
         ),
         MetricDefinition(
             "max_lockout_time",
             "Max Lockout (s)",
-            "MaxLock",
-            format_spec=".1f",
+            r"ILT\textsubscript{max}",
+            format_spec=".0f",
             include_in_plots=False
         ),
         MetricDefinition(
@@ -118,23 +134,23 @@ class AuthenticationMetrics:
             "SimΔ",
             format_spec=".3f",
             include_in_plots=False,
-            include_in_tables=True
+            include_in_tables=False
         ),
         MetricDefinition(
             "genuine_kickout_time",
-            "Genuine Kickout Median (s)",
-            "GKOMed",
-            format_spec=".1f",
+            "Genuine Kickout Mean (s)",
+            "GKT",
+            format_spec=".0f",
             include_in_plots=False,
             include_in_tables=True
         ),
         MetricDefinition(
             "genuine_kickout_time_p90",
             "Genuine Kickout P90 (s)",
-            "GKOP90",
-            format_spec=".1f",
+            r"GKT\textsubscript{P90}",
+            format_spec=".0f",
             include_in_plots=False,
-            include_in_tables=True
+            include_in_tables=False
         ),
     ]
 
@@ -183,37 +199,26 @@ class AuthenticationMetrics:
         return [getattr(self, m.field_name) for m in self.get_plot_metrics()]
 
     def print_console(self, indent: str) -> None:
-        """Print metrics to console with custom indentation."""
-        print(f"{indent}TAR (True Accept Rate):        {self.true_accept_rate:6.2f}%")
-        print(f"{indent}FRR (False Reject Rate):       {self.false_reject_rate:6.2f}%")
-        print(f"{indent}TRR (True Reject Rate):        {self.true_reject_rate:6.2f}%")
-        print(f"{indent}FAR (False Accept Rate):       {self.false_accept_rate:6.2f}%")
-        print(f"{indent}EER (Equal Error Rate):        {self.equal_error_rate:6.2f}%")
-
-        if self.imposter_lockout_count is not None and self.imposter_lockout_total is not None:
-            print(f"{indent}Imposter Lockouts:             {self.imposter_lockout_count}/{self.imposter_lockout_total}")
-        else:
-            print(f"{indent}Imposter Lockouts:             N/A")
-
-        lockout_median = f"{self.imposter_lockout_time:6.1f}s" if self.imposter_lockout_time is not None else "N/A"
-        print(f"{indent}Imposter Lockout Median:       {lockout_median}")
-
-        lockout_p90 = f"{self.imposter_lockout_time_p90:6.1f}s" if self.imposter_lockout_time_p90 is not None else "N/A"
-        print(f"{indent}Imposter Lockout P90:          {lockout_p90}")
-
-        max_lockout = f"{self.max_lockout_time:6.1f}s" if self.max_lockout_time is not None else "N/A"
-        print(f"{indent}Max Imposter Lockout Time:     {max_lockout}")
-
-        if self.genuine_kickout_count is not None and self.genuine_kickout_total is not None:
-            print(f"{indent}Genuine Kickouts:              {self.genuine_kickout_count}/{self.genuine_kickout_total}")
-        else:
-            print(f"{indent}Genuine Kickouts:              N/A")
-
-        kickout_median = f"{self.genuine_kickout_time:6.1f}s" if self.genuine_kickout_time is not None else "N/A"
-        print(f"{indent}Genuine Kickout Median:        {kickout_median}")
-
-        kickout_p90 = f"{self.genuine_kickout_time_p90:6.1f}s" if self.genuine_kickout_time_p90 is not None else "N/A"
-        print(f"{indent}Genuine Kickout P90:           {kickout_p90}")
+        """Print metrics to console with custom indentation. Respects include_in_tables flag."""
+        for defn in self.METRIC_DEFINITIONS:
+            if not defn.include_in_tables:
+                continue
+            value = getattr(self, defn.field_name)
+            if value is None:
+                print(f"{indent}{defn.display_label:<30} N/A")
+                continue
+            suffix = ""
+            if defn.field_name == "false_reject_rate" and self.genuine_kickout_count:
+                suffix = f"  ({self.genuine_kickout_count}/{self.genuine_kickout_total})"
+            elif defn.field_name == "false_accept_rate" and self.imposter_lockout_total is not None:
+                not_locked = self.imposter_lockout_total - self.imposter_lockout_count
+                if not_locked:
+                    suffix = f"  ({not_locked}/{self.imposter_lockout_total})"
+            elif defn.field_name == "imposter_lockout_time" and self.imposter_lockout_time_p90 is not None:
+                suffix = f"  ({self.imposter_lockout_time_p90:.0f})"
+            elif defn.field_name == "genuine_kickout_time" and self.genuine_kickout_time_p90 is not None:
+                suffix = f"  ({self.genuine_kickout_time_p90:.0f})"
+            print(f"{indent}{defn.display_label:<30} {value:{defn.format_spec}}{suffix}")
 
 
 @dataclass

@@ -6,8 +6,8 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 from evaluation.shared.data_loader import load_evaluation_data
-from evaluation.shared.metrics import calculate_metrics_by_device
-from evaluation.shared.reporting import print_section, print_metrics_by_device, print_dataset_summary
+from evaluation.shared.metrics import calculate_metrics, calculate_metrics_by_device
+from evaluation.shared.reporting import print_section, print_metrics_by_device, print_dataset_summary, print_latex_table_devices
 from evaluation.shared.visualization import (
     create_trust_timeline_all_videos,
     create_trust_timeline_by_device,
@@ -25,7 +25,7 @@ from evaluation.in_the_wild.annotation_validator import (
 DEVICES = ['mobile']
 
 PROJECT_ROOT = Path(__file__).parent.parent.parent.parent
-RESULTS_FOLDER = "data/in_the_wild/"
+RESULTS_FOLDER = "data/in_the_wild/_results_archive/V04" #
 CONTROLLED_STUDY_FOLDER = "data/controlled_study/"
 
 RESULTS_PATH = PROJECT_ROOT / RESULTS_FOLDER / "results.csv"
@@ -55,14 +55,16 @@ def main():
     data = load_evaluation_data(RESULTS_PATH, parse_scenario=False)
     print(f"\nLoaded {len(data.frames)} frames from {len(data.videos)} videos")
 
+    overall_metrics = calculate_metrics(data.frames, data.fps)
     device_metrics = calculate_metrics_by_device(data.frames, DEVICES, data.fps)
 
     print_dataset_summary(data.frames, len(data.videos))
     print_metrics_by_device(device_metrics)
+    print_latex_table_devices(device_metrics, DEVICES)
 
     output_files = []
 
-    fig_all = create_trust_timeline_all_videos(data, "In-the-Wild Study", CONFIG_PATH)
+    fig_all = create_trust_timeline_all_videos(data, "In-the-Wild Study", CONFIG_PATH, overall_metrics)
     output_files.append(save_html(fig_all, OUTPUT_PATH, 'trust_timeline_all_videos.html'))
 
     figs_devices = create_trust_timeline_by_device(data, DEVICES, "In-the-Wild Study", CONFIG_PATH)

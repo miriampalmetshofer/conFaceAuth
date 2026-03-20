@@ -1,5 +1,5 @@
 """Console reporting utilities."""
-from evaluation.shared.models import DeviceMetrics, ScenarioMetrics, ScenarioDeviceMetrics, AuthenticationMetrics, FrameData, SegmentType
+from evaluation.shared.models import DeviceMetrics, ScenarioMetrics, ScenarioDeviceMetrics, AuthenticationMetrics, FrameData, SegmentType, MetricDefinition
 
 
 def print_section(title: str) -> None:
@@ -40,6 +40,136 @@ def print_metrics_by_scenario(scenario_metrics: list[ScenarioMetrics]) -> None:
         print(f"{sm.scenario.upper()}")
         sm.metrics.print_console(indent="  ")
         print()
+
+
+def _latex_escape(text: str) -> str:
+    """Escape LaTeX special characters in a cell value."""
+    return text.replace("%", r"\%")
+
+
+def _fmt(metrics: AuthenticationMetrics, defn: MetricDefinition, latex: bool = False) -> str:
+    value = getattr(metrics, defn.field_name)
+    if value is None:
+        return "--"
+    cell = f"{value:{defn.format_spec}}"
+
+    if defn.field_name == "false_reject_rate" and metrics.genuine_kickout_count:
+        frac = f"{metrics.genuine_kickout_count}/{metrics.genuine_kickout_total}"
+        if latex:
+            cell += r" {{\scriptsize (" + frac + r")}}"
+        else:
+            cell += f"  ({frac})"
+
+    elif defn.field_name == "false_accept_rate" and metrics.imposter_lockout_total is not None:
+        not_locked = metrics.imposter_lockout_total - metrics.imposter_lockout_count
+        if not_locked:
+            frac = f"{not_locked}/{metrics.imposter_lockout_total}"
+            if latex:
+                cell += r" {{\scriptsize (" + frac + r")}}"
+            else:
+                cell += f"  ({frac})"
+
+    elif defn.field_name == "imposter_lockout_time" and metrics.imposter_lockout_time_p90 is not None:
+        p90 = f"{metrics.imposter_lockout_time_p90:.0f}"
+        if latex:
+            cell += r" {{\scriptsize (" + p90 + r")}}"
+        else:
+            cell += f"  ({p90})"
+
+    elif defn.field_name == "genuine_kickout_time" and metrics.genuine_kickout_time_p90 is not None:
+        p90 = f"{metrics.genuine_kickout_time_p90:.0f}"
+        if latex:
+            cell += r" {{\scriptsize (" + p90 + r")}}"
+        else:
+            cell += f"  ({p90})"
+
+    if latex:
+        cell = _latex_escape(cell)
+    return cell
+
+
+def print_latex_table(
+    scenario_device_metrics: list[ScenarioDeviceMetrics],
+    device_metrics: list[DeviceMetrics],
+    scenarios: list[str],
+    devices: list[str],
+) -> None:
+    """Print a LaTeX tabular* divided by device, with one row per scenario plus Overall."""
+    table_defs = [d for d in AuthenticationMetrics.METRIC_DEFINITIONS if d.include_in_tables]
+    col_spec = "@{\\extracolsep{\\fill}}ll" + "c" * len(table_defs)
+
+    sdm_lookup = {(sdm.scenario, sdm.device): sdm.metrics for sdm in scenario_device_metrics}
+    dm_lookup = {dm.device: dm.metrics for dm in device_metrics}
+
+    print("\n% ── LaTeX table (tabular only) ──────────────────────────────")
+    print(f"\\begin{{tabular*}}{{\\textwidth}}{{{col_spec}}}")
+    print("\\toprule")
+
+    headers = ["Platform", "Scenario"] + [d.short_label for d in table_defs]
+    print(" & ".join(f"\\textbf{{{h}}}" for h in headers) + " \\\\")
+    print("\\midrule")
+
+    for i, device in enumerate(devices):
+        if i > 0:
+            print("\\midrule")
+
+        scenario_rows = list(scenarios) + ["Overall"]
+        for j, scenario in enumerate(scenario_rows):
+            is_overall = scenario == "Overall"
+            device_cell = device.capitalize() if j == 0 else ""
+            scenario_cell = f"\\textbf{{{scenario.capitalize()}}}" if is_overall else scenario.capitalize()
+
+            if is_overall:
+                metrics = dm_lookup.get(device)
+            else:
+                metrics = sdm_lookup.get((scenario, device))
+
+            if metrics:
+                cells = [_fmt(metrics, d, latex=True) for d in table_defs]
+            else:
+                cells = ["--"] * len(table_defs)
+
+            if is_overall:
+                cells = [f"\\textbf{{{c}}}" for c in cells]
+
+            row = [device_cell, scenario_cell] + cells
+            print(" & ".join(row) + " \\\\")
+
+    print("\\bottomrule")
+    print("\\end{tabular*}")
+    print("% ─────────────────────────────────────────────────────────────\n")
+
+
+def print_latex_table_devices(
+    device_metrics: list[DeviceMetrics],
+    devices: list[str],
+) -> None:
+    """Print a LaTeX tabular* with one row per device (no scenario breakdown)."""
+    table_defs = [d for d in AuthenticationMetrics.METRIC_DEFINITIONS if d.include_in_tables]
+    col_spec = "@{\\extracolsep{\\fill}}l" + "c" * len(table_defs)
+
+    dm_lookup = {dm.device: dm.metrics for dm in device_metrics}
+
+    print("\n% ── LaTeX table (tabular only) ──────────────────────────────")
+    print(f"\\begin{{tabular*}}{{\\textwidth}}{{{col_spec}}}")
+    print("\\toprule")
+
+    headers = ["Platform"] + [d.short_label for d in table_defs]
+    print(" & ".join(f"\\textbf{{{h}}}" for h in headers) + " \\\\")
+    print("\\midrule")
+
+    for device in devices:
+        metrics = dm_lookup.get(device)
+        if metrics:
+            cells = [_fmt(metrics, d, latex=True) for d in table_defs]
+        else:
+            cells = ["--"] * len(table_defs)
+        row = [device.capitalize()] + cells
+        print(" & ".join(row) + " \\\\")
+
+    print("\\bottomrule")
+    print("\\end{tabular*}")
+    print("% ─────────────────────────────────────────────────────────────\n")
 
 
 def print_metrics_by_scenario_and_device(scenario_device_metrics: list[ScenarioDeviceMetrics], devices: list[str]) -> None:

@@ -7,11 +7,12 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 from evaluation.shared.data_loader import load_evaluation_data
 from evaluation.shared.metrics import (
+    calculate_metrics,
     calculate_metrics_by_device,
     calculate_metrics_by_scenario,
     calculate_metrics_by_scenario_and_device
 )
-from evaluation.shared.reporting import print_section, print_metrics_by_device, print_metrics_by_scenario, print_metrics_by_scenario_and_device, print_dataset_summary
+from evaluation.shared.reporting import print_section, print_metrics_by_device, print_metrics_by_scenario, print_metrics_by_scenario_and_device, print_dataset_summary, print_latex_table
 from evaluation.shared.visualization import (
     create_trust_timeline_all_videos,
     create_trust_timeline_by_device,
@@ -28,7 +29,7 @@ DEVICES = ['desktop', 'mobile']
 SCENARIOS = ['easy', 'angle', 'lighting']
 
 PROJECT_ROOT = Path(__file__).parent.parent.parent.parent
-RESULTS_FOLDER = "data/controlled_study"
+RESULTS_FOLDER = "data/controlled_study/_results_archive/dummy_data"
 
 RESULTS_PATH = PROJECT_ROOT / RESULTS_FOLDER / "results.csv"
 CONFIG_PATH = PROJECT_ROOT / RESULTS_FOLDER / "config.json"
@@ -45,6 +46,7 @@ def main():
     data = load_evaluation_data(RESULTS_PATH, parse_scenario=True)
     print(f"Loaded {len(data.frames)} frames from {len(data.videos)} videos")
 
+    overall_metrics = calculate_metrics(data.frames, data.fps)
     device_metrics = calculate_metrics_by_device(data.frames, DEVICES, data.fps)
     scenario_metrics = calculate_metrics_by_scenario(data.frames, SCENARIOS, data.fps)
     scenario_device_metrics = calculate_metrics_by_scenario_and_device(data.frames, SCENARIOS, DEVICES, data.fps)
@@ -53,10 +55,11 @@ def main():
     print_metrics_by_device(device_metrics)
     print_metrics_by_scenario(scenario_metrics)
     print_metrics_by_scenario_and_device(scenario_device_metrics, DEVICES)
+    print_latex_table(scenario_device_metrics, device_metrics, SCENARIOS, DEVICES)
 
     output_files = []
 
-    fig_all = create_trust_timeline_all_videos(data, "Controlled Study", CONFIG_PATH)
+    fig_all = create_trust_timeline_all_videos(data, "Controlled Study", CONFIG_PATH, overall_metrics)
     output_files.append(save_html(fig_all, OUTPUT_PATH, 'trust_timeline_all_videos.html'))
 
     figs_devices = create_trust_timeline_by_device(data, DEVICES, "Controlled Study", CONFIG_PATH)
