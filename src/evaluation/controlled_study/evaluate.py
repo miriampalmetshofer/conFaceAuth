@@ -22,7 +22,8 @@ from evaluation.shared.visualization import (
     create_combined_metrics_tables,
     create_scenario_metrics_table,
     save_html,
-    save_png
+    save_png,
+    save_plotly_png
 )
 
 DEVICES = ['desktop', 'mobile']
@@ -35,6 +36,8 @@ RESULTS_PATH = PROJECT_ROOT / RESULTS_FOLDER / "results.csv"
 CONFIG_PATH = PROJECT_ROOT / RESULTS_FOLDER / "config.json"
 
 OUTPUT_PATH = PROJECT_ROOT / "src/evaluation/controlled_study/output"
+#optional
+PAPER_IMAGES_PATH = PROJECT_ROOT / "paper/images/trust_scores"
 
 
 def main():
@@ -61,6 +64,8 @@ def main():
 
     fig_all = create_trust_timeline_all_videos(data, "Controlled Study", CONFIG_PATH, overall_metrics)
     output_files.append(save_html(fig_all, OUTPUT_PATH, 'trust_timeline_all_videos.html'))
+    # optional
+    output_files.append(save_plotly_png(fig_all, PAPER_IMAGES_PATH, 'controlled.png', width=1200, height=560))
 
     figs_devices = create_trust_timeline_by_device(data, DEVICES, "Controlled Study", CONFIG_PATH)
     output_files.append(save_html(figs_devices, OUTPUT_PATH, 'trust_timeline_by_device.html'))

@@ -14,7 +14,8 @@ from evaluation.shared.visualization import (
     create_summary_visualization,
     create_device_metrics_table,
     save_html,
-    save_png
+    save_png,
+    save_plotly_png
 )
 from evaluation.in_the_wild.annotation_validator import (
     validate_annotations,
@@ -32,6 +33,8 @@ CONFIG_PATH = PROJECT_ROOT / RESULTS_FOLDER / "config.json"
 
 ANNOTATIONS_PATH = PROJECT_ROOT / "data/in_the_wild"
 OUTPUT_PATH = PROJECT_ROOT / "src/evaluation/in_the_wild/output"
+# optional
+PAPER_IMAGES_PATH = PROJECT_ROOT / "paper/images/trust_scores"
 
 
 def main():
@@ -63,6 +66,8 @@ def main():
 
     fig_all = create_trust_timeline_all_videos(data, "In-the-Wild Study", CONFIG_PATH, overall_metrics)
     output_files.append(save_html(fig_all, OUTPUT_PATH, 'trust_timeline_all_videos.html'))
+    #optional
+    output_files.append(save_plotly_png(fig_all, PAPER_IMAGES_PATH, 'wild.png', width=1200, height=560))
 
     figs_devices = create_trust_timeline_by_device(data, DEVICES, "In-the-Wild Study", CONFIG_PATH)
     output_files.append(save_html(figs_devices, OUTPUT_PATH, 'trust_timeline_by_device.html'))
