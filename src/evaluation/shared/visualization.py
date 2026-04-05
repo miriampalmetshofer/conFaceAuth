@@ -131,6 +131,37 @@ def _load_segment_config(config_path: Path) -> Optional[tuple[dict, int]]:
     }, fps
 
 
+def _get_segment_header_annotations(segments: dict) -> list[dict]:
+    """Create paper figure segment headers between legend and plot area."""
+    if not segments:
+        return []
+
+    return [
+        dict(
+            x=(segments['genuine'][0] + segments['genuine'][1]) / 2,
+            y=1.005,
+            xref='x',
+            yref='paper',
+            text='<b>Genuine User</b>',
+            showarrow=False,
+            xanchor='center',
+            yanchor='bottom',
+            font=dict(size=20)
+        ),
+        dict(
+            x=(segments['imposter'][0] + segments['imposter'][1]) / 2,
+            y=1.005,
+            xref='x',
+            yref='paper',
+            text='<b>Unauthorized User</b>',
+            showarrow=False,
+            xanchor='center',
+            yanchor='bottom',
+            font=dict(size=20)
+        )
+    ]
+
+
 def _add_segment_backgrounds(fig: go.Figure, segments: dict) -> None:
     """Add colored background regions and boundary lines for video segments."""
     if not segments:
@@ -195,13 +226,13 @@ def _create_show_hide_buttons(num_traces: int) -> list[dict]:
 
 def _add_metrics_visualization(fig: go.Figure, metrics: AuthenticationMetrics,
                                threshold: float, segments: dict) -> None:
-    """Add ILT markers on the threshold line for mean and max imposter lockout times.
+    """Add ULT markers on the threshold line for mean and max unauthorized user lockout times.
 
     Args:
         fig: Plotly figure to add visualizations to
         metrics: Metrics containing imposter_lockout_time and max_lockout_time
         threshold: Trust score threshold value for positioning markers
-        segments: Segment boundaries to calculate ILT absolute position
+        segments: Segment boundaries to calculate ULT absolute position
     """
     if not segments or 'imposter' not in segments:
         return
@@ -214,11 +245,11 @@ def _add_metrics_visualization(fig: go.Figure, metrics: AuthenticationMetrics,
             x=[ilt_abs],
             y=[threshold],
             mode='markers',
-            name=f'Mean ILT ({metrics.imposter_lockout_time.mean:.0f}s)',
+            name='Mean ULT',
             marker=dict(size=15, color='rgba(142, 68, 173, 0.9)', symbol='diamond',
                         line=dict(width=2, color='white')),
             showlegend=True,
-            hovertemplate=f'Mean ILT: {metrics.imposter_lockout_time.mean:.1f}s<extra></extra>'
+            hovertemplate=f'Mean ULT: {metrics.imposter_lockout_time.mean:.1f}s<extra></extra>'
         ))
 
     if metrics.imposter_lockout_time.max is not None:
@@ -227,11 +258,11 @@ def _add_metrics_visualization(fig: go.Figure, metrics: AuthenticationMetrics,
             x=[max_abs],
             y=[threshold],
             mode='markers',
-            name=f'Max ILT ({metrics.imposter_lockout_time.max:.0f}s)',
+            name='Max ULT',
             marker=dict(size=15, color='rgba(231, 76, 60, 0.9)', symbol='diamond',
                         line=dict(width=2, color='white')),
             showlegend=True,
-            hovertemplate=f'Max ILT: {metrics.imposter_lockout_time.max:.1f}s<extra></extra>'
+            hovertemplate=f'Max ULT: {metrics.imposter_lockout_time.max:.1f}s<extra></extra>'
         ))
 
 
@@ -324,6 +355,9 @@ def _create_trust_timeline_figure(
         height=600,
         margin=dict(t=100),
         template='plotly_white',
+        font=dict(size=18),
+        xaxis=dict(title_font=dict(size=22), tickfont=dict(size=18)),
+        yaxis=dict(title_font=dict(size=22), tickfont=dict(size=18)),
         updatemenus=[
             dict(
                 type="buttons",
@@ -403,7 +437,7 @@ def create_trust_timeline_all_videos(data: EvaluationData, study_name: str, conf
         x=[0, x_end],
         y=[data.threshold, data.threshold],
         mode='lines',
-        name=f'Threshold ({data.threshold})',
+        name='Threshold',
         line=dict(color='black', width=1, dash='dash'),
         showlegend=True,
         hovertemplate=f'Threshold: {data.threshold}<extra></extra>'
@@ -411,8 +445,41 @@ def create_trust_timeline_all_videos(data: EvaluationData, study_name: str, conf
 
     _add_metrics_visualization(fig, metrics, data.threshold, segments)
 
+    # Add invisible traces for segment labels in the legend
+    if segments:
+        segment_labels = {
+            'black': 'Black Frames'
+        }
+        segment_colors = {
+            'black': 'rgba(149, 165, 166, 0.3)'
+        }
+
+        for segment_name in ['black']:
+            if segment_name in segments:
+                fig.add_trace(go.Scatter(
+                    x=[None],
+                    y=[None],
+                    mode='markers',
+                    name=segment_labels[segment_name],
+                    marker=dict(size=10, color=segment_colors[segment_name], symbol='square'),
+                    showlegend=True,
+                    hoverinfo='skip'
+                ))
+
     fig.update_layout(
-        legend=dict(orientation='h', yanchor='bottom', y=1.02, xanchor='right', x=1)
+        annotations=_get_segment_header_annotations(segments),
+        legend=dict(
+            orientation='h',
+            yanchor='bottom',
+            y=1.085,
+            xanchor='right',
+            x=1.0,
+            font=dict(size=22)
+        ),
+        margin=dict(l=60, r=20, t=78, b=60),
+        font=dict(size=22),
+        xaxis=dict(title_font=dict(size=22), tickfont=dict(size=18)),
+        yaxis=dict(title_font=dict(size=22), tickfont=dict(size=18))
     )
 
     return fig
@@ -863,4 +930,23 @@ def save_png(fig: plt.Figure, output_path: Path, filename: str) -> Path:
     filepath = output_path / filename
     fig.savefig(filepath, dpi=150, bbox_inches='tight')
     plt.close(fig)
+    return filepath
+
+
+def save_plotly_png(fig: go.Figure, output_path: Path, filename: str, width: int = 1200, height: int = 600) -> Path:
+    """Save plotly figure as PNG using kaleido.
+
+    Args:
+        fig: Plotly figure to save
+        output_path: Directory to save the file
+        filename: Name of the output file
+        width: Width of the output image in pixels
+        height: Height of the output image in pixels
+
+    Returns:
+        Path to the saved file
+    """
+    output_path.mkdir(parents=True, exist_ok=True)
+    filepath = output_path / filename
+    fig.write_image(str(filepath), width=width, height=height, scale=2)
     return filepath
