@@ -113,24 +113,16 @@ def print_latex_table(
         if i > 0:
             print("\\midrule")
 
-        scenario_rows = list(scenarios) + ["Overall"]
-        for j, scenario in enumerate(scenario_rows):
-            is_overall = scenario == "Overall"
+        for j, scenario in enumerate(scenarios):
             device_cell = device.capitalize() if j == 0 else ""
-            scenario_cell = f"\\textbf{{{scenario.capitalize()}}}" if is_overall else scenario.capitalize()
+            scenario_cell = scenario.capitalize()
 
-            if is_overall:
-                metrics = dm_lookup.get(device)
-            else:
-                metrics = sdm_lookup.get((scenario, device))
+            metrics = sdm_lookup.get((scenario, device))
 
             if metrics:
                 cells = [_fmt(metrics, d, latex=True) for d in table_defs]
             else:
                 cells = ["--"] * len(table_defs)
-
-            if is_overall:
-                cells = [f"\\textbf{{{c}}}" for c in cells]
 
             row = [device_cell, scenario_cell] + cells
             print(" & ".join(row) + " \\\\")
