@@ -66,7 +66,7 @@
     "format": "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
   },
   "participants": [
-    {
+     {
       "name": "christina"
     },
     {
@@ -101,6 +101,21 @@
     },
     {
       "name": "simon"
+    },
+    {
+      "name": "selina"
+    },
+    {
+      "name": "natalie"
+    },
+    {
+      "name": "daniel"
+    },
+    {
+      "name": "dominik"
+    },
+    {
+      "name": "maria"
     }
   ]
 }
