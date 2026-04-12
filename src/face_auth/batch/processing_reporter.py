@@ -43,10 +43,10 @@ class ProcessingReporter:
         logger.info(f"{'=' * 60}")
 
         if failed_count > 0:
-            logger.warning("Failed participants:")
+            logger.error("Failed participants:")
             for result in results:
                 if not result.success:
-                    logger.warning(
+                    logger.error(
                         f"  - {result.context.participant.name} on {result.context.device.value}: "
                         f"{result.error_message}"
                     )
