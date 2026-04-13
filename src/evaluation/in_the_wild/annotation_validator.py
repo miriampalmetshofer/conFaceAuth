@@ -219,99 +219,89 @@ def print_validation_results(result: ValidationResult):
             print(f"    Error: {error}")
 
 
+def _print_counter_section(title: str, counter: Counter, threshold: int, limit: Optional[int]):
+    """Print a counter section with markers for sufficient data."""
+    print(f"\n--- {title} ---")
+    items = counter.most_common(limit) if limit else counter.most_common()
+    for value, count in items:
+        marker = "✓" if count >= threshold else "✗"
+        print(f"  {marker} {value}: {count}")
+
+
+def _get_viable_comparisons(report: DistributionReport, threshold: int) -> List[str]:
+    """Determine which comparisons have sufficient data."""
+    viable_comparisons = []
+
+    # Check each counter for viable comparisons
+    counters_to_check = [
+        ("Illumination", report.illumination, True),
+        ("Movement complexity", report.movement_complexity, False),
+        ("Face visibility", report.face_visibility, False),
+        ("Occlusions", report.occlusions_individual, False),
+    ]
+
+    for name, counter, show_all_or_subset in counters_to_check:
+        sufficient_count = sum(1 for count in counter.values() if count >= threshold)
+
+        if sufficient_count >= 2:
+            if show_all_or_subset and all(count >= threshold for count in counter.values()):
+                viable_comparisons.append(f"{name} (all categories)")
+            elif show_all_or_subset:
+                viable = [k for k, v in counter.items() if v >= threshold]
+                viable_comparisons.append(f"{name} (subset: {', '.join(viable)})")
+            else:
+                viable = [k for k, v in counter.items() if v >= threshold]
+                viable_comparisons.append(f"{name}: {', '.join(viable)}")
+
+    return viable_comparisons
+
+
 def print_distribution_report(report: DistributionReport):
     """Print data distribution report."""
+    threshold = 5
+
     print("\n" + "=" * 60)
     print("DATA DISTRIBUTION REPORT")
     print("=" * 60)
     print(f"\nTotal annotated videos: {report.total_videos}")
 
+    # Participant distribution (no threshold markers)
     print("\n--- By Participant ---")
     for participant, count in report.by_participant.most_common():
         print(f"  {participant}: {count}")
 
-    print("\n--- Illumination ---")
-    for value, count in report.illumination.most_common():
-        marker = "✓" if count >= 5 else "✗"
-        print(f"  {marker} {value}: {count}")
+    # Define sections with their counters and optional limits
+    sections = [
+        ("Illumination", report.illumination, None),
+        ("Movement (Individual)", report.movement_individual, None),
+        ("Movement Complexity", report.movement_complexity, None),
+        ("Occlusions (Individual)", report.occlusions_individual, None),
+        ("Occlusions (Combinations, top 10)", report.occlusions_combinations, 10),
+        ("Face Visibility", report.face_visibility, None),
+        ("Camera Angle", report.angle, None),
+        ("Device Movement", report.device_movement, None),
+        ("Environment", report.environment, None),
+        ("Other People", report.other_people, None),
+    ]
 
+    for title, counter, limit in sections:
+        _print_counter_section(title, counter, threshold, limit)
+
+    # Light change (optional field with missing count)
     print("\n--- Light Change (optional field) ---")
     for value, count in report.light_change.most_common():
-        marker = "✓" if count >= 5 else "✗"
+        marker = "✓" if count >= threshold else "✗"
         print(f"  {marker} {value}: {count}")
     print(f"  Missing: {report.total_videos - sum(report.light_change.values())}")
 
-    print("\n--- Movement (Individual) ---")
-    for value, count in report.movement_individual.most_common():
-        marker = "✓" if count >= 5 else "✗"
-        print(f"  {marker} {value}: {count}")
-
-    print("\n--- Movement Complexity ---")
-    for value, count in report.movement_complexity.most_common():
-        marker = "✓" if count >= 5 else "✗"
-        print(f"  {marker} {value}: {count}")
-
-    print("\n--- Occlusions (Individual) ---")
-    for value, count in report.occlusions_individual.most_common():
-        marker = "✓" if count >= 5 else "✗"
-        print(f"  {marker} {value}: {count}")
-
-    print("\n--- Occlusions (Combinations, top 10) ---")
-    for value, count in report.occlusions_combinations.most_common(10):
-        marker = "✓" if count >= 5 else "✗"
-        print(f"  {marker} {value}: {count}")
-
-    print("\n--- Face Visibility ---")
-    for value, count in report.face_visibility.most_common():
-        marker = "✓" if count >= 5 else "✗"
-        print(f"  {marker} {value}: {count}")
-
-    print("\n--- Camera Angle ---")
-    for value, count in report.angle.most_common():
-        marker = "✓" if count >= 5 else "✗"
-        print(f"  {marker} {value}: {count}")
-
-    print("\n--- Device Movement ---")
-    for value, count in report.device_movement.most_common():
-        marker = "✓" if count >= 5 else "✗"
-        print(f"  {marker} {value}: {count}")
-
-    print("\n--- Environment ---")
-    for value, count in report.environment.most_common():
-        marker = "✓" if count >= 5 else "✗"
-        print(f"  {marker} {value}: {count}")
-
-    print("\n--- Other People ---")
-    for value, count in report.other_people.most_common():
-        marker = "✓" if count >= 5 else "✗"
-        print(f"  {marker} {value}: {count}")
-
+    # Recommendations
     print("\n" + "=" * 60)
     print("RECOMMENDATIONS")
     print("=" * 60)
-    print("\n✓ = Sufficient data (≥5 videos) for meaningful comparison")
-    print("✗ = Insufficient data (<5 videos)")
+    print(f"\n✓ = Sufficient data (≥{threshold} videos) for meaningful comparison")
+    print(f"✗ = Insufficient data (<{threshold} videos)")
 
-    # Summarize viable comparisons
-    viable_comparisons = []
-
-    if all(count >= 5 for count in report.illumination.values()):
-        viable_comparisons.append("Illumination (all categories)")
-    elif sum(1 for count in report.illumination.values() if count >= 5) >= 2:
-        viable = [k for k, v in report.illumination.items() if v >= 5]
-        viable_comparisons.append(f"Illumination (subset: {', '.join(viable)})")
-
-    if sum(1 for count in report.movement_complexity.values() if count >= 5) >= 2:
-        viable = [k for k, v in report.movement_complexity.items() if v >= 5]
-        viable_comparisons.append(f"Movement complexity: {', '.join(viable)}")
-
-    if sum(1 for count in report.face_visibility.values() if count >= 5) >= 2:
-        viable_comparisons.append("Face visibility")
-
-    if sum(1 for count in report.occlusions_individual.values() if count >= 5) >= 2:
-        viable = [k for k, v in report.occlusions_individual.items() if v >= 5]
-        viable_comparisons.append(f"Occlusions: {', '.join(viable)}")
-
+    viable_comparisons = _get_viable_comparisons(report, threshold)
     print("\nViable Comparisons:")
     for comparison in viable_comparisons:
         print(f"  • {comparison}")
