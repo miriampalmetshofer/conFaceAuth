@@ -65,9 +65,19 @@ METRIC_CONFIGS = [
     ('TRR (%)', 'true_reject_rate', 'percentage', False),
     ('FAR (%)', 'false_accept_rate', 'percentage', True),
     ('EER (%)', 'equal_error_rate', 'percentage', True),
-    ('Lockout (s)', 'imposter_lockout_time', 'lockout', True),
-    ('Max Lockout (s)', 'max_lockout_time', 'lockout', True)
+    ('ULT mean (s)', 'imposter_lockout_time.mean', 'lockout', True),
+    ('ULT P90 (s)', 'imposter_lockout_time.p90', 'lockout', True),
 ]
+
+
+def resolve_metric(metrics, field_path: str) -> Optional[float]:
+    """Resolve a metric field path such as imposter_lockout_time.p90."""
+    value = metrics
+    for attr in field_path.split('.'):
+        value = getattr(value, attr, None)
+        if value is None:
+            return None
+    return value
 
 
 def print_device_comparison(device_metrics1: list[DeviceMetrics], device_metrics2: list[DeviceMetrics],
@@ -84,8 +94,8 @@ def print_device_comparison(device_metrics1: list[DeviceMetrics], device_metrics
             continue
 
         for metric_name, metric_attr, metric_type, lower_is_better in METRIC_CONFIGS:
-            v1_val = getattr(v1_device.metrics, metric_attr)
-            v2_val = getattr(v2_device.metrics, metric_attr)
+            v1_val = resolve_metric(v1_device.metrics, metric_attr)
+            v2_val = resolve_metric(v2_device.metrics, metric_attr)
             print_metric_row(metric_name, device.upper(), v1_val, v2_val, metric_type, lower_is_better)
 
         print()
@@ -105,8 +115,8 @@ def print_scenario_comparison(scenario_metrics1: list[ScenarioMetrics], scenario
             continue
 
         for metric_name, metric_attr, metric_type, lower_is_better in METRIC_CONFIGS:
-            v1_val = getattr(v1_scenario.metrics, metric_attr)
-            v2_val = getattr(v2_scenario.metrics, metric_attr)
+            v1_val = resolve_metric(v1_scenario.metrics, metric_attr)
+            v2_val = resolve_metric(v2_scenario.metrics, metric_attr)
             print_metric_row(metric_name, scenario.upper(), v1_val, v2_val, metric_type, lower_is_better)
 
         print()

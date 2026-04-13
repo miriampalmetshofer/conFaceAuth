@@ -26,12 +26,9 @@ DEVICES = ['mobile']
 
 PROJECT_ROOT = Path(__file__).parent.parent.parent.parent
 RESULTS_FOLDER = "data/in_the_wild/" #_results_archive/V04
-CONTROLLED_STUDY_FOLDER = "data/controlled_study/"
 
 RESULTS_PATH = PROJECT_ROOT / RESULTS_FOLDER / "results.csv"
 CONFIG_PATH = PROJECT_ROOT / RESULTS_FOLDER / "config.json"
-
-CONTROLLED_STUDY_RESULTS_PATH = PROJECT_ROOT / CONTROLLED_STUDY_FOLDER / "results.csv"
 
 ANNOTATIONS_PATH = PROJECT_ROOT / "data/in_the_wild"
 OUTPUT_PATH = PROJECT_ROOT / "src/evaluation/in_the_wild/output"

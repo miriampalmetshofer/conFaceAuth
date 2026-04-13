@@ -69,13 +69,6 @@ def _fmt(metrics: AuthenticationMetrics, defn: MetricDefinition, latex: bool = F
             else:
                 cell += f"  ({frac})"
 
-    elif defn.field_name == "imposter_lockout_time.mean" and metrics.imposter_lockout_time.p90 is not None:
-        p90 = f"{metrics.imposter_lockout_time.p90:.0f}"
-        if latex:
-            cell += r" {{\scriptsize (" + p90 + r")}}"
-        else:
-            cell += f"  ({p90})"
-
     elif defn.field_name == "genuine_lockout_time.mean" and metrics.genuine_lockout_time.p90 is not None:
         p90 = f"{metrics.genuine_lockout_time.p90:.0f}"
         if latex:

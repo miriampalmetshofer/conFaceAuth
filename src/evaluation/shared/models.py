@@ -91,16 +91,16 @@ class AuthenticationMetrics:
         ),
         MetricDefinition(
             "imposter_lockout_time.mean",
-            "ILT (s)",
-            "ILT",
+            "ULT (s)",
+            "ULT",
             format_spec=".0f",
             include_in_tables=True,
             include_in_plots=False
         ),
         MetricDefinition(
-            "imposter_lockout_time.max",
-            "Max ILT (s)",
-            r"ILT\textsubscript{max}",
+            "imposter_lockout_time.p90",
+            "ULT P90 (s)",
+            "ULT P90",
             format_spec=".0f",
             include_in_tables=True,
             include_in_plots=False
@@ -170,8 +170,6 @@ class AuthenticationMetrics:
                 not_locked = self.session_counts.imposter_sessions - self.session_counts.imposter_lockouts
                 if not_locked:
                     suffix = f"  ({not_locked}/{self.session_counts.imposter_sessions})"
-            elif defn.field_name == "imposter_lockout_time.mean" and self.imposter_lockout_time.p90 is not None:
-                suffix = f"  ({self.imposter_lockout_time.p90:.0f})"
             elif defn.field_name == "genuine_lockout_time.mean" and self.genuine_lockout_time.p90 is not None:
                 suffix = f"  ({self.genuine_lockout_time.p90:.0f})"
             print(f"{indent}{defn.display_label:<30} {value:{defn.format_spec}}{suffix}")

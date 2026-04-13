@@ -195,13 +195,13 @@ def _create_show_hide_buttons(num_traces: int) -> list[dict]:
 
 def _add_metrics_visualization(fig: go.Figure, metrics: AuthenticationMetrics,
                                threshold: float, segments: dict) -> None:
-    """Add ILT markers on the threshold line for mean and max imposter lockout times.
+    """Add ULT markers on the threshold line for mean and P90 unauthorized-user lockout times.
 
     Args:
         fig: Plotly figure to add visualizations to
-        metrics: Metrics containing imposter_lockout_time and max_lockout_time
+        metrics: Metrics containing unauthorized-user lockout timing
         threshold: Trust score threshold value for positioning markers
-        segments: Segment boundaries to calculate ILT absolute position
+        segments: Segment boundaries to calculate ULT absolute position
     """
     if not segments or 'imposter' not in segments:
         return
@@ -209,29 +209,29 @@ def _add_metrics_visualization(fig: go.Figure, metrics: AuthenticationMetrics,
     imposter_start = segments['imposter'][0]
 
     if metrics.imposter_lockout_time.mean is not None:
-        ilt_abs = imposter_start + metrics.imposter_lockout_time.mean
+        ult_abs = imposter_start + metrics.imposter_lockout_time.mean
         fig.add_trace(go.Scatter(
-            x=[ilt_abs],
+            x=[ult_abs],
             y=[threshold],
             mode='markers',
-            name=f'Mean ILT ({metrics.imposter_lockout_time.mean:.0f}s)',
+            name=f'Mean ULT ({metrics.imposter_lockout_time.mean:.0f}s)',
             marker=dict(size=15, color='rgba(142, 68, 173, 0.9)', symbol='diamond',
                         line=dict(width=2, color='white')),
             showlegend=True,
-            hovertemplate=f'Mean ILT: {metrics.imposter_lockout_time.mean:.1f}s<extra></extra>'
+            hovertemplate=f'Mean ULT: {metrics.imposter_lockout_time.mean:.1f}s<extra></extra>'
         ))
 
-    if metrics.imposter_lockout_time.max is not None:
-        max_abs = imposter_start + metrics.imposter_lockout_time.max
+    if metrics.imposter_lockout_time.p90 is not None:
+        p90_abs = imposter_start + metrics.imposter_lockout_time.p90
         fig.add_trace(go.Scatter(
-            x=[max_abs],
+            x=[p90_abs],
             y=[threshold],
             mode='markers',
-            name=f'Max ILT ({metrics.imposter_lockout_time.max:.0f}s)',
+            name=f'P90 ULT ({metrics.imposter_lockout_time.p90:.0f}s)',
             marker=dict(size=15, color='rgba(231, 76, 60, 0.9)', symbol='diamond',
                         line=dict(width=2, color='white')),
             showlegend=True,
-            hovertemplate=f'Max ILT: {metrics.imposter_lockout_time.max:.1f}s<extra></extra>'
+            hovertemplate=f'P90 ULT: {metrics.imposter_lockout_time.p90:.1f}s<extra></extra>'
         ))
 
 
