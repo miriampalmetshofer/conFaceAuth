@@ -42,8 +42,7 @@
   "enrollment": {
     "enrollment_video_preference": {
       "scenarios": [
-        "easy",
-        "lighting"
+        "easy"
       ],
       "rotations": [
         "cw",
