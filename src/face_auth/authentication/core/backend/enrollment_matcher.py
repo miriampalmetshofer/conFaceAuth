@@ -25,25 +25,26 @@ class EnrollmentMatcher:
         self._percentile_filter = PercentileFilter(similarity_percentile)
 
     def compute_similarity(self, embedding: np.ndarray) -> float:
-        """Compute average similarity to most similar enrollment embeddings.
+        """Compute percentile-based similarity to the enrollment embeddings.
 
-        Uses percentile filtering to focus on most similar enrollment images.
+        Uses a configured similarity percentile to focus on better-matching
+        enrollment images.
 
         Args:
             embedding: Query embedding to compare
 
         Returns:
-            Average similarity to most similar enrollment embeddings
+            Percentile value of similarities to enrollment embeddings
         """
         similarities = self.compute_similarities_to_all(
             embedding, self._enrollment_embeddings
         )
         logger.debug(f"Similarities to enrollment embeddings: {similarities}")
 
-        avg_similarity = self._percentile_filter.get_average_of_highest(similarities)
-        logger.debug(f"Average similarity to most similar embeddings: {avg_similarity:.4f}")
+        percentile_similarity = self._percentile_filter.get_percentile(similarities)
+        logger.debug(f"Percentile similarity to enrollment embeddings: {percentile_similarity:.4f}")
 
-        return avg_similarity
+        return percentile_similarity
 
     def compute(
             self,

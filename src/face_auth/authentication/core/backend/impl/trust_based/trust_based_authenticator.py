@@ -45,7 +45,7 @@ class RiskBasedAuthenticator(AuthenticatorBackend):
             embedding: Query embedding to compare
 
         Returns:
-            Average similarity to most similar enrollment embeddings
+            Percentile-based similarity to enrollment embeddings
         """
         return self._enrollment_matcher.compute_similarity(embedding)
 

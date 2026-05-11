@@ -44,7 +44,7 @@ class TemporalDecayAuthenticator(AuthenticatorBackend):
             embedding: Query embedding to compare
 
         Returns:
-            Average similarity to most similar enrollment embeddings
+            Percentile-based similarity to enrollment embeddings
         """
         return self._enrollment_matcher.compute_similarity(embedding)
 
@@ -148,4 +148,3 @@ class TemporalDecayAuthenticator(AuthenticatorBackend):
         if self._last_similarity is None:
             raise ValueError("No similarity available before processing frames")
         return self._last_similarity
-

@@ -21,7 +21,7 @@ class PercentileFilter:
             )
         self.similarity_percentile = similarity_percentile
 
-    def get_average_of_highest(self, similarities: list[float]) -> float:
+    def get_percentile(self, similarities: list[float]) -> float:
         """Get the percentile value of similarities.
 
         Args:
