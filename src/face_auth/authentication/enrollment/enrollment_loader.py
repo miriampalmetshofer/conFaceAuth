@@ -23,7 +23,7 @@ class EnrollmentLoader:
         """Load enrollment images and compute their embeddings."""
         self._validate_enrollment_folder(enrollment_folder)
 
-        image_files = list(enrollment_folder.iterdir())
+        image_files = sorted(enrollment_folder.glob("*.jpg"))
         logger.info(f"Found {len(image_files)} images in the enrollment folder")
 
         embeddings = []
@@ -38,7 +38,7 @@ class EnrollmentLoader:
 
     def _validate_enrollment_folder(self, enrollment_folder: Path) -> None:
         """Validate that enrollment folder exists and is not empty."""
-        if not enrollment_folder.exists() or not any(enrollment_folder.iterdir()):
+        if not enrollment_folder.exists() or not any(enrollment_folder.glob("*.jpg")):
             raise FileNotFoundError(
                 f"No images found in the enrollment folder: {enrollment_folder}. "
                 f"Please ensure the folder exists and contains images."

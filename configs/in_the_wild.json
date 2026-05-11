@@ -49,13 +49,11 @@
         "ccw"
       ]
     },
+    "force_reenrollment": true,
     "frames_per_direction": 5,
     "frame_sampling_interval": 5,
     "yaw_threshold": 15.0,
-    "pitch_threshold": 15.0,
-    "distribution_mean_fraction": 0.5,
-    "distribution_stddev_fraction": 0.25,
-    "sampling_seed": 42
+    "pitch_threshold": 15.0
   },
   "imposter_creation": {
     "fps": 30,

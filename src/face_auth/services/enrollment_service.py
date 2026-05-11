@@ -1,6 +1,7 @@
 """Enrollment service for managing participant enrollment data."""
 
 from pathlib import Path
+import shutil
 from typing import List
 
 from face_auth.config.models import EnrollmentConfig, PathsConfig, ProcessingContext, EnrollmentVideoPreference
@@ -12,8 +13,7 @@ from face_auth.authentication.enrollment import (
     EnrollmentVideoProcessor,
     VideoFrameExtractor,
     HeadPoseEstimator,
-    DirectionClassifier,
-    NormalDistributionSampler,
+    EnrollmentFrameSelector,
     EnrollmentFrameSaver
 )
 from face_auth.authentication.enrollment import EnrollmentLoader
@@ -71,6 +71,10 @@ class EnrollmentService:
         )
 
         enrollment_folder = self._get_enrollment_folder(context, selected_videos)
+
+        if self.config.force_reenrollment and enrollment_folder.exists():
+            logger.info(f"Deleting existing enrollment folder: {enrollment_folder}")
+            shutil.rmtree(enrollment_folder)
 
         if self._enrollment_exists(enrollment_folder):
             logger.info(f"Loading existing enrollment for {context.participant.name} ({context.device})")
@@ -204,13 +208,11 @@ class EnrollmentService:
 
         processor = self._build_enrollment_video_processor()
 
-        for video in enrollment_videos:
-            logger.info(f"Processing video: {video.path.name}")
-            processor.process_enrollment_video(
-                video.path,
-                self.config.frames_per_direction,
-                enrollment_folder
-            )
+        processor.process_enrollment_videos(
+            [video.path for video in enrollment_videos],
+            self.config.frames_per_direction,
+            enrollment_folder
+        )
 
         return self._load_enrollment(enrollment_folder)
 
@@ -238,14 +240,9 @@ class EnrollmentService:
         return EnrollmentVideoProcessor(
             frame_extractor=VideoFrameExtractor(self.config.frame_sampling_interval),
             pose_estimator=HeadPoseEstimator(),
-            direction_classifier=DirectionClassifier(
+            frame_selector=EnrollmentFrameSelector(
                 self.config.yaw_threshold,
                 self.config.pitch_threshold
-            ),
-            frame_sampler=NormalDistributionSampler(
-                self.config.distribution_mean_fraction,
-                self.config.distribution_stddev_fraction,
-                self.config.sampling_seed
             ),
             frame_saver=EnrollmentFrameSaver()
         )

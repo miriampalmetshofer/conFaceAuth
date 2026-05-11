@@ -1,31 +1,39 @@
+"""Persistence for selected enrollment frames."""
+from collections import Counter
 from pathlib import Path
-import cv2
-import numpy as np
 
+import cv2
+
+from face_auth.authentication.enrollment.models import SelectedEnrollmentFrame
 from face_auth.config.logging_config import get_logger
-from face_auth.authentication.enrollment import HeadDirection
 
 logger = get_logger(__name__)
 
 
 class EnrollmentFrameSaver:
-    """Saves enrollment frames organized by direction."""
+    """Saves selected enrollment frames."""
 
-    def save_frames(
+    def save(
         self,
-        frames_by_direction: dict[HeadDirection, list[np.ndarray]],
+        selections: list[SelectedEnrollmentFrame],
         output_folder: Path,
-        video_stem: str
     ) -> None:
-        """Save frames to folder organized by direction."""
+        """Save selected frames to the enrollment folder."""
         output_folder.mkdir(parents=True, exist_ok=True)
 
-        total_saved = 0
-        for direction, frames_list in frames_by_direction.items():
-            for i, frame in enumerate(frames_list):
-                frame_filename = f"{video_stem}_{direction.value}_{i:03d}.jpg"
-                frame_path = output_folder / frame_filename
-                cv2.imwrite(str(frame_path), frame)
-                total_saved += 1
+        counters = Counter()
 
-        logger.info(f"Saved {total_saved} enrollment frames to {output_folder}")
+        for selection in selections:
+            direction = selection.assigned_direction
+            counters[direction] += 1
+
+            filename = (
+                f"{selection.candidate.extracted_frame.source_video_stem}_"
+                f"{direction.value}_"
+                f"{selection.reason.value}_"
+                f"{counters[direction] - 1:03d}.jpg"
+            )
+            output_path = output_folder / filename
+            cv2.imwrite(str(output_path), selection.image_bgr)
+
+        logger.info(f"Saved {len(selections)} enrollment frames to {output_folder}")

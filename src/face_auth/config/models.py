@@ -106,13 +106,11 @@ class EnrollmentConfig(BaseModel):
     """Enrollment parameters configuration."""
 
     enrollment_video_preference: EnrollmentVideoPreference
+    force_reenrollment: bool = False
     frames_per_direction: int = Field(..., gt=0)
     frame_sampling_interval: int = Field(..., gt=0)
     yaw_threshold: float = Field(..., gt=0)
     pitch_threshold: float = Field(..., gt=0)
-    distribution_mean_fraction: float = Field(..., ge=0, le=1)
-    distribution_stddev_fraction: float = Field(..., ge=0, le=1)
-    sampling_seed: int
 
     model_config = ConfigDict(frozen=True)
 

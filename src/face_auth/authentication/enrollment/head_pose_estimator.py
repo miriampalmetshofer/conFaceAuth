@@ -22,9 +22,17 @@ FACE_MODEL_POINTS = np.array([
 ])
 
 class HeadPoseEstimator:
-    """Estimates head pose angles from facial landmarks using MediaPipe."""
+    """Estimates head pose angles from facial landmarks using MediaPipe.
 
-    def __init__(self, model_path: str = "src/face_auth/authentication/enrollment/face_landmarker.task"):
+    The pose computation follows the solvePnP/Rodrigues/Euler-angle structure
+    from shenasa-ai/head-pose-estimation:
+    https://github.com/shenasa-ai/head-pose-estimation/blob/main/estimator.py
+    """
+
+    def __init__(
+        self,
+        model_path: str = "src/face_auth/authentication/enrollment/face_landmarker.task",
+    ):
         """Initialize head pose estimator with MediaPipe FaceLandmarker (Tasks API)."""
         BaseOptions = mp.tasks.BaseOptions
         FaceLandmarker = mp.tasks.vision.FaceLandmarker
