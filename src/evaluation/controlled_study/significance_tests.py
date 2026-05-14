@@ -30,6 +30,7 @@ from evaluation.shared.metrics import (
     group_frames_by_video,
     find_first_imposter_frame_index,
     find_lockout_transition,
+    is_eligible_for_imposter_rejection,
 )
 
 PROJECT_ROOT = Path(__file__).parent.parent.parent.parent
@@ -66,8 +67,9 @@ def compute_ilt_per_participant(frames, participants, scenarios, devices, fps):
     """Compute median imposter lockout time per (participant, scenario, device).
 
     For each participant, takes the median lockout time across all impostor
-    videos in that condition. Videos where the impostor is never locked out
-    are excluded from the median.
+    videos in that condition. Videos where the device locked before the
+    impostor segment, and videos where the impostor is never locked out, are
+    excluded from the median.
 
     Returns:
         dict mapping (participant, scenario, device) -> median ILT in seconds
@@ -91,6 +93,8 @@ def compute_ilt_per_participant(frames, participants, scenarios, devices, fps):
                     vframes.sort(key=lambda f: f.frame)
                     first_imp_idx = find_first_imposter_frame_index(vframes)
                     if first_imp_idx is None:
+                        continue
+                    if not is_eligible_for_imposter_rejection(vframes, first_imp_idx):
                         continue
                     lt = find_lockout_transition(vframes, first_imp_idx, fps)
                     if lt is not None:

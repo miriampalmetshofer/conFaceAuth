@@ -23,7 +23,7 @@ class SessionCounts:
     """Raw session counts — supporting data for FRR/FAR fraction display only."""
     genuine_sessions: int
     genuine_lockouts: int       # genuine sessions where user was wrongly locked out
-    imposter_sessions: int
+    imposter_sessions: int      # eligible imposter sessions, excluding earlier lockouts
     imposter_lockouts: int      # imposter sessions where imposter was successfully locked out
 
 

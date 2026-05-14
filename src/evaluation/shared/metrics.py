@@ -17,6 +17,7 @@ from evaluation.shared.models import (
 class _ImposterLockoutResult(NamedTuple):
     lockouts: int
     sessions: int
+    excluded_sessions: int
     mean: Optional[float]
     p90: Optional[float]
     max: Optional[float]
@@ -59,6 +60,17 @@ def find_lockout_transition(video_frames: list[FrameData], first_imposter_idx: i
     return None
 
 
+def is_eligible_for_imposter_rejection(video_frames: list[FrameData], first_imposter_idx: int) -> bool:
+    """Return whether a video is eligible for imposter rejection metrics.
+
+    A composed video is eligible only if it is still unlocked when the imposter
+    segment starts. If the offline trace already contains a lock before that
+    point, a deployed device would have locked before the takeover.
+    """
+    frames_until_imposter = video_frames[:first_imposter_idx + 1]
+    return all(f.predicted_state == 'Unlocked' for f in frames_until_imposter)
+
+
 def find_genuine_lockout_transition(video_frames: list[FrameData], fps: int) -> Optional[float]:
     """Return seconds from video start until genuine user is wrongly locked out, or None."""
     for i in range(len(video_frames) - 1):
@@ -80,6 +92,18 @@ def report_never_locked_out_videos(never_locked_out: list[str]) -> None:
         print()
 
 
+def report_excluded_imposter_videos(excluded_videos: list[str]) -> None:
+    """Print notice for imposter sessions excluded due to earlier lockout."""
+    if excluded_videos:
+        print(
+            f"\nINFO: Excluded {len(excluded_videos)} video(s) from imposter rejection metrics "
+            "because the device locked before the imposter segment:"
+        )
+        for vp in excluded_videos:
+            print(f"    - {vp}")
+        print()
+
+
 def _compute_genuine_trust(frames: list[FrameData]) -> Optional[float]:
     """Mean trust score across all genuine frames."""
     scores = [f.trust_score for f in frames if f.segment_type == SegmentType.GENUINE]
@@ -91,29 +115,44 @@ def _compute_imposter_lockout(frames: list[FrameData], fps: int) -> _ImposterLoc
     videos = group_frames_by_video(frames)
     lockout_times: list[float] = []
     never_locked_out: list[str] = []
+    excluded_videos: list[str] = []
+    eligible_sessions = 0
 
     for video_path, video_frames in videos.items():
         video_frames.sort(key=lambda f: f.frame)
         first_idx = find_first_imposter_frame_index(video_frames)
         if first_idx is None:
             raise ValueError(f"No imposter frames found in video: {video_path}")
+        if not is_eligible_for_imposter_rejection(video_frames, first_idx):
+            excluded_videos.append(video_path)
+            continue
+        eligible_sessions += 1
         t = find_lockout_transition(video_frames, first_idx, fps)
         if t is not None:
             lockout_times.append(t)
         else:
             never_locked_out.append(video_path)
 
+    report_excluded_imposter_videos(excluded_videos)
     report_never_locked_out_videos(never_locked_out)
 
     if lockout_times:
         return _ImposterLockoutResult(
             lockouts=len(lockout_times),
-            sessions=len(videos),
+            sessions=eligible_sessions,
+            excluded_sessions=len(excluded_videos),
             mean=float(np.mean(lockout_times)),
             p90=float(np.percentile(lockout_times, 90)),
             max=float(np.max(lockout_times)),
         )
-    return _ImposterLockoutResult(lockouts=0, sessions=len(videos), mean=None, p90=None, max=None)
+    return _ImposterLockoutResult(
+        lockouts=0,
+        sessions=eligible_sessions,
+        excluded_sessions=len(excluded_videos),
+        mean=None,
+        p90=None,
+        max=None,
+    )
 
 
 def _compute_genuine_lockout(frames: list[FrameData], fps: int) -> _GenuineLockoutResult:

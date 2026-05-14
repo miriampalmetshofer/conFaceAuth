@@ -26,7 +26,7 @@ from evaluation.in_the_wild.annotation_validator import (
 DEVICES = ['mobile']
 
 PROJECT_ROOT = Path(__file__).parent.parent.parent.parent
-RESULTS_FOLDER = "data/in_the_wild/" #_results_archive/V04
+RESULTS_FOLDER = "data/in_the_wild/_results_archive/V04" #_results_archive/V04
 
 RESULTS_PATH = PROJECT_ROOT / RESULTS_FOLDER / "results.csv"
 CONFIG_PATH = PROJECT_ROOT / RESULTS_FOLDER / "config.json"
