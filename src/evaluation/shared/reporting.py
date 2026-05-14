@@ -12,11 +12,22 @@ def print_section(title: str) -> None:
 def print_dataset_summary(frames: list[FrameData], total_videos: int) -> None:
     """Print summary of dataset including unique genuine videos and total sessions."""
     unique_genuine_videos = set()
+    genuine_videos_by_participant: dict[str, set[str]] = {}
     for frame in frames:
         if frame.segment_type == SegmentType.GENUINE:
             unique_genuine_videos.add(frame.source_type)
+            genuine_videos_by_participant.setdefault(frame.participant, set()).add(frame.source_type)
 
     print(f"Total user videos: {len(unique_genuine_videos)}")
+    videos_per_participant = [len(videos) for videos in genuine_videos_by_participant.values()]
+    if videos_per_participant:
+        mean_videos = sum(videos_per_participant) / len(videos_per_participant)
+        print(
+            "Videos per participant: "
+            f"min {min(videos_per_participant)}, "
+            f"max {max(videos_per_participant)}, "
+            f"mean {mean_videos:.1f}"
+        )
     print(f"Total generated evaluation sessions: {total_videos}")
 
     print()
