@@ -17,6 +17,11 @@ from evaluation.shared.models import (
     FrameData,
     AuthenticationMetrics
 )
+from evaluation.shared.font_config import (
+    apply_plotly_font,
+    plotly_font_style_tag,
+    plotly_html,
+)
 
 
 @dataclass
@@ -266,6 +271,23 @@ def _add_metrics_visualization(fig: go.Figure, metrics: AuthenticationMetrics,
         ))
 
 
+def _add_rate_legend_entries(fig: go.Figure, metrics: AuthenticationMetrics) -> None:
+    """Add FRR and FAR as text-only entries in the metrics legend."""
+    for name, value in [
+        ("FRR", metrics.false_reject_rate),
+        ("FAR", metrics.false_accept_rate),
+    ]:
+        fig.add_trace(go.Scatter(
+            x=[None],
+            y=[None],
+            mode='markers',
+            name=f'{name}: {value:.1f}%',
+            marker=dict(size=0, color='rgba(0, 0, 0, 0)'),
+            showlegend=True,
+            hoverinfo='skip'
+        ))
+
+
 def _add_video_traces(fig: go.Figure, video_frames_dict: dict[str, list[FrameData]], fps: int) -> None:
     """Add video traces to a plotly figure.
 
@@ -421,18 +443,20 @@ def create_trust_timeline_all_videos(data: EvaluationData, study_name: str, conf
     mean_times = [frame / fps for frame in sorted_frames]
     mean_trust = [float(np.mean(frames_by_time[frame])) for frame in sorted_frames]
 
-    fig.add_trace(go.Scatter(
-        x=mean_times,
-        y=mean_trust,
-        mode='lines',
-        name='Mean Trust',
-        line=dict(color='black', width=3),
-        showlegend=True,
-        hovertemplate='Time: %{x:.2f}s<br>Mean Trust: %{y:.4f}<extra></extra>'
-    ))
-
     # Add threshold as a named trace so it appears in the legend
     x_end = mean_times[-1] if mean_times else segments.get('imposter', (0, 0))[1]
+    if metrics.mean_genuine_trust is not None:
+        genuine_start, genuine_end = segments.get('genuine', (0, x_end))
+        fig.add_trace(go.Scatter(
+            x=[genuine_start, genuine_end],
+            y=[metrics.mean_genuine_trust, metrics.mean_genuine_trust],
+            mode='lines',
+            name='Mean Genuine Trust',
+            line=dict(color='rgba(39, 174, 96, 0.95)', width=2, dash='dot'),
+            showlegend=True,
+            hovertemplate=f'Mean Genuine Trust: {metrics.mean_genuine_trust:.4f}<extra></extra>'
+        ))
+
     fig.add_trace(go.Scatter(
         x=[0, x_end],
         y=[data.threshold, data.threshold],
@@ -443,9 +467,7 @@ def create_trust_timeline_all_videos(data: EvaluationData, study_name: str, conf
         hovertemplate=f'Threshold: {data.threshold}<extra></extra>'
     ))
 
-    _add_metrics_visualization(fig, metrics, data.threshold, segments)
-
-    # Add invisible traces for segment labels in the legend
+    # Add invisible traces for segment labels in the legend (next to Threshold)
     if segments:
         segment_labels = {
             'black': 'Black Frames'
@@ -466,6 +488,9 @@ def create_trust_timeline_all_videos(data: EvaluationData, study_name: str, conf
                     hoverinfo='skip'
                 ))
 
+    _add_metrics_visualization(fig, metrics, data.threshold, segments)
+    _add_rate_legend_entries(fig, metrics)
+
     fig.update_layout(
         annotations=_get_segment_header_annotations(segments),
         legend=dict(
@@ -476,7 +501,7 @@ def create_trust_timeline_all_videos(data: EvaluationData, study_name: str, conf
             x=1.0,
             font=dict(size=22)
         ),
-        margin=dict(l=60, r=20, t=78, b=60),
+        margin=dict(l=80, r=20, t=78, b=60),
         font=dict(size=22),
         xaxis=dict(title_font=dict(size=22), tickfont=dict(size=18)),
         yaxis=dict(title_font=dict(size=22), tickfont=dict(size=18))
@@ -909,9 +934,13 @@ def save_html(fig: go.Figure | list[go.Figure], output_path: Path, filename: str
     filepath = output_path / filename
 
     if isinstance(fig, list):
-        html_content = '<html><head><script src="https://cdn.plot.ly/plotly-latest.min.js"></script></head><body>\n'
+        html_content = (
+            '<html><head><script src="https://cdn.plot.ly/plotly-latest.min.js"></script>'
+            f'{plotly_font_style_tag()}</head><body>\n'
+        )
 
         for i, single_fig in enumerate(fig):
+            apply_plotly_font(single_fig)
             html_content += f'<div id="plot_{i}"></div>\n'
             html_content += f'<script>Plotly.newPlot("plot_{i}", {single_fig.to_json()});</script>\n'
 
@@ -919,7 +948,8 @@ def save_html(fig: go.Figure | list[go.Figure], output_path: Path, filename: str
 
         filepath.write_text(html_content)
     else:
-        fig.write_html(str(filepath))
+        apply_plotly_font(fig)
+        filepath.write_text(plotly_html(fig))
 
     return filepath
 
@@ -948,5 +978,6 @@ def save_plotly_png(fig: go.Figure, output_path: Path, filename: str, width: int
     """
     output_path.mkdir(parents=True, exist_ok=True)
     filepath = output_path / filename
+    apply_plotly_font(fig)
     fig.write_image(str(filepath), width=width, height=height, scale=2)
     return filepath
