@@ -151,7 +151,7 @@ def _get_segment_header_annotations(segments: dict) -> list[dict]:
             showarrow=False,
             xanchor='center',
             yanchor='bottom',
-            font=dict(size=20)
+            font=dict(size=20, color='black')
         ),
         dict(
             x=(segments['imposter'][0] + segments['imposter'][1]) / 2,
@@ -162,7 +162,7 @@ def _get_segment_header_annotations(segments: dict) -> list[dict]:
             showarrow=False,
             xanchor='center',
             yanchor='bottom',
-            font=dict(size=20)
+            font=dict(size=20, color='black')
         )
     ]
 
@@ -499,12 +499,12 @@ def create_trust_timeline_all_videos(data: EvaluationData, study_name: str, conf
             y=1.085,
             xanchor='right',
             x=1.0,
-            font=dict(size=22)
+            font=dict(size=22, family='Latin Modern Roman, serif', color='black')
         ),
         margin=dict(l=80, r=20, t=78, b=60),
-        font=dict(size=22),
-        xaxis=dict(title_font=dict(size=22), tickfont=dict(size=18)),
-        yaxis=dict(title_font=dict(size=22), tickfont=dict(size=18))
+        font=dict(size=22, family='Latin Modern Roman, serif', color='black'),
+        xaxis=dict(title_font=dict(size=22, family='Latin Modern Roman, serif', color='black'), tickfont=dict(size=18, family='Latin Modern Roman, serif', color='black')),
+        yaxis=dict(title_font=dict(size=22, family='Latin Modern Roman, serif', color='black'), tickfont=dict(size=18, family='Latin Modern Roman, serif', color='black'))
     )
 
     return fig
@@ -979,5 +979,20 @@ def save_plotly_png(fig: go.Figure, output_path: Path, filename: str, width: int
     output_path.mkdir(parents=True, exist_ok=True)
     filepath = output_path / filename
     apply_plotly_font(fig)
-    fig.write_image(str(filepath), width=width, height=height, scale=2)
+
+    try:
+        import plotly.io as pio
+        pio.kaleido.scope.mathjax = None
+        fig.write_image(
+            str(filepath),
+            width=width,
+            height=height,
+            scale=2,
+            engine="kaleido"
+        )
+    except Exception as e:
+        print(f"Warning: Could not export PNG with Latin Modern Roman font. Error: {e}")
+        print("The font may not be available to Kaleido. Attempting fallback...")
+        fig.write_image(str(filepath), width=width, height=height, scale=2)
+
     return filepath

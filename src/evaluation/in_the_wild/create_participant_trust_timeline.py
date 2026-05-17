@@ -12,6 +12,7 @@ from evaluation.shared.models import EvaluationData
 from evaluation.shared.visualization import (
     create_trust_timeline_all_videos,
     save_html,
+    save_plotly_png,
 )
 
 
@@ -192,9 +193,13 @@ def main() -> None:
         metrics,
     )
     _customize_metric_markers(fig, metrics, participant_data.threshold)
-    output_file = save_html(fig, DEFAULT_OUTPUT_PATH, output_filename)
 
-    print(f"Saved participant trust timeline to: {output_file}")
+    html_output = save_html(fig, DEFAULT_OUTPUT_PATH, output_filename)
+    png_filename = output_filename.replace('.html', '.png')
+    png_output = save_plotly_png(fig, DEFAULT_OUTPUT_PATH, png_filename, width=1300, height=560)
+
+    print(f"Saved participant trust timeline HTML to: {html_output}")
+    print(f"Saved participant trust timeline PNG to: {png_output}")
 
 
 if __name__ == "__main__":
