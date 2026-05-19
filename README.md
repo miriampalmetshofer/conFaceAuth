@@ -219,8 +219,11 @@ Example configuration structure:
       "scenario": "easy",
       "rotations": ["cw", "ccw"]
     },
-    "frames_per_direction": 5,
-    "frame_sampling_interval": 5
+    "backend": "fixed_order",
+    "config": {
+      "window_seconds": 2.0
+    },
+    "frames_per_direction": 5
   },
   "imposter_creation": {
     "fps": 30,
@@ -250,6 +253,8 @@ Example configuration structure:
 - `processing.num_workers`: Number of parallel processing workers. Set to 1 for debugging.
 - `authentication.backend`: Authentication algorithm (`"trust_based"` or `"temporal_decay"`)
 - `authentication.fps`: Video frame rate
+- `enrollment.backend`: Enrollment frame selection method (`"fixed_order"` or `"pose"`)
+- `enrollment.config`: Backend-specific enrollment settings
 - `enrollment.frames_per_direction`: How many frames to extract per head rotation direction
 - `imposter_creation.genuine_user_seconds`: Duration of genuine user footage in composed videos
 - `imposter_creation.impostor_seconds`: Duration of imposter footage in composed videos

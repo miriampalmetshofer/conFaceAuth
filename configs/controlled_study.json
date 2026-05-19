@@ -48,10 +48,11 @@
       ]
     },
     "force_reenrollment": true,
-    "frames_per_direction": 5,
-    "frame_sampling_interval": 5,
-    "yaw_threshold": 15.0,
-    "pitch_threshold": 15.0
+    "backend": "fixed_order",
+    "config": {
+      "window_seconds": 2.0
+    },
+    "frames_per_direction": 5
   },
   "imposter_creation": {
     "fps": 30,

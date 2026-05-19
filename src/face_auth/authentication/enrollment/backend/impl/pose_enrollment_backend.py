@@ -1,8 +1,11 @@
-"""Enrollment frame selection with deterministic pose-based fill-up."""
+"""Pose-estimation enrollment backend."""
 from collections import Counter, defaultdict
 
+import cv2
 import numpy as np
 
+from face_auth.authentication.enrollment.backend.enrollment_backend import EnrollmentBackend
+from face_auth.authentication.enrollment.helper.head_pose_estimator import HeadPoseEstimator
 from face_auth.authentication.enrollment.models import (
     EnrollmentCandidate,
     HeadDirection,
@@ -10,21 +13,44 @@ from face_auth.authentication.enrollment.models import (
     SelectedEnrollmentFrame,
     SelectionReason,
 )
+from face_auth.authentication.enrollment.helper.video_frame_extractor import VideoFrameExtractor
 from face_auth.config.logging_config import get_logger
+from face_auth.processing.models import EnrollmentVideo
 
 logger = get_logger(__name__)
 
 
-class EnrollmentFrameSelector:
-    """Builds a fixed-size enrollment set from pose-classified frame candidates."""
+class PoseEnrollmentBackend(EnrollmentBackend):
+    """Selects enrollment frames by estimating and classifying head pose."""
 
-    def __init__(self, yaw_threshold: float, pitch_threshold: float):
-        """Initialize selector with the direction thresholds used during classification."""
+    def __init__(
+        self,
+        frame_extractor: VideoFrameExtractor,
+        pose_estimator: HeadPoseEstimator,
+        yaw_threshold: float,
+        pitch_threshold: float,
+    ):
+        """Initialize backend dependencies."""
+        self.frame_extractor = frame_extractor
+        self.pose_estimator = pose_estimator
         self.yaw_threshold = yaw_threshold
         self.pitch_threshold = pitch_threshold
         self.directions = HeadDirection.ordered()
 
-    def select(
+    def select_frames(
+        self,
+        enrollment_videos: list[EnrollmentVideo],
+        frames_per_direction_per_video: int,
+    ) -> list[SelectedEnrollmentFrame]:
+        """Select frames using the existing pose-based enrollment logic."""
+        candidates = self._collect_pose_candidates(enrollment_videos)
+        return self._select_candidates(
+            candidates=candidates,
+            frames_per_direction_per_video=frames_per_direction_per_video,
+            video_count=len(enrollment_videos),
+        )
+
+    def _select_candidates(
         self,
         candidates: list[EnrollmentCandidate],
         frames_per_direction_per_video: int,
@@ -44,10 +70,41 @@ class EnrollmentFrameSelector:
         selected = self._select_direct_matches(candidates, quota_per_direction)
         selected = self._fill_missing_quotas(candidates, selected, quota_per_direction)
 
-        self._log_summary(selected, total_target)
+        self._log_selection_summary(selected, total_target)
         return selected
 
-    def classify(self, pose: HeadPose) -> HeadDirection:
+    def _collect_pose_candidates(
+        self,
+        enrollment_videos: list[EnrollmentVideo],
+    ) -> list[EnrollmentCandidate]:
+        candidates = []
+
+        for video in enrollment_videos:
+            extracted_frames = self.frame_extractor.extract_frames(video.path)
+            logger.info(
+                f"Estimating head pose for {len(extracted_frames)} extracted frames "
+                f"from {video.path.name}"
+            )
+
+            for extracted_frame in extracted_frames:
+                frame_rgb = cv2.cvtColor(extracted_frame.image_bgr, cv2.COLOR_BGR2RGB)
+                pose = self.pose_estimator.estimate_pose(frame_rgb)
+                if pose is None:
+                    continue
+
+                detected_direction = self._classify(pose)
+                candidates.append(
+                    EnrollmentCandidate(
+                        extracted_frame=extracted_frame,
+                        pose=pose,
+                        detected_direction=detected_direction,
+                    )
+                )
+
+        self._log_candidate_summary(candidates)
+        return candidates
+
+    def _classify(self, pose: HeadPose) -> HeadDirection:
         """Classify a head pose into the direction buckets used for enrollment."""
         if pose.yaw > self.yaw_threshold:
             return HeadDirection.RIGHT
@@ -59,7 +116,7 @@ class EnrollmentFrameSelector:
             return HeadDirection.UP
         return HeadDirection.FRONT
 
-    def pose_distance(self, pose: HeadPose, direction: HeadDirection) -> float:
+    def _pose_distance(self, pose: HeadPose, direction: HeadDirection) -> float:
         """Return how far a pose is from satisfying a direction threshold."""
         if direction == HeadDirection.RIGHT:
             return max(0.0, self.yaw_threshold - pose.yaw)
@@ -90,10 +147,9 @@ class EnrollmentFrameSelector:
             )
             selected.extend(
                 SelectedEnrollmentFrame(
-                    candidate=candidate,
+                    extracted_frame=candidate.extracted_frame,
                     assigned_direction=direction,
                     reason=SelectionReason.DIRECT_MATCH,
-                    pose_distance=0.0,
                 )
                 for candidate in chosen
             )
@@ -106,10 +162,10 @@ class EnrollmentFrameSelector:
         selected: list[SelectedEnrollmentFrame],
         quota_per_direction: int,
     ) -> list[SelectedEnrollmentFrame]:
-        selected_ids = {id(selection.candidate) for selection in selected}
+        selected_ids = {id(selection.extracted_frame) for selection in selected}
         unused_candidates = [
             candidate for candidate in candidates
-            if id(candidate) not in selected_ids
+            if id(candidate.extracted_frame) not in selected_ids
         ]
 
         while True:
@@ -121,9 +177,9 @@ class EnrollmentFrameSelector:
             if not deficits:
                 return selected
 
-            direction, candidate, distance = min(
+            direction, candidate, _ = min(
                 (
-                    (direction, candidate, self.pose_distance(candidate.pose, direction))
+                    (direction, candidate, self._pose_distance(candidate.pose, direction))
                     for direction in deficits
                     for candidate in unused_candidates
                 ),
@@ -132,10 +188,9 @@ class EnrollmentFrameSelector:
 
             selected.append(
                 SelectedEnrollmentFrame(
-                    candidate=candidate,
+                    extracted_frame=candidate.extracted_frame,
                     assigned_direction=direction,
                     reason=SelectionReason.CLOSEST_POSE_FILL,
-                    pose_distance=distance,
                 )
             )
             unused_candidates = [
@@ -163,7 +218,16 @@ class EnrollmentFrameSelector:
         indices = np.linspace(0, len(candidates) - 1, target_count)
         return [candidates[round(index)] for index in indices]
 
-    def _log_summary(
+    def _log_candidate_summary(self, candidates: list[EnrollmentCandidate]) -> None:
+        counts = defaultdict(int)
+        for candidate in candidates:
+            counts[candidate.detected_direction] += 1
+
+        logger.info(f"Found {len(candidates)} pose-detected enrollment candidates")
+        for direction in HeadDirection.ordered():
+            logger.info(f"  {direction.value}: {counts[direction]} candidates")
+
+    def _log_selection_summary(
         self,
         selected: list[SelectedEnrollmentFrame],
         total_target: int,

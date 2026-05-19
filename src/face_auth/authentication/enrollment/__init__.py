@@ -1,5 +1,5 @@
 """Enrollment-specific functionality."""
-from face_auth.authentication.enrollment.head_pose_estimator import HeadPoseEstimator
+from face_auth.authentication.enrollment.helper.head_pose_estimator import HeadPoseEstimator
 from face_auth.authentication.enrollment.models import (
     EnrollmentCandidate,
     EnrollmentFrames,
@@ -10,8 +10,7 @@ from face_auth.authentication.enrollment.models import (
     SelectionReason,
 )
 
-from face_auth.authentication.enrollment.video_frame_extractor import VideoFrameExtractor
-from face_auth.authentication.enrollment.frame_selector import EnrollmentFrameSelector
+from face_auth.authentication.enrollment.helper.video_frame_extractor import VideoFrameExtractor
 from face_auth.authentication.enrollment.enrollment_frame_saver import EnrollmentFrameSaver
 from face_auth.authentication.enrollment.enrollment_loader import EnrollmentLoader
 from face_auth.authentication.enrollment.enrollment_video_processor import EnrollmentVideoProcessor
@@ -22,7 +21,6 @@ __all__ = [
     # Components
     'VideoFrameExtractor',
     'HeadPoseEstimator',
-    'EnrollmentFrameSelector',
     'EnrollmentFrameSaver',
     'EnrollmentLoader',
     # Models

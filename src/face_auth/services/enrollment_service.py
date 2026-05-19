@@ -9,11 +9,9 @@ from face_auth.authentication.embedder import Embedder
 from face_auth.processing import VideoDiscovery
 from face_auth.processing import EnrollmentVideoParser
 from face_auth.processing import EnrollmentVideo
+from face_auth.authentication.enrollment.backend import create_enrollment_backend
 from face_auth.authentication.enrollment import (
     EnrollmentVideoProcessor,
-    VideoFrameExtractor,
-    HeadPoseEstimator,
-    EnrollmentFrameSelector,
     EnrollmentFrameSaver
 )
 from face_auth.authentication.enrollment import EnrollmentLoader
@@ -209,7 +207,7 @@ class EnrollmentService:
         processor = self._build_enrollment_video_processor()
 
         processor.process_enrollment_videos(
-            [video.path for video in enrollment_videos],
+            enrollment_videos,
             self.config.frames_per_direction,
             enrollment_folder
         )
@@ -238,11 +236,6 @@ class EnrollmentService:
     def _build_enrollment_video_processor(self) -> EnrollmentVideoProcessor:
         """Build enrollment video processor with configured components."""
         return EnrollmentVideoProcessor(
-            frame_extractor=VideoFrameExtractor(self.config.frame_sampling_interval),
-            pose_estimator=HeadPoseEstimator(),
-            frame_selector=EnrollmentFrameSelector(
-                self.config.yaw_threshold,
-                self.config.pitch_threshold
-            ),
+            backend=create_enrollment_backend(self.config),
             frame_saver=EnrollmentFrameSaver()
         )

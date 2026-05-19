@@ -107,12 +107,34 @@ class EnrollmentConfig(BaseModel):
 
     enrollment_video_preference: EnrollmentVideoPreference
     force_reenrollment: bool = False
+    backend: str = Field(..., min_length=1)
+    config: dict = Field(...)
     frames_per_direction: int = Field(..., gt=0)
-    frame_sampling_interval: int = Field(..., gt=0)
-    yaw_threshold: float = Field(..., gt=0)
-    pitch_threshold: float = Field(..., gt=0)
 
     model_config = ConfigDict(frozen=True)
+
+    def model_post_init(self, __context) -> None:
+        """Validate backend-specific enrollment settings."""
+        if self.backend not in {"pose", "fixed_order"}:
+            raise ValueError("enrollment backend must be one of: pose, fixed_order")
+        if self.backend == "pose":
+            missing_keys = [
+                key for key in ("yaw_threshold", "pitch_threshold", "frame_sampling_interval")
+                if key not in self.config
+            ]
+            if missing_keys:
+                raise ValueError(
+                    "enrollment config is missing required pose key(s): "
+                    f"{', '.join(missing_keys)}"
+                )
+            if self.config["frame_sampling_interval"] <= 0:
+                raise ValueError(
+                    "enrollment config field frame_sampling_interval must be greater than 0"
+                )
+        if self.backend == "fixed_order" and "window_seconds" not in self.config:
+            raise ValueError(
+                "enrollment config is missing required fixed_order key: window_seconds"
+            )
 
 
 class EmbedderConfig(BaseModel):

@@ -46,20 +46,20 @@ class SelectionReason(Enum):
     """Reason why a candidate was assigned to an enrollment direction."""
     DIRECT_MATCH = "direct"
     CLOSEST_POSE_FILL = "closest_pose_fill"
+    FIXED_ORDER = "fixed_order"
 
 
 @dataclass(frozen=True)
 class SelectedEnrollmentFrame:
-    """Candidate selected for the final enrollment set."""
-    candidate: EnrollmentCandidate
+    """Frame selected for the final enrollment set."""
+    extracted_frame: ExtractedFrame
     assigned_direction: HeadDirection
     reason: SelectionReason
-    pose_distance: float
 
     @property
     def image_bgr(self) -> Any:
         """Return the selected BGR image."""
-        return self.candidate.extracted_frame.image_bgr
+        return self.extracted_frame.image_bgr
 
 
 @dataclass

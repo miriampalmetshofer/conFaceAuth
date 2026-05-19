@@ -28,7 +28,7 @@ class EnrollmentFrameSaver:
             counters[direction] += 1
 
             filename = (
-                f"{selection.candidate.extracted_frame.source_video_stem}_"
+                f"{selection.extracted_frame.source_video_stem}_"
                 f"{direction.value}_"
                 f"{selection.reason.value}_"
                 f"{counters[direction] - 1:03d}.jpg"
