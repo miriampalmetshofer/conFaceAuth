@@ -271,23 +271,6 @@ def _add_metrics_visualization(fig: go.Figure, metrics: AuthenticationMetrics,
         ))
 
 
-def _add_rate_legend_entries(fig: go.Figure, metrics: AuthenticationMetrics) -> None:
-    """Add FRR and FAR as text-only entries in the metrics legend."""
-    for name, value in [
-        ("FRR", metrics.false_reject_rate),
-        ("FAR", metrics.false_accept_rate),
-    ]:
-        fig.add_trace(go.Scatter(
-            x=[None],
-            y=[None],
-            mode='markers',
-            name=f'{name}: {value:.1f}%',
-            marker=dict(size=0, color='rgba(0, 0, 0, 0)'),
-            showlegend=True,
-            hoverinfo='skip'
-        ))
-
-
 def _add_video_traces(fig: go.Figure, video_frames_dict: dict[str, list[FrameData]], fps: int) -> None:
     """Add video traces to a plotly figure.
 
@@ -489,7 +472,6 @@ def create_trust_timeline_all_videos(data: EvaluationData, study_name: str, conf
                 ))
 
     _add_metrics_visualization(fig, metrics, data.threshold, segments)
-    _add_rate_legend_entries(fig, metrics)
 
     fig.update_layout(
         annotations=_get_segment_header_annotations(segments),

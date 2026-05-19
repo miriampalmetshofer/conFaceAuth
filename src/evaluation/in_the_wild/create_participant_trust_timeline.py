@@ -157,8 +157,7 @@ def _move_metric_markers_to_front(fig) -> None:
 
 
 def _default_output_filename(participants: list[str]) -> str:
-    participant_slug = "_".join(participant.lower() for participant in participants)
-    return f"trust_timeline_participants_{participant_slug}.html"
+    return f"trust_timeline_participant.html"
 
 
 def main() -> None:
@@ -196,7 +195,7 @@ def main() -> None:
 
     html_output = save_html(fig, DEFAULT_OUTPUT_PATH, output_filename)
     png_filename = output_filename.replace('.html', '.png')
-    png_output = save_plotly_png(fig, DEFAULT_OUTPUT_PATH, png_filename, width=1300, height=560)
+    png_output = save_plotly_png(fig, DEFAULT_OUTPUT_PATH, png_filename, width=1200, height=560)
 
     print(f"Saved participant trust timeline HTML to: {html_output}")
     print(f"Saved participant trust timeline PNG to: {png_output}")
