@@ -1,17 +1,17 @@
 """Statistical significance testing for controlled study.
 
-Compares system performance across scenarios (easy, angle, lighting)
+Compares measured approach behavior across scenarios (easy, angle, lighting)
 and devices (desktop, mobile) using non-parametric paired tests.
 
 Metrics:
     - Genuine trust score: mean trust score during genuine segments per participant
-    - ILT (Imposter Lockout Time): median lockout time per participant
+    - ILT (Imposter Lockout Time): mean lockout time per participant
 
 Tests:
-    - Friedman test for scenario comparison (3 conditions, repeated measures)
-    - Pairwise Wilcoxon signed-rank with Bonferroni correction (post-hoc)
-    - Wilcoxon signed-rank per scenario for device comparison (exploratory)
-    - Wilcoxon signed-rank collapsed across scenarios for device comparison (main effect)
+    - Friedman test for scenario comparison
+    - Pairwise Wilcoxon signed-rank with Bonferroni correction
+    - Wilcoxon signed-rank per scenario for device comparison
+    - Wilcoxon signed-rank collapsed across scenarios for device comparison
 
 See STATISTICS.md for full rationale.
 """
@@ -34,7 +34,7 @@ from evaluation.shared.metrics import (
 )
 
 PROJECT_ROOT = Path(__file__).parent.parent.parent.parent
-RESULTS_PATH = PROJECT_ROOT / "data/controlled_study/_results_archive/V03/results.csv"
+RESULTS_PATH = PROJECT_ROOT / "data/controlled_study/_results_archive/V05/results.csv"
 
 SCENARIOS = ['easy', 'angle', 'lighting']
 DEVICES = ['desktop', 'mobile']
@@ -64,15 +64,15 @@ def compute_genuine_trust_per_participant(frames, participants, scenarios, devic
 
 
 def compute_ilt_per_participant(frames, participants, scenarios, devices, fps):
-    """Compute median imposter lockout time per (participant, scenario, device).
+    """Compute mean imposter lockout time per (participant, scenario, device).
 
-    For each participant, takes the median lockout time across all impostor
+    For each participant, takes the mean lockout time across all impostor
     videos in that condition. Videos where the device locked before the
     impostor segment, and videos where the impostor is never locked out, are
-    excluded from the median.
+    excluded from the mean.
 
     Returns:
-        dict mapping (participant, scenario, device) -> median ILT in seconds
+        dict mapping (participant, scenario, device) -> mean ILT in seconds
     """
     result = {}
     for participant in participants:
@@ -101,7 +101,7 @@ def compute_ilt_per_participant(frames, participants, scenarios, devices, fps):
                         lockout_times.append(lt)
 
                 if lockout_times:
-                    result[(participant, scenario, device)] = np.median(lockout_times)
+                    result[(participant, scenario, device)] = np.mean(lockout_times)
     return result
 
 
