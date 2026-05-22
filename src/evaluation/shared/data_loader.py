@@ -27,26 +27,29 @@ def load_evaluation_data(csv_path: Path, parse_scenario: bool = False) -> Evalua
     fps = config['imposter_creation']['fps']
 
     videos = extract_video_metadata(df, parse_scenario)
+    video_by_path = {video.video_path: video for video in videos}
+    similarity_field = 'similarity' if 'similarity' in df.columns else 'distance'
+    trust_field = 'trust_score' if 'trust_score' in df.columns else 'risk_score'
     frames = []
 
     total = len(df)
-    for idx, row in df.iterrows():
+    for idx, row in enumerate(df.itertuples(index=False)):
         if idx % 10000 == 0:
             print(f"  {idx}/{total} rows...")
 
-        video_meta = next((v for v in videos if v.video_path == row['video_path']), None)
-        segment_type = determine_segment_type(row['source_type'], video_meta)
+        video_meta = video_by_path.get(row.video_path)
+        segment_type = determine_segment_type(row.source_type, video_meta)
 
         frames.append(FrameData(
-            frame=row['frame'],
-            predicted_state=row['predicted_state'],
-            similarity=row['similarity'] if 'similarity' in df.columns else row.get('distance', 0.0),
-            trust_score=row['trust_score'] if 'trust_score' in df.columns else row.get('risk_score', 0.0),
-            face_detected=row['face_detected'],
-            source_type=row['source_type'],
-            participant=row['participant'],
-            device=row['device'],
-            video_path=row['video_path'],
+            frame=row.frame,
+            predicted_state=row.predicted_state,
+            similarity=getattr(row, similarity_field, 0.0),
+            trust_score=getattr(row, trust_field, 0.0),
+            face_detected=row.face_detected,
+            source_type=row.source_type,
+            participant=row.participant,
+            device=row.device,
+            video_path=row.video_path,
             segment_type=segment_type,
             scenario=video_meta.scenario if video_meta else None
         ))
