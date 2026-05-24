@@ -414,7 +414,7 @@ def create_trust_timeline_all_videos(data: EvaluationData, study_name: str, conf
     fig.layout.updatemenus = ()
     fig.layout.shapes = [s for s in fig.layout.shapes if not (s.type == 'line' and s.xref == 'paper')]
 
-    # Compute and add mean trust trace across all videos
+    # Compute and add mean trust trajectory across all composed videos.
     videos = _group_frames_by_video_path(data.frames)
     frames_by_time: dict[int, list[float]] = {}
     for frames in videos.values():
@@ -428,16 +428,15 @@ def create_trust_timeline_all_videos(data: EvaluationData, study_name: str, conf
 
     # Add threshold as a named trace so it appears in the legend
     x_end = mean_times[-1] if mean_times else segments.get('imposter', (0, 0))[1]
-    if metrics.mean_genuine_trust is not None:
-        genuine_start, genuine_end = segments.get('genuine', (0, x_end))
+    if mean_times:
         fig.add_trace(go.Scatter(
-            x=[genuine_start, genuine_end],
-            y=[metrics.mean_genuine_trust, metrics.mean_genuine_trust],
+            x=mean_times,
+            y=mean_trust,
             mode='lines',
-            name='Mean Genuine Trust',
-            line=dict(color='rgba(39, 174, 96, 0.95)', width=2, dash='dot'),
+            name='Mean Trust',
+            line=dict(color='black', width=3),
             showlegend=True,
-            hovertemplate=f'Mean Genuine Trust: {metrics.mean_genuine_trust:.4f}<extra></extra>'
+            hovertemplate='Mean Trust: %{y:.4f}<br>Time: %{x:.2f}s<extra></extra>'
         ))
 
     fig.add_trace(go.Scatter(

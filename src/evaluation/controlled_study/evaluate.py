@@ -12,7 +12,15 @@ from evaluation.shared.metrics import (
     calculate_metrics_by_scenario,
     calculate_metrics_by_scenario_and_device
 )
-from evaluation.shared.reporting import print_section, print_metrics_by_device, print_metrics_by_scenario, print_metrics_by_scenario_and_device, print_dataset_summary, print_latex_table
+from evaluation.shared.reporting import (
+    print_section,
+    print_metrics_by_device,
+    print_metrics_by_scenario,
+    print_metrics_by_scenario_and_device,
+    print_dataset_summary,
+    print_latex_table,
+    print_latex_study_variables,
+)
 from evaluation.shared.visualization import (
     create_trust_timeline_all_videos,
     create_trust_timeline_by_device,
@@ -59,6 +67,7 @@ def main():
     print_metrics_by_scenario(scenario_metrics)
     print_metrics_by_scenario_and_device(scenario_device_metrics, DEVICES)
     print_latex_table(scenario_device_metrics, device_metrics, SCENARIOS, DEVICES)
+    print_latex_study_variables(data, CONFIG_PATH, "controlled_study")
 
     output_files = []
 

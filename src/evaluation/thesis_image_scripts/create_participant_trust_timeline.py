@@ -156,16 +156,13 @@ def _move_metric_markers_to_front(fig) -> None:
     fig.data = tuple(other_traces + threshold_and_black + metric_markers)
 
 
-def _default_output_filename(participants: list[str]) -> str:
-    return f"trust_timeline_participant.html"
-
 
 def main() -> None:
     args = _parse_args()
 
     results_path = PROJECT_ROOT / args.results_folder / "results.csv"
     config_path = PROJECT_ROOT / args.results_folder / "config.json"
-    output_filename = args.output or _default_output_filename(args.participants)
+    output_filename = args.output or "trust_timeline_participant.html"
 
     print("Creating participant trust timeline")
     print(f"Results: {results_path}")

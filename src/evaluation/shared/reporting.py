@@ -1,5 +1,10 @@
 """Console reporting utilities."""
-from evaluation.shared.models import DeviceMetrics, ScenarioMetrics, ScenarioDeviceMetrics, AuthenticationMetrics, FrameData, SegmentType, MetricDefinition
+import json
+from collections import defaultdict
+from pathlib import Path
+from typing import Any
+
+from evaluation.shared.models import DeviceMetrics, ScenarioMetrics, ScenarioDeviceMetrics, AuthenticationMetrics, FrameData, SegmentType, MetricDefinition, EvaluationData
 
 
 def print_section(title: str) -> None:
@@ -182,3 +187,104 @@ def print_metrics_by_scenario_and_device(scenario_device_metrics: list[ScenarioD
             print(f"\n  {sdm.scenario.upper()}")
             sdm.metrics.print_console(indent="    ")
         print()
+
+
+def _format_macro_value(value: int | float | str) -> str:
+    """Format a value for use in a LaTeX macro."""
+    if isinstance(value, float):
+        if value.is_integer():
+            return str(int(value))
+        return f"{value:.2f}".rstrip("0").rstrip(".")
+    return str(value)
+
+
+def _genuine_recording_keys(frames: list[FrameData]) -> set[tuple[str, str]]:
+    """Return unique genuine recording identifiers as (device, source_type)."""
+    return {
+        (frame.device, frame.source_type)
+        for frame in frames
+        if frame.segment_type == SegmentType.GENUINE
+    }
+
+
+def _genuine_recording_keys_by_device(frames: list[FrameData]) -> dict[str, set[tuple[str, str]]]:
+    """Return unique genuine recording identifiers grouped by device."""
+    recordings: dict[str, set[tuple[str, str]]] = defaultdict(set)
+    for frame in frames:
+        if frame.segment_type == SegmentType.GENUINE:
+            recordings[frame.device].add((frame.device, frame.source_type))
+    return recordings
+
+
+def _genuine_recording_keys_by_participant(frames: list[FrameData]) -> dict[str, set[tuple[str, str]]]:
+    """Return unique genuine recording identifiers grouped by participant."""
+    recordings: dict[str, set[tuple[str, str]]] = defaultdict(set)
+    for frame in frames:
+        if frame.segment_type == SegmentType.GENUINE:
+            recordings[frame.participant].add((frame.device, frame.source_type))
+    return recordings
+
+
+def _enrollment_recording_count(config: dict[str, Any], participant_count: int) -> int:
+    """Return the number of enrollment recordings used by the evaluation config."""
+    devices = config.get("devices", [])
+    preference = config.get("enrollment", {}).get("enrollment_video_preference", {})
+    scenarios = preference.get("scenarios", [])
+    rotations = preference.get("rotations", [])
+    return participant_count * len(devices) * len(scenarios) * len(rotations)
+
+
+def _study_variable_macros(data: EvaluationData, config: dict[str, Any], study: str) -> list[tuple[str, int | float | str]]:
+    """Build LaTeX study-variable macros that are derivable from results and config."""
+    genuine_by_participant = _genuine_recording_keys_by_participant(data.frames)
+    genuine_by_device = _genuine_recording_keys_by_device(data.frames)
+    composed_count = len({frame.video_path for frame in data.frames})
+
+    if study == "controlled_study":
+        participant_count = len(genuine_by_participant)
+        return [
+            ("ParticipantCount", participant_count),
+            ("ControlledStudyUsageRecordingCount", len(_genuine_recording_keys(data.frames))),
+            ("ControlledStudyDesktopRecordingCount", len(genuine_by_device.get("desktop", set()))),
+            ("ControlledStudyMobileRecordingCount", len(genuine_by_device.get("mobile", set()))),
+            ("ControlledComposedEvaluationVideoCount", composed_count),
+            ("EnrollmentRecordingCount", _enrollment_recording_count(config, participant_count)),
+        ]
+
+    if study == "in_the_wild":
+        videos_per_participant = [len(recordings) for recordings in genuine_by_participant.values()]
+        matching_config = config.get("processing", {}).get("matching_strategy", {}).get("config", {})
+        macros: list[tuple[str, int | float | str]] = [
+            ("InTheWildParticipantCount", len(genuine_by_participant)),
+            ("InTheWildUsageRecordingCount", len(_genuine_recording_keys(data.frames))),
+            ("InTheWildComposedEvaluationVideoCount", composed_count),
+        ]
+        if "imposters_per_genuine" in matching_config:
+            macros.append(("InTheWildPairingsPerGenuineVideo", matching_config["imposters_per_genuine"]))
+        if videos_per_participant:
+            macros.extend([
+                ("MinInTheWildRecordings", min(videos_per_participant)),
+                ("MaxInTheWildRecordings", max(videos_per_participant)),
+                ("MeanInTheWildRecordings", sum(videos_per_participant) / len(videos_per_participant)),
+            ])
+        return macros
+
+    raise ValueError(f"Unknown study: {study}")
+
+
+def print_latex_study_variables(data: EvaluationData, config_path: Path, study: str) -> list[str]:
+    """Print LaTeX macros for study variables derived from results.csv and config.json."""
+    with open(config_path, "r") as file:
+        config = json.load(file)
+
+    macros = _study_variable_macros(data, config, study)
+    lines = [
+        f"\\newcommand{{\\{name}}}{{{_format_macro_value(value)}}}"
+        for name, value in macros
+    ]
+
+    print("\n% LaTeX study variables derived from results.csv and config.json")
+    for line in lines:
+        print(line)
+    print()
+    return lines
