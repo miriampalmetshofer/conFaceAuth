@@ -148,3 +148,29 @@ class TemporalDecayAuthenticator(AuthenticatorBackend):
         if self._last_similarity is None:
             raise ValueError("No similarity available before processing frames")
         return self._last_similarity
+
+    def get_state(self) -> dict:
+        """Get current authenticator state for caching.
+
+        Returns:
+            Dictionary containing authenticator state
+        """
+        return {
+            'current_trust': self._current_trust,
+            'last_timestamp_ms': self._last_timestamp_ms,
+            'last_similarity': self._last_similarity
+        }
+
+    def set_state(self, state: dict) -> None:
+        """Restore authenticator state from cache.
+
+        Args:
+            state: Dictionary containing authenticator state
+        """
+        self._current_trust = state['current_trust']
+        self._last_timestamp_ms = state['last_timestamp_ms']
+        self._last_similarity = state['last_similarity']
+        logger.debug(
+            f"Restored state: trust={self._current_trust:.4f}, "
+            f"last_timestamp={self._last_timestamp_ms}ms"
+        )
