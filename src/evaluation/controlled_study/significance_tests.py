@@ -5,7 +5,7 @@ and devices (desktop, mobile) using non-parametric paired tests.
 
 Metrics:
     - Genuine trust score: mean trust score during genuine segments per participant
-    - ILT (Imposter Lockout Time): mean lockout time per participant
+    - ULT (Unauthorized User Lockout Time): mean lockout time per participant
 
 Tests:
     - Friedman test for scenario comparison
@@ -24,6 +24,7 @@ import numpy as np
 from scipy import stats
 from itertools import combinations
 
+from evaluation.controlled_study.config import DEVICES, RESULTS_PATH, SCENARIOS
 from evaluation.shared.data_loader import load_evaluation_data
 from evaluation.shared.models import SegmentType
 from evaluation.shared.metrics import (
@@ -33,11 +34,6 @@ from evaluation.shared.metrics import (
     is_eligible_for_imposter_rejection,
 )
 
-PROJECT_ROOT = Path(__file__).parent.parent.parent.parent
-RESULTS_PATH = PROJECT_ROOT / "data/controlled_study/_results_archive/V05/results.csv"
-
-SCENARIOS = ['easy', 'angle', 'lighting']
-DEVICES = ['desktop', 'mobile']
 BONFERRONI_ALPHA = 0.05
 
 
@@ -64,7 +60,7 @@ def compute_genuine_trust_per_participant(frames, participants, scenarios, devic
 
 
 def compute_ilt_per_participant(frames, participants, scenarios, devices, fps):
-    """Compute mean imposter lockout time per (participant, scenario, device).
+    """Compute mean unauthorized-user lockout time per (participant, scenario, device).
 
     For each participant, takes the mean lockout time across all impostor
     videos in that condition. Videos where the device locked before the
@@ -301,38 +297,35 @@ def print_device_results(device_results, metric_name, scenarios, devices):
         print(f"    {sc:<10} {means_str}  |  W = {r['statistic']:.1f},  p = {r['p_value']:.6f}  →  {sig}")
 
 
-def main():
-    print(f"Loading data from {RESULTS_PATH}")
-    data = load_evaluation_data(RESULTS_PATH, parse_scenario=True)
-    print(f"Loaded {len(data.frames)} frames from {len(data.videos)} videos")
-
+def run_significance_tests(data, scenarios=SCENARIOS, devices=DEVICES):
+    """Print controlled-study significance tests for an already loaded dataset."""
     participants = sorted(set(f.participant for f in data.frames))
-    available_devices = sorted(set(f.device for f in data.frames))
+    available_devices = [device for device in devices if any(f.device == device for f in data.frames)]
     print(f"Participants ({len(participants)}): {participants}")
     print(f"Devices: {available_devices}")
 
     # --- Compute per-participant metrics ---
     genuine_trust = compute_genuine_trust_per_participant(
-        data.frames, participants, SCENARIOS, available_devices
+        data.frames, participants, scenarios, available_devices
     )
-    ilt = compute_ilt_per_participant(
-        data.frames, participants, SCENARIOS, available_devices, data.fps
+    ult = compute_ilt_per_participant(
+        data.frames, participants, scenarios, available_devices, data.fps
     )
 
     # --- Scenario comparison ---
     print_section("SCENARIO COMPARISON (Friedman + post-hoc Wilcoxon)")
 
     for device in available_devices:
-        for metric_name, metric_values in [('Genuine Trust Score', genuine_trust), ('ILT (s)', ilt)]:
-            result = run_friedman_scenario(metric_values, participants, SCENARIOS, device)
+        for metric_name, metric_values in [('Genuine Trust Score', genuine_trust), ('ULT (s)', ult)]:
+            result = run_friedman_scenario(metric_values, participants, scenarios, device)
             if result is None:
                 print(f"\n  Skipping {metric_name} / {device}: insufficient data")
                 continue
 
-            print_friedman_result(result, metric_name, SCENARIOS, device)
+            print_friedman_result(result, metric_name, scenarios, device)
 
             if result['p_value'] < BONFERRONI_ALPHA:
-                posthoc = run_pairwise_wilcoxon_posthoc(result, SCENARIOS)
+                posthoc = run_pairwise_wilcoxon_posthoc(result, scenarios)
                 print_posthoc_results(posthoc)
             else:
                 print("  Friedman not significant — skipping post-hoc tests")
@@ -342,9 +335,9 @@ def main():
         print_section("DEVICE COMPARISON — Main effect (Wilcoxon, collapsed across scenarios)")
         print("  Each participant's value = mean across easy + angle + lighting.")
         print("  Single test per metric — no Bonferroni correction needed.")
-        for metric_name, metric_values in [('Genuine Trust Score', genuine_trust), ('ILT (s)', ilt)]:
+        for metric_name, metric_values in [('Genuine Trust Score', genuine_trust), ('ULT (s)', ult)]:
             result = run_wilcoxon_device_collapsed(
-                metric_values, participants, SCENARIOS, available_devices
+                metric_values, participants, scenarios, available_devices
             )
             if result is None:
                 print(f"\n  {metric_name}: insufficient data")
@@ -361,16 +354,23 @@ def main():
 
         print_section("DEVICE COMPARISON — Per scenario (Wilcoxon, exploratory)")
         print("  Tests whether device effect is consistent within each scenario.")
-        print(f"  Bonferroni α = {BONFERRONI_ALPHA}/{len(SCENARIOS)} = {BONFERRONI_ALPHA/len(SCENARIOS):.4f}")
-        for metric_name, metric_values in [('Genuine Trust Score', genuine_trust), ('ILT (s)', ilt)]:
+        print(f"  Bonferroni α = {BONFERRONI_ALPHA}/{len(scenarios)} = {BONFERRONI_ALPHA/len(scenarios):.4f}")
+        for metric_name, metric_values in [('Genuine Trust Score', genuine_trust), ('ULT (s)', ult)]:
             device_results = run_wilcoxon_device(
-                metric_values, participants, SCENARIOS, available_devices
+                metric_values, participants, scenarios, available_devices
             )
-            print_device_results(device_results, metric_name, SCENARIOS, available_devices)
+            print_device_results(device_results, metric_name, scenarios, available_devices)
     else:
         print_section("DEVICE COMPARISON")
         print(f"\n  Only one device found ({available_devices[0]}) — skipping device comparison.")
         print("  Re-run once mobile data is included in results.csv.")
+
+
+def main():
+    print(f"Loading data from {RESULTS_PATH}")
+    data = load_evaluation_data(RESULTS_PATH, parse_scenario=True)
+    print(f"Loaded {len(data.frames)} frames from {len(data.videos)} videos")
+    run_significance_tests(data)
 
 
 if __name__ == '__main__':

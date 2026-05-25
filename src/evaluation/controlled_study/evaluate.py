@@ -5,6 +5,7 @@ from pathlib import Path
 # Add src to path to enable imports
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
+
 from evaluation.shared.data_loader import load_evaluation_data
 from evaluation.shared.metrics import (
     calculate_metrics,
@@ -21,6 +22,7 @@ from evaluation.shared.reporting import (
     print_latex_table,
     print_latex_study_variables,
 )
+from evaluation.controlled_study.significance_tests import run_significance_tests
 from evaluation.shared.visualization import (
     create_trust_timeline_all_videos,
     create_trust_timeline_by_device,
@@ -34,17 +36,20 @@ from evaluation.shared.visualization import (
     save_plotly_png
 )
 
+"""Controlled-study evaluation configuration."""
+from pathlib import Path
+
+
 DEVICES = ['desktop', 'mobile']
 SCENARIOS = ['easy', 'angle', 'lighting']
 
 PROJECT_ROOT = Path(__file__).parent.parent.parent.parent
-RESULTS_FOLDER = "data/controlled_study" # /_results_archive/V04
+RESULTS_FOLDER = "data/controlled_study"
 
 RESULTS_PATH = PROJECT_ROOT / RESULTS_FOLDER / "results.csv"
 CONFIG_PATH = PROJECT_ROOT / RESULTS_FOLDER / "config.json"
 
 OUTPUT_PATH = PROJECT_ROOT / "src/evaluation/controlled_study/output"
-#optional
 PAPER_IMAGES_PATH = PROJECT_ROOT / "paper/images/trust_scores"
 
 
@@ -68,6 +73,7 @@ def main():
     print_metrics_by_scenario_and_device(scenario_device_metrics, DEVICES)
     print_latex_table(scenario_device_metrics, device_metrics, SCENARIOS, DEVICES)
     print_latex_study_variables(data, CONFIG_PATH, "controlled_study")
+    run_significance_tests(data, SCENARIOS, DEVICES)
 
     output_files = []
 
