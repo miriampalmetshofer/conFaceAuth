@@ -1,9 +1,22 @@
 """Evaluation orchestration for controlled study."""
+import json
 import sys
 from pathlib import Path
 
 # Add src to path to enable imports
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
+
+DEVICES = ['desktop', 'mobile']
+SCENARIOS = ['easy', 'angle', 'lighting']
+
+PROJECT_ROOT = Path(__file__).parent.parent.parent.parent
+RESULTS_FOLDER = "data/controlled_study"
+
+RESULTS_PATH = PROJECT_ROOT / RESULTS_FOLDER / "results.csv"
+CONFIG_PATH = PROJECT_ROOT / RESULTS_FOLDER / "config.json"
+
+OUTPUT_PATH = PROJECT_ROOT / "src/evaluation/controlled_study/output"
+PAPER_IMAGES_PATH = PROJECT_ROOT / "paper/images/trust_scores"
 
 
 from evaluation.shared.data_loader import load_evaluation_data
@@ -36,21 +49,11 @@ from evaluation.shared.visualization import (
     save_plotly_png
 )
 
-"""Controlled-study evaluation configuration."""
-from pathlib import Path
 
-
-DEVICES = ['desktop', 'mobile']
-SCENARIOS = ['easy', 'angle', 'lighting']
-
-PROJECT_ROOT = Path(__file__).parent.parent.parent.parent
-RESULTS_FOLDER = "data/controlled_study"
-
-RESULTS_PATH = PROJECT_ROOT / RESULTS_FOLDER / "results.csv"
-CONFIG_PATH = PROJECT_ROOT / RESULTS_FOLDER / "config.json"
-
-OUTPUT_PATH = PROJECT_ROOT / "src/evaluation/controlled_study/output"
-PAPER_IMAGES_PATH = PROJECT_ROOT / "paper/images/trust_scores"
+def load_config(config_path: Path) -> dict:
+    """Load the configuration copy that belongs to the evaluated results."""
+    with open(config_path, "r") as file:
+        return json.load(file)
 
 
 def main():
@@ -59,6 +62,7 @@ def main():
     print(f"Results: {RESULTS_PATH}")
     print(f"Output: {OUTPUT_PATH}")
 
+    config = load_config(CONFIG_PATH)
     data = load_evaluation_data(RESULTS_PATH, parse_scenario=True)
     print(f"Loaded {len(data.frames)} frames from {len(data.videos)} videos")
 
@@ -73,7 +77,7 @@ def main():
     print_metrics_by_scenario_and_device(scenario_device_metrics, DEVICES)
     print_latex_table(scenario_device_metrics, device_metrics, SCENARIOS, DEVICES)
     print_latex_study_variables(data, CONFIG_PATH, "controlled_study")
-    run_significance_tests(data, SCENARIOS, DEVICES)
+    run_significance_tests(data, config, SCENARIOS, DEVICES)
 
     output_files = []
 

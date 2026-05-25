@@ -15,6 +15,7 @@ Tests:
 
 See STATISTICS.md for full rationale.
 """
+import json
 import sys
 from pathlib import Path
 
@@ -24,7 +25,6 @@ import numpy as np
 from scipy import stats
 from itertools import combinations
 
-from evaluation.controlled_study.config import DEVICES, RESULTS_PATH, SCENARIOS
 from evaluation.shared.data_loader import load_evaluation_data
 from evaluation.shared.models import SegmentType
 from evaluation.shared.metrics import (
@@ -35,6 +35,34 @@ from evaluation.shared.metrics import (
 )
 
 BONFERRONI_ALPHA = 0.05
+PROJECT_ROOT = Path(__file__).parent.parent.parent.parent
+RESULTS_PATH = PROJECT_ROOT / "data/controlled_study/results.csv"
+CONFIG_PATH = PROJECT_ROOT / "data/controlled_study/config.json"
+
+
+def load_config(config_path: Path) -> dict:
+    """Load the configuration copy that belongs to the evaluated results."""
+    with open(config_path, "r") as file:
+        return json.load(file)
+
+
+def get_configured_participants(config, data):
+    """Return participants from the config, filtered to participants present in the data."""
+    observed_participants = {frame.participant for frame in data.frames}
+    configured_participants = [
+        participant.get("name")
+        for participant in (config or {}).get("participants", [])
+        if participant.get("name")
+    ]
+
+    if configured_participants:
+        return [
+            participant
+            for participant in configured_participants
+            if participant in observed_participants
+        ]
+
+    return sorted(observed_participants)
 
 
 def compute_genuine_trust_per_participant(frames, participants, scenarios, devices):
@@ -297,12 +325,21 @@ def print_device_results(device_results, metric_name, scenarios, devices):
         print(f"    {sc:<10} {means_str}  |  W = {r['statistic']:.1f},  p = {r['p_value']:.6f}  →  {sig}")
 
 
-def run_significance_tests(data, scenarios=SCENARIOS, devices=DEVICES):
+def run_significance_tests(data, config, scenarios, devices):
     """Print controlled-study significance tests for an already loaded dataset."""
-    participants = sorted(set(f.participant for f in data.frames))
+    participants = get_configured_participants(config, data)
     available_devices = [device for device in devices if any(f.device == device for f in data.frames)]
+
     print(f"Participants ({len(participants)}): {participants}")
+    print(f"Scenarios: {scenarios}")
     print(f"Devices: {available_devices}")
+
+    if not scenarios:
+        print("\nNo scenarios found — skipping significance tests.")
+        return
+    if not available_devices:
+        print("\nNo configured devices found in the data — skipping significance tests.")
+        return
 
     # --- Compute per-participant metrics ---
     genuine_trust = compute_genuine_trust_per_participant(
@@ -333,7 +370,7 @@ def run_significance_tests(data, scenarios=SCENARIOS, devices=DEVICES):
     # --- Device comparison ---
     if len(available_devices) == 2:
         print_section("DEVICE COMPARISON — Main effect (Wilcoxon, collapsed across scenarios)")
-        print("  Each participant's value = mean across easy + angle + lighting.")
+        print(f"  Each participant's value = mean across {' + '.join(scenarios)}.")
         print("  Single test per metric — no Bonferroni correction needed.")
         for metric_name, metric_values in [('Genuine Trust Score', genuine_trust), ('ULT (s)', ult)]:
             result = run_wilcoxon_device_collapsed(
@@ -363,14 +400,16 @@ def run_significance_tests(data, scenarios=SCENARIOS, devices=DEVICES):
     else:
         print_section("DEVICE COMPARISON")
         print(f"\n  Only one device found ({available_devices[0]}) — skipping device comparison.")
-        print("  Re-run once mobile data is included in results.csv.")
 
 
 def main():
     print(f"Loading data from {RESULTS_PATH}")
+    config = load_config(CONFIG_PATH)
     data = load_evaluation_data(RESULTS_PATH, parse_scenario=True)
     print(f"Loaded {len(data.frames)} frames from {len(data.videos)} videos")
-    run_significance_tests(data)
+    scenarios = sorted({video.scenario for video in data.videos if video.scenario})
+    devices = config.get("devices", sorted({frame.device for frame in data.frames}))
+    run_significance_tests(data, config, scenarios, devices)
 
 
 if __name__ == '__main__':
