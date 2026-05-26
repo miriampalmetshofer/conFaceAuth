@@ -234,6 +234,23 @@ def _enrollment_recording_count(config: dict[str, Any], participant_count: int) 
     return participant_count * len(devices) * len(scenarios) * len(rotations)
 
 
+def _composed_video_duration_seconds(config: dict[str, Any]) -> float:
+    """Return the configured duration of one composed video in seconds."""
+    imposter_creation = config.get("imposter_creation", {})
+    return (
+        float(imposter_creation.get("genuine_user_seconds", 0))
+        + float(imposter_creation.get("black_screen_seconds", 0))
+        + float(imposter_creation.get("impostor_seconds", 0))
+    )
+
+
+def _format_duration_hours_minutes(duration_seconds: float) -> str:
+    """Format a duration as rounded hours and minutes for thesis text."""
+    total_minutes = round(duration_seconds / 60)
+    hours, minutes = divmod(total_minutes, 60)
+    return f"{hours}\\,h {minutes}\\,min"
+
+
 def _study_variable_macros(data: EvaluationData, config: dict[str, Any], study: str) -> list[tuple[str, int | float | str]]:
     """Build LaTeX study-variable macros that are derivable from results and config."""
     genuine_by_participant = _genuine_recording_keys_by_participant(data.frames)
@@ -248,6 +265,7 @@ def _study_variable_macros(data: EvaluationData, config: dict[str, Any], study: 
             ("ControlledStudyDesktopRecordingCount", len(genuine_by_device.get("desktop", set()))),
             ("ControlledStudyMobileRecordingCount", len(genuine_by_device.get("mobile", set()))),
             ("ControlledComposedEvaluationVideoCount", composed_count),
+            ("ControlledComposedEvaluationVideoTotalDuration", _format_duration_hours_minutes(composed_count * _composed_video_duration_seconds(config))),
             ("EnrollmentRecordingCount", _enrollment_recording_count(config, participant_count)),
         ]
 
