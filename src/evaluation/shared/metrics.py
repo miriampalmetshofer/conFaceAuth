@@ -97,10 +97,8 @@ def report_excluded_imposter_videos(excluded_videos: list[str]) -> None:
     if excluded_videos:
         print(
             f"\nINFO: Excluded {len(excluded_videos)} video(s) from imposter rejection metrics "
-            "because the device locked before the imposter segment:"
+            "because the device locked before the imposter segment."
         )
-        for vp in excluded_videos:
-            print(f"    - {vp}")
         print()
 
 

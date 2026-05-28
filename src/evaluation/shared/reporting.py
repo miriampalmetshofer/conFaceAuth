@@ -276,6 +276,7 @@ def _study_variable_macros(data: EvaluationData, config: dict[str, Any], study: 
             ("InTheWildParticipantCount", len(genuine_by_participant)),
             ("InTheWildUsageRecordingCount", len(_genuine_recording_keys(data.frames))),
             ("InTheWildComposedEvaluationVideoCount", composed_count),
+            ("InTheWildComposedEvaluationVideoTotalDuration", _format_duration_hours_minutes(composed_count * _composed_video_duration_seconds(config))),
         ]
         if "imposters_per_genuine" in matching_config:
             macros.append(("InTheWildPairingsPerGenuineVideo", matching_config["imposters_per_genuine"]))
