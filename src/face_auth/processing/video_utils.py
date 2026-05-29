@@ -24,8 +24,10 @@ def get_video_rotation_from_metadata(video_path: Path) -> int:
         result = subprocess.run(cmd, capture_output=True, text=True, timeout=10)
 
         if result.returncode != 0:
-            print(f"Warning: ffprobe failed for {video_path}, assuming no rotation")
-            return 0
+            raise RuntimeError(
+                f"ffprobe failed for {video_path}. Cannot safely determine video "
+                f"rotation metadata. stderr: {result.stderr.strip()}"
+            )
 
         metadata = json.loads(result.stdout)
 
@@ -33,15 +35,17 @@ def get_video_rotation_from_metadata(video_path: Path) -> int:
         for stream in metadata.get('streams', []):
             if stream.get('codec_type') == 'video':
                 # Check for rotation tag
-                rotation = stream.get('tags', {}).get('rotate', '0')
-                try:
-                    rotation_angle = int(rotation)
-                    # Normalize to 0, 90, 180, 270
-                    rotation_angle = rotation_angle % 360
-                    print(f"Detected rotation: {rotation_angle}° for {video_path.name}")
-                    return rotation_angle
-                except (ValueError, TypeError):
-                    pass
+                rotation = stream.get('tags', {}).get('rotate')
+                if rotation is not None:
+                    try:
+                        rotation_angle = int(rotation)
+                        # Normalize to 0, 90, 180, 270
+                        rotation_angle = rotation_angle % 360
+                        if rotation_angle != 0:
+                            print(f"Detected rotation: {rotation_angle}° for {video_path.name}")
+                            return rotation_angle
+                    except (ValueError, TypeError):
+                        pass
 
                 # Check side_data_list for display matrix rotation
                 for side_data in stream.get('side_data_list', []):
@@ -59,15 +63,23 @@ def get_video_rotation_from_metadata(video_path: Path) -> int:
         return 0
 
     except subprocess.TimeoutExpired:
-        print(f"Warning: ffprobe timeout for {video_path}, assuming no rotation")
-        return 0
+        raise RuntimeError(
+            f"ffprobe timed out for {video_path}. Cannot safely determine video "
+            "rotation metadata."
+        )
     except FileNotFoundError:
-        print("Warning: ffprobe not found. Please install ffmpeg for automatic rotation detection.")
-        print("Falling back to heuristic detection.")
-        return 0
+        raise RuntimeError(
+            "ffprobe was not found on PATH. Install ffmpeg or make ffprobe "
+            "available before running the pipeline, because missing rotation "
+            "metadata can make phone videos process sideways."
+        )
+    except RuntimeError:
+        raise
     except Exception as e:
-        print(f"Warning: Error detecting rotation for {video_path}: {e}")
-        return 0
+        raise RuntimeError(
+            f"Error detecting rotation for {video_path}. Cannot safely assume "
+            f"0° rotation. Original error: {e}"
+        ) from e
 
 
 def rotate_frame(frame, rotation_angle):
