@@ -90,6 +90,14 @@ class AuthenticationMetrics:
             plot_order=2
         ),
         MetricDefinition(
+            "genuine_lockout_time.mean",
+            "GKT (s)",
+            "GKT",
+            format_spec=".0f",
+            include_in_tables=True,
+            include_in_plots=False
+        ),
+        MetricDefinition(
             "imposter_lockout_time.mean",
             "ULT (s)",
             "ULT",
@@ -101,14 +109,6 @@ class AuthenticationMetrics:
             "imposter_lockout_time.p90",
             "ULT P90 (s)",
             "ULT P90",
-            format_spec=".0f",
-            include_in_tables=True,
-            include_in_plots=False
-        ),
-        MetricDefinition(
-            "genuine_lockout_time.mean",
-            "GKT (s)",
-            "GKT",
             format_spec=".0f",
             include_in_tables=True,
             include_in_plots=False

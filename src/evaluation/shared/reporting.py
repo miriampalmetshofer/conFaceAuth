@@ -68,6 +68,10 @@ def _fmt(metrics: AuthenticationMetrics, defn: MetricDefinition, latex: bool = F
     if value is None:
         return "--"
     cell = f"{value:{defn.format_spec}}"
+    if defn.field_name in {"false_reject_rate", "false_accept_rate"}:
+        cell += r"\%" if latex else "%"
+    if defn.field_name in {"imposter_lockout_time.mean", "imposter_lockout_time.p90"}:
+        cell += r"\,s" if latex else " s"
 
     if defn.field_name == "false_reject_rate" and metrics.session_counts.genuine_lockouts:
         frac = f"{metrics.session_counts.genuine_lockouts}/{metrics.session_counts.genuine_sessions}"
@@ -167,6 +171,27 @@ def print_latex_table_devices(
             cells = ["--"] * len(table_defs)
         row = [device.capitalize()] + cells
         print(" & ".join(row) + " \\\\")
+
+    print("\\bottomrule")
+    print("\\end{tabular*}")
+    print("% ─────────────────────────────────────────────────────────────\n")
+
+
+def print_latex_table_study(metrics: AuthenticationMetrics, study_label: str) -> None:
+    """Print a one-row LaTeX tabular* using thesis study-result columns."""
+    table_defs = [d for d in AuthenticationMetrics.METRIC_DEFINITIONS if d.include_in_tables]
+    col_spec = "@{\\extracolsep{\\fill}}l" + "c" * len(table_defs)
+
+    print("\n% ── LaTeX table (tabular only) ──────────────────────────────")
+    print(f"\\begin{{tabular*}}{{\\textwidth}}{{{col_spec}}}")
+    print("\\toprule")
+
+    headers = ["Study"] + [d.short_label for d in table_defs]
+    print(" & ".join(f"\\textbf{{{h}}}" for h in headers) + " \\\\")
+    print("\\midrule")
+
+    cells = [_fmt(metrics, d, latex=True) for d in table_defs]
+    print(" & ".join([study_label] + cells) + " \\\\")
 
     print("\\bottomrule")
     print("\\end{tabular*}")

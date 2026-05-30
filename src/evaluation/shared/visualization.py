@@ -15,7 +15,8 @@ from evaluation.shared.models import (
     ScenarioDeviceMetrics,
     SegmentType,
     FrameData,
-    AuthenticationMetrics
+    AuthenticationMetrics,
+    MetricDefinition,
 )
 from evaluation.shared.font_config import (
     apply_plotly_font,
@@ -271,6 +272,14 @@ def _add_metrics_visualization(fig: go.Figure, metrics: AuthenticationMetrics,
         ))
 
 
+def _move_metric_markers_to_front(fig: go.Figure) -> None:
+    """Render metric markers above threshold lines."""
+    marker_names = {"Mean ULT", "P90 ULT"}
+    metric_markers = [trace for trace in fig.data if trace.name in marker_names]
+    other_traces = [trace for trace in fig.data if trace.name not in marker_names]
+    fig.data = tuple(other_traces + metric_markers)
+
+
 def _add_video_traces(fig: go.Figure, video_frames_dict: dict[str, list[FrameData]], fps: int) -> None:
     """Add video traces to a plotly figure.
 
@@ -471,6 +480,7 @@ def create_trust_timeline_all_videos(data: EvaluationData, study_name: str, conf
                 ))
 
     _add_metrics_visualization(fig, metrics, data.threshold, segments)
+    _move_metric_markers_to_front(fig)
 
     fig.update_layout(
         annotations=_get_segment_header_annotations(segments),
@@ -789,6 +799,41 @@ def create_device_metrics_table(device_metrics: list[DeviceMetrics], frames: lis
     fig.suptitle(spec.title, fontsize=16, y=0.95)
 
     return fig
+
+
+def create_study_metrics_table(metrics: AuthenticationMetrics, study_label: str) -> plt.Figure:
+    """Create an overall study metrics table using thesis result-table columns."""
+    fig, ax = plt.subplots(figsize=(16, 4))
+
+    table_defs = [d for d in AuthenticationMetrics.METRIC_DEFINITIONS if d.include_in_tables]
+    columns = ["Study"] + [d.short_label for d in table_defs]
+    rows = [[study_label] + [_format_table_metric(metrics, d) for d in table_defs]]
+
+    MetricsTableBuilder.render_table(ax, columns, rows, "Overall Study Metrics")
+    fig.suptitle("Overall Study Metrics", fontsize=16, y=0.95)
+
+    return fig
+
+
+def _format_table_metric(metrics: AuthenticationMetrics, defn: MetricDefinition) -> str:
+    value = metrics._resolve_field(defn.field_name)
+    if value is None:
+        return "--"
+
+    cell = f"{value:{defn.format_spec}}"
+    if defn.field_name in {"false_reject_rate", "false_accept_rate"}:
+        cell += "%"
+
+    if defn.field_name == "false_reject_rate" and metrics.session_counts.genuine_lockouts:
+        cell += f" ({metrics.session_counts.genuine_lockouts}/{metrics.session_counts.genuine_sessions})"
+    elif defn.field_name == "false_accept_rate":
+        not_locked = metrics.session_counts.imposter_sessions - metrics.session_counts.imposter_lockouts
+        if not_locked:
+            cell += f" ({not_locked}/{metrics.session_counts.imposter_sessions})"
+    elif defn.field_name == "genuine_lockout_time.mean" and metrics.genuine_lockout_time.p90 is not None:
+        cell += f" ({metrics.genuine_lockout_time.p90:.0f})"
+
+    return cell
 
 
 def create_scenario_metrics_table(scenario_metrics: list[ScenarioMetrics]) -> plt.Figure:
