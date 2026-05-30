@@ -11,14 +11,14 @@ from evaluation.shared.reporting import (
     print_section,
     print_metrics_by_device,
     print_dataset_summary,
-    print_latex_table_devices,
+    print_latex_table_study,
     print_latex_study_variables,
 )
 from evaluation.shared.visualization import (
     create_trust_timeline_all_videos,
     create_trust_timeline_by_device,
     create_summary_visualization,
-    create_device_metrics_table,
+    create_study_metrics_table,
     save_html,
     save_png,
     save_plotly_png
@@ -32,7 +32,7 @@ from evaluation.in_the_wild.annotation_validator import (
 DEVICES = ['mobile']
 
 PROJECT_ROOT = Path(__file__).parent.parent.parent.parent
-RESULTS_FOLDER = "data/in_the_wild" #_results_archive/V04
+RESULTS_FOLDER = "data/in_the_wild/" #_results_archive/V11
 
 RESULTS_PATH = PROJECT_ROOT / RESULTS_FOLDER / "results.csv"
 CONFIG_PATH = PROJECT_ROOT / RESULTS_FOLDER / "config.json"
@@ -66,7 +66,8 @@ def main():
 
     print_dataset_summary(data.frames, len(data.videos))
     print_metrics_by_device(device_metrics)
-    print_latex_table_devices(device_metrics, DEVICES)
+    study_label = rf"In-the-wild $\tau = {data.threshold:g}$"
+    print_latex_table_study(overall_metrics, study_label)
     print_latex_study_variables(data, CONFIG_PATH, "in_the_wild")
 
     output_files = []
@@ -86,8 +87,8 @@ def main():
     )
     output_files.append(save_png(fig_summary, OUTPUT_PATH, 'summary.png'))
 
-    fig_device_table = create_device_metrics_table(device_metrics, data.frames)
-    output_files.append(save_png(fig_device_table, OUTPUT_PATH, 'table_devices.png'))
+    fig_study_table = create_study_metrics_table(overall_metrics, study_label)
+    output_files.append(save_png(fig_study_table, OUTPUT_PATH, 'table_results.png'))
 
     print_section("EVALUATION COMPLETE")
     print(f"All outputs saved to: {OUTPUT_PATH}")
