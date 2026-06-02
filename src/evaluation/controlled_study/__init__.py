@@ -1,1 +1,0 @@
-"""Controlled study evaluation module."""
