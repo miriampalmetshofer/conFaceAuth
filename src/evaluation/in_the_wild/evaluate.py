@@ -23,7 +23,7 @@ from evaluation.shared.visualization import (
     save_png,
     save_plotly_png
 )
-from evaluation.in_the_wild.annotation_validator import (
+from evaluation.in_the_wild.helper.annotation_validator import (
     validate_annotations,
     print_validation_results
 )
