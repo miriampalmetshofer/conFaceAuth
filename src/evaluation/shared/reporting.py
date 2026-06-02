@@ -1,5 +1,6 @@
 """Console reporting utilities."""
 import json
+import re
 from collections import defaultdict
 from pathlib import Path
 from typing import Any
@@ -60,7 +61,7 @@ def print_metrics_by_scenario(scenario_metrics: list[ScenarioMetrics]) -> None:
 
 def _latex_escape(text: str) -> str:
     """Escape LaTeX special characters in a cell value."""
-    return text.replace("%", r"\%")
+    return re.sub(r"(?<!\\)%", r"\\%", text)
 
 
 def _fmt(metrics: AuthenticationMetrics, defn: MetricDefinition, latex: bool = False) -> str:
