@@ -311,6 +311,7 @@ def _study_variable_macros(data: EvaluationData, config: dict[str, Any], study: 
         participant_count = len(genuine_by_participant)
         return [
             ("ParticipantCount", participant_count),
+            ("ControlledPairingsPerGenuineVideo", participant_count - 1),
             ("ControlledStudyUsageRecordingCount", len(_genuine_recording_keys(data.frames))),
             ("ControlledStudyDesktopRecordingCount", len(genuine_by_device.get("desktop", set()))),
             ("ControlledStudyMobileRecordingCount", len(genuine_by_device.get("mobile", set()))),
