@@ -72,40 +72,41 @@ pip install -r requirements.txt
 
 ### Model Downloads
 
-The project requires several pre-trained models. Some download automatically, others need manual download.
+#### For live.py (Live Mode)
 
-#### Automatic Downloads (No Action Required)
+**No manual downloads required!**
 
-These models download automatically on first use:
-- **InsightFace models** (`buffalo_l`, `buffalo_s`, `buffalo_sc`)
-  - Downloads to `~/.insightface/models/`
-  - Size: 10-326 MB depending on model variant
-  - Used for face detection and embedding generation
+Live mode uses InsightFace for both face detection and embedding generation, which downloads automatically on first use (~20 MB). The enrollment video is processed using simple frame interval sampling (every Nth frame), without requiring head pose estimation or specialized enrollment backends.
 
-**3. FaceNet/MTCNN Models** (handled by keras-facenet package)
-- Location: `~/.keras/models/`
-- Size: ~92 MB total
+#### For main.py (Batch Processing Mode)
 
+**No manual downloads required for current config.**
 
-#### Manual Downloads (REQUIRED)
+The default configuration uses InsightFace embedder, which has built-in face detection (no separate detector model needed). All required models download automatically on first use.
 
-**1. MediaPipe FaceLandmarker** (for head pose estimation during enrollment)
+**Optional manual downloads (only if changing default config):**
+
+**MediaPipe BlazeFace** (only needed if switching embedder to FaceNet)
 ```bash
-curl -L -o src/face_auth/core/enrollment/face_landmarker.task \
-  https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task
-```
-- Size: 3.6 MB
-- Location: `face_auth/authentication/enrollment/face_landmarker.task`
-- Used by: HeadPoseEstimator for enrollment video processing
-
-**2. MediaPipe BlazeFace** (for face detection)
-```bash
-curl -L -o src/face_auth/core/detection/backend/impl/blaze_face_short_range.tflite \
+curl -L -o src/face_auth/authentication/detection/backend/impl/blaze_face_short_range.tflite \
   https://storage.googleapis.com/mediapipe-assets/face_detection_short_range.tflite
 ```
 - Size: 224 KB
-- Location: `src/face_auth/core/detection/backend/impl/blaze_face_short_range.tflite`
-- Used by: MediaPipeBackend for face detection
+- Only required if `"embedder.model": "facenet"` is set in config
+- Current default uses InsightFace which has integrated detection
+
+**MediaPipe FaceLandmarker** (only needed if using pose-based enrollment)
+```bash
+curl -L -o src/face_auth/authentication/enrollment/face_landmarker.task \
+  https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task
+```
+- Size: 3.6 MB
+- Only required if `"enrollment.backend": "pose"` is set in config
+- **Current default is `"fixed_order"`**, so this is NOT needed by default
+
+**Automatic downloads (no action required):**
+- **InsightFace models** (`buffalo_sc`, `buffalo_s`, `buffalo_l`) - Downloads to `~/.insightface/models/` on first use
+- **FaceNet/MTCNN models** - Only if using FaceNet embedder instead of InsightFace
 
 ### Quick Testing with live.py
 
@@ -245,7 +246,7 @@ Example configuration structure:
 - `paths.base_path`: Directory containing study videos
 - `paths.enrollment_base_path`: Directory containing enrollment data
 - `paths.results_file`: Output CSV path (supports `{base_path}` placeholder)
-- `models.detector`: Face detector (`"mediapipe"`, `"mtcnn"`, or `"insightface"`)
+- `models.detector`: Face detector (`"mediapipe"` or `"mtcnn"`) - **Note: unused when `embedder.model` is `"insightface"` (current default), as InsightFace has built-in detection. Only used with `"facenet"` embedder.**
 - `models.embedder.model`: Embedding model (`"insightface"` or `"facenet"`)
 - `models.embedder.config`: Model-specific configuration (e.g., detection confidence threshold)
 - `processing.skip_frames`: Process every Nth frame (30 = 1 frame per second at 30 FPS)
@@ -254,6 +255,8 @@ Example configuration structure:
 - `authentication.backend`: Authentication algorithm (`"trust_based"` or `"temporal_decay"`)
 - `authentication.fps`: Video frame rate
 - `enrollment.backend`: Enrollment frame selection method (`"fixed_order"` or `"pose"`)
+  - `"fixed_order"` - Extracts frames from predetermined time positions (default, no extra model needed)
+  - `"pose"` - Uses head pose estimation to select frames (requires MediaPipe FaceLandmarker model)
 - `enrollment.config`: Backend-specific enrollment settings
 - `enrollment.frames_per_direction`: How many frames to extract per head rotation direction
 - `imposter_creation.genuine_user_seconds`: Duration of genuine user footage in composed videos
@@ -294,21 +297,22 @@ The evaluation module analyzes authentication results from `results.csv` and gen
 - Detailed metrics tables broken down by device and scenario
 
 ## Model Sizes
- Face Detection:
 
-  - MTCNN: ~2.2 MB 
-  - MediaPipe BlazeFace: ~2-3 MB
-  - InsightFace RetinaFace (det_10g): 16 MB
+**Face Detection:**
+- MTCNN: ~2.2 MB (optional, only if using FaceNet embedder)
+- MediaPipe BlazeFace: 224 KB (required for batch processing with default config)
+- InsightFace RetinaFace (det_10g): 16 MB (included in buffalo models, used by live.py)
 
-  Face Recognition (Embeddings):
+**Face Recognition (Embeddings):**
+- FaceNet: ~90 MB (Inception-ResNet, optional)
+- InsightFace buffalo_l: 166 MB (ResNet50) - w600k_r50.onnx (optional)
+- InsightFace buffalo_s: ~50 MB (MobileFaceNet, optional)
+- InsightFace buffalo_sc: ~10 MB (compressed MobileFaceNet, **default for live.py**)
 
-  - FaceNet: ~90 MB (Inception-ResNet)
-  - InsightFace buffalo_l: 166 MB (ResNet50) - w600k_r50.onnx
-  - InsightFace buffalo_s: ~50 MB (MobileFaceNet)
-  - InsightFace buffalo_sc: ~10 MB (compressed MobileFaceNet)
+**Head Pose Estimation:**
+- MediaPipe FaceLandmarker: 3.6 MB (optional, only if using pose-based enrollment)
 
-  Total Package Sizes:
-
-  - FaceNet + MTCNN: ~92 MB
-  - InsightFace buffalo_l: 326 MB (detection + recognition + extras)
-  - InsightFace buffalo_sc: ~20 MB (detection + recognition, mobile-optimized)
+**Typical Configurations:**
+- **live.py (default):** InsightFace buffalo_sc (~20 MB total) - all models download automatically
+- **main.py (default):** InsightFace buffalo_sc + MediaPipe BlazeFace (~21 MB total) - BlazeFace requires manual download
+- **With FaceNet:** FaceNet + MTCNN (~92 MB total) - all models download automatically
