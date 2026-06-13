@@ -19,7 +19,7 @@ The evaluation module uses a **functional composition** approach with shared cor
 evaluation/
 ├── shared/
 │   ├── data_loader.py      # Loads results.csv and parses frame data
-│   ├── metrics.py          # Calculates FAR, FRR, EER, accuracy, etc.
+│   ├── metrics.py          # Calculates FAR, FRR, lockout times, etc.
 │   ├── visualization.py    # Creates Plotly timelines and summary figures
 │   └── reporting.py        # Prints metrics and generates LaTeX tables
 ├── controlled_study/
@@ -53,19 +53,21 @@ Both evaluation scripts require configuring the following paths in the respectiv
 
 #### Controlled Study (`src/evaluation/controlled_study/evaluate.py`)
 ```python
-RESULTS_FOLDER = "data/controlled_study/"           # Folder containing results.csv
+RESULTS_FOLDER = "data/controlled_study/_results_archive/V06"  # Update to your results folder
 RESULTS_PATH = PROJECT_ROOT / RESULTS_FOLDER / "results.csv"
 CONFIG_PATH = PROJECT_ROOT / RESULTS_FOLDER / "config.json"
 OUTPUT_PATH = PROJECT_ROOT / "src/evaluation/controlled_study/output"
 ```
 
 **Required input files:**
-- `data/controlled_study/results.csv` - Frame-by-frame authentication results from pipeline
-- `data/controlled_study/config.json` - Authentication configuration used during evaluation
+- `data/controlled_study/[your_results_folder]/results.csv` - Frame-by-frame authentication results from pipeline
+- `data/controlled_study/[your_results_folder]/config.json` - Authentication configuration used during evaluation
+
+**Note:** Update `RESULTS_FOLDER` in the script to point to your specific results folder.
 
 #### In-the-Wild Study (`src/evaluation/in_the_wild/evaluate.py`)
 ```python
-RESULTS_FOLDER = "data/in_the_wild/_results_archive/little_less_loose"  # Folder containing results.csv
+RESULTS_FOLDER = "data/in_the_wild/_results_archive/V10"  # Update to your results folder
 RESULTS_PATH = PROJECT_ROOT / RESULTS_FOLDER / "results.csv"
 CONFIG_PATH = PROJECT_ROOT / RESULTS_FOLDER / "config.json"
 ANNOTATIONS_PATH = PROJECT_ROOT / "data/in_the_wild"
@@ -76,6 +78,8 @@ OUTPUT_PATH = PROJECT_ROOT / "src/evaluation/in_the_wild/output"
 - `data/in_the_wild/[your_results_folder]/results.csv` - Frame-by-frame authentication results
 - `data/in_the_wild/[your_results_folder]/config.json` - Authentication configuration
 - `data/in_the_wild/*.json` - Optional annotation files for validation
+
+**Note:** Update `RESULTS_FOLDER` in the script to point to your specific results folder.
 
 ## Usage
 
@@ -104,11 +108,11 @@ python src/evaluation/in_the_wild/evaluate.py
 **Generates:**
 - `trust_timeline_all_videos.html` - Interactive timeline showing all videos
 - `trust_timeline_by_device.html` - Device-specific timelines
-- `trust_timeline_participant.html` - Per-participant timelines
 - `summary.png` - Overall metrics summary
-- `table_devices.png` - Device metrics table
 - `table_results.png` - Results table
 - Console output with annotation validation results, metrics, and LaTeX tables
+
+**Note:** Additional analysis scripts exist in `in_the_wild/` (e.g., `analyze_annotation_trends.py`) that may generate other outputs.
 
 ## Output Files
 
