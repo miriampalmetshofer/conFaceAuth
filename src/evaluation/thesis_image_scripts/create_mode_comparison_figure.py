@@ -13,7 +13,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 from evaluation.shared.data_loader import load_evaluation_data
 from evaluation.shared.metrics import calculate_metrics
 from evaluation.shared.models import AuthenticationMetrics, EvaluationData, SegmentType
-from evaluation.shared.reporting import _fmt
+from evaluation.shared.reporting import _fmt, _latex_header_cell, _latex_metric_header_cell
 from evaluation.shared.visualization import (
     create_trust_timeline_all_videos,
     save_html,
@@ -454,13 +454,15 @@ def _mode_table_metric_defs():
 def _mode_latex_table_lines(run_results: list[RunResult]) -> list[str]:
     table_defs = _mode_table_metric_defs()
     col_spec = "@{\\extracolsep{\\fill}}lcc" + "c" * len(table_defs)
-    headers = ["Mode", "$k_w$", "$k_d$"] + [definition.short_label for definition in table_defs]
+    headers = [_latex_header_cell("Mode"), _latex_header_cell("$k_w$"), _latex_header_cell("$k_d$")] + [
+        _latex_metric_header_cell(definition) for definition in table_defs
+    ]
 
     lines = [
         "% ── LaTeX table (tabular only) ──────────────────────────────",
         f"\\begin{{tabular*}}{{\\textwidth}}{{{col_spec}}}",
         "\\toprule",
-        " & ".join(f"\\textbf{{{header}}}" for header in headers) + r" \\",
+        " & ".join(headers) + r" \\",
         "\\midrule",
     ]
 

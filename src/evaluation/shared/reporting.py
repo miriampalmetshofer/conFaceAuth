@@ -64,6 +64,13 @@ def _latex_escape(text: str) -> str:
     return re.sub(r"(?<!\\)%", r"\\%", text)
 
 
+_TIME_FIELDS = {
+    "genuine_lockout_time.mean",
+    "imposter_lockout_time.mean",
+    "imposter_lockout_time.p90",
+}
+
+
 def _fmt(metrics: AuthenticationMetrics, defn: MetricDefinition, latex: bool = False) -> str:
     value = metrics._resolve_field(defn.field_name)
     if value is None:
@@ -71,7 +78,7 @@ def _fmt(metrics: AuthenticationMetrics, defn: MetricDefinition, latex: bool = F
     cell = f"{value:{defn.format_spec}}"
     if defn.field_name in {"false_reject_rate", "false_accept_rate"}:
         cell += r"\%" if latex else "%"
-    if defn.field_name in {"imposter_lockout_time.mean", "imposter_lockout_time.p90"}:
+    if defn.field_name in _TIME_FIELDS:
         cell += r"\,s" if latex else " s"
 
     if defn.field_name == "false_reject_rate" and metrics.session_counts.genuine_lockouts:
@@ -92,6 +99,7 @@ def _fmt(metrics: AuthenticationMetrics, defn: MetricDefinition, latex: bool = F
 
     elif defn.field_name == "genuine_lockout_time.mean" and metrics.genuine_lockout_time.p90 is not None:
         p90 = f"{metrics.genuine_lockout_time.p90:.0f}"
+        p90 += r"\,s" if latex else " s"
         if latex:
             cell += r" {{\scriptsize (" + p90 + r")}}"
         else:
@@ -100,6 +108,20 @@ def _fmt(metrics: AuthenticationMetrics, defn: MetricDefinition, latex: bool = F
     if latex:
         cell = _latex_escape(cell)
     return cell
+
+
+def _latex_header_cell(label: str) -> str:
+    return rf"\textbf{{{label}}}"
+
+
+def _latex_metric_header_cell(defn: MetricDefinition) -> str:
+    metric_headers = {
+        "mean_genuine_trust": r"\shortstack{{\scriptsize\textbf{mean}}\\\textbf{GT}}",
+        "genuine_lockout_time.mean": r"\shortstack{{\scriptsize\textbf{mean}}\\\textbf{GKT}}",
+        "imposter_lockout_time.mean": r"\shortstack{{\scriptsize\textbf{mean}}\\\textbf{ULT}}",
+        "imposter_lockout_time.p90": r"\shortstack{{\scriptsize\textbf{P90}}\\\textbf{ULT}}",
+    }
+    return metric_headers.get(defn.field_name, _latex_header_cell(defn.short_label))
 
 
 def print_latex_table(
@@ -119,8 +141,10 @@ def print_latex_table(
     print(f"\\begin{{tabular*}}{{\\textwidth}}{{{col_spec}}}")
     print("\\toprule")
 
-    headers = ["Platform", "Scenario"] + [d.short_label for d in table_defs]
-    print(" & ".join(f"\\textbf{{{h}}}" for h in headers) + " \\\\")
+    headers = [_latex_header_cell("Platform"), _latex_header_cell("Scenario")] + [
+        _latex_metric_header_cell(d) for d in table_defs
+    ]
+    print(" & ".join(headers) + " \\\\")
     print("\\midrule")
 
     for i, device in enumerate(devices):
@@ -160,8 +184,8 @@ def print_latex_table_devices(
     print(f"\\begin{{tabular*}}{{\\textwidth}}{{{col_spec}}}")
     print("\\toprule")
 
-    headers = ["Platform"] + [d.short_label for d in table_defs]
-    print(" & ".join(f"\\textbf{{{h}}}" for h in headers) + " \\\\")
+    headers = [_latex_header_cell("Platform")] + [_latex_metric_header_cell(d) for d in table_defs]
+    print(" & ".join(headers) + " \\\\")
     print("\\midrule")
 
     for device in devices:
@@ -187,8 +211,8 @@ def print_latex_table_study(metrics: AuthenticationMetrics, study_label: str) ->
     print(f"\\begin{{tabular*}}{{\\textwidth}}{{{col_spec}}}")
     print("\\toprule")
 
-    headers = ["Study"] + [d.short_label for d in table_defs]
-    print(" & ".join(f"\\textbf{{{h}}}" for h in headers) + " \\\\")
+    headers = [_latex_header_cell("Study")] + [_latex_metric_header_cell(d) for d in table_defs]
+    print(" & ".join(headers) + " \\\\")
     print("\\midrule")
 
     cells = [_fmt(metrics, d, latex=True) for d in table_defs]
