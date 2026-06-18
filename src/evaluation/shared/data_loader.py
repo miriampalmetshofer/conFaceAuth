@@ -96,9 +96,9 @@ def determine_segment_type(source_type: str, video_meta: Optional[VideoMetadata]
 
     if 'black' in source_type.lower():
         return SegmentType.BLACK
-    elif video_meta.genuine_user in source_type:
-        return SegmentType.GENUINE
-    elif video_meta.imposter_user in source_type:
+    elif source_type.startswith(video_meta.imposter_user + '_'):
         return SegmentType.IMPOSTER
+    elif source_type.startswith(video_meta.genuine_user + '_'):
+        return SegmentType.GENUINE
     else:
         return SegmentType.GENUINE
