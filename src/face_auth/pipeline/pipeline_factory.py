@@ -10,7 +10,6 @@ from face_auth.services.video_processing_service import VideoProcessingService
 from face_auth.services.imposter_video_creation_service import ImposterVideoCreationService
 from face_auth.services.video_validation_service import VideoValidationService
 from face_auth.services.results_service import ResultsService
-from face_auth.services.segment_cache import SegmentCache
 from face_auth.pipeline.stages import (
     VideoDiscoveryStage,
     VideoMatchingStage,
@@ -28,7 +27,6 @@ class PipelineFactory:
         self.config = config
         # Cache shared dependencies
         self._embedder = None
-        self._segment_cache = SegmentCache()
 
     def _create_embedder(self) -> Embedder:
         """Create embedder instance (cached)."""
@@ -51,8 +49,7 @@ class PipelineFactory:
         """Create video processing service with all dependencies."""
         return VideoProcessingService(
             config=self.config.authentication,
-            embedder=self._create_embedder(),
-            cache=self._segment_cache
+            embedder=self._create_embedder()
         )
 
     def _create_imposter_creation_service(self) -> ImposterVideoCreationService:

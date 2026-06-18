@@ -19,7 +19,6 @@ from face_auth.processing import VideoProcessor
 from face_auth.authentication.core import FrameAuthenticationResult
 from face_auth.processing.models import ComposedVideo
 from face_auth.services.models import EnrollmentData, VideoResult
-from face_auth.services.segment_cache import SegmentCache
 from face_auth.config.logging_config import get_logger
 
 logger = get_logger(__name__)
@@ -31,19 +30,16 @@ class VideoProcessingService:
     def __init__(
         self,
         config: AuthenticationConfig,
-        embedder: Embedder,
-        cache: SegmentCache
+        embedder: Embedder
     ):
         """Initialize video processing service.
 
         Args:
             config: Authentication configuration
             embedder: Embedding generator instance
-            cache: Segment cache for genuine video results
         """
         self.config = config
         self.embedder = embedder
-        self.cache = cache
 
     def process_video(
         self,
@@ -71,25 +67,8 @@ class VideoProcessingService:
         all_frame_results = []
         frame_index = 1
 
-        for idx, iterator in enumerate(video.iterators):
+        for iterator in video.iterators:
             logger.info(f"Processing {iterator.get_source_name()}")
-
-            # Check cache for first iterator (genuine segment)
-            if idx == 0 and iterator.video_path:
-                logger.info(f"Checking cache for {iterator.video_path}")
-                cached = self.cache.get(iterator.video_path)
-                if cached:
-                    all_frame_results.extend(cached.frame_results)
-                    authenticator.set_state(cached.authenticator_state)
-                    frame_index = cached.frame_results[-1].frame_index + 1 if cached.frame_results else frame_index
-                    logger.info(f"Using cached results for genuine segment, skipping processing")
-                    continue
-                else:
-                    logger.info(f"Cache miss for {iterator.video_path}")
-            elif idx == 0:
-                logger.info(f"First iterator has no video_path: {iterator.video_path}")
-
-            # Process iterator normally
             results = video_processor.process_iterator(
                 iterator=iterator,
                 skip_frames=skip_frames,
@@ -97,14 +76,6 @@ class VideoProcessingService:
             )
             frame_index = results[-1].frame_index + 1 if results else frame_index
             all_frame_results.extend(results)
-
-            # Cache first iterator (genuine segment) after processing
-            if idx == 0 and iterator.video_path:
-                self.cache.put(
-                    iterator.video_path,
-                    results,
-                    authenticator.get_state()
-                )
 
         logger.info(f"Processed video with {len(all_frame_results)} total frame results")
         return VideoResult(
