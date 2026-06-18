@@ -4,6 +4,7 @@ import cv2
 from pathlib import Path
 
 from face_auth.authentication.core import FrameAuthenticationResult
+from face_auth.authentication.core.models import FrameAuthenticationInput, SourceFrame
 from face_auth.authentication.core.frame_authenticator import FrameAuthenticator
 from face_auth.imposter_video_creation.iterators.frame_iterator import FrameIterator
 from face_auth.processing.debug_frame_saver import DebugFrameSaver
@@ -45,11 +46,27 @@ class VideoProcessor:
         results = []
         source_name = iterator.get_source_name()
         no_face_count = 0
+        iterator_offset = 0
+        source_metadata = iterator.get_embedding_cache_metadata()
 
         for frame in iterator:
             try:
                 if frame_index == 1 or frame_index % skip_frames == 0:
-                    auth_result = self.frame_authenticator.authenticate(frame, frame_index)
+                    source_frame = None
+                    source_frame_index = iterator.get_source_frame_index(iterator_offset)
+                    if iterator.video_path is not None and source_frame_index is not None:
+                        source_frame = SourceFrame(
+                            video_path=iterator.video_path,
+                            frame_index=source_frame_index,
+                            metadata=source_metadata,
+                        )
+
+                    frame_input = FrameAuthenticationInput(
+                        image_bgr=frame,
+                        frame_index=frame_index,
+                        source=source_frame,
+                    )
+                    auth_result = self.frame_authenticator.authenticate(frame_input)
 
                     if not auth_result.face_detected:
                         no_face_count += 1
@@ -74,6 +91,7 @@ class VideoProcessor:
                 raise e
 
             frame_index += 1
+            iterator_offset += 1
 
         cv2.destroyAllWindows()
 

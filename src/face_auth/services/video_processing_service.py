@@ -14,11 +14,12 @@ from face_auth.authentication.core.backend.config_converter import (
     convert_trust_based_config,
     convert_temporal_decay_config
 )
-from face_auth.authentication.embedder import Embedder
+from face_auth.authentication.embedder.embedder import Embedder
 from face_auth.processing import VideoProcessor
 from face_auth.authentication.core import FrameAuthenticationResult
 from face_auth.processing.models import ComposedVideo
 from face_auth.services.models import EnrollmentData, VideoResult
+from face_auth.authentication.embedder.embedding_cache import EmbeddingCache
 from face_auth.config.logging_config import get_logger
 
 logger = get_logger(__name__)
@@ -30,16 +31,19 @@ class VideoProcessingService:
     def __init__(
         self,
         config: AuthenticationConfig,
-        embedder: Embedder
+        embedder: Embedder,
+        embedding_cache: EmbeddingCache
     ):
         """Initialize video processing service.
 
         Args:
             config: Authentication configuration
             embedder: Embedding generator instance
+            embedding_cache: Source-frame embedding cache
         """
         self.config = config
         self.embedder = embedder
+        self.embedding_cache = embedding_cache
 
     def process_video(
         self,
@@ -69,6 +73,7 @@ class VideoProcessingService:
 
         for iterator in video.iterators:
             logger.info(f"Processing {iterator.get_source_name()}")
+
             results = video_processor.process_iterator(
                 iterator=iterator,
                 skip_frames=skip_frames,
@@ -107,5 +112,6 @@ class VideoProcessingService:
         return FrameAuthenticator(
             embedder=self.embedder,
             authenticator=authenticator,
-            fps=self.config.fps
+            fps=self.config.fps,
+            embedding_cache=self.embedding_cache
         )

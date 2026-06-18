@@ -5,7 +5,7 @@ import shutil
 from typing import List
 
 from face_auth.config.models import EnrollmentConfig, PathsConfig, ProcessingContext, EnrollmentVideoPreference
-from face_auth.authentication.embedder import Embedder
+from face_auth.authentication.embedder.embedder import Embedder
 from face_auth.processing import VideoDiscovery
 from face_auth.processing import EnrollmentVideoParser
 from face_auth.processing import EnrollmentVideo

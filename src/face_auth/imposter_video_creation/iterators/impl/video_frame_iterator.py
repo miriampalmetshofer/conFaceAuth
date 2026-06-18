@@ -1,4 +1,5 @@
 from pathlib import Path
+from typing import Any, Dict
 from typing import Iterator
 import numpy as np
 from face_auth.config.logging_config import get_logger
@@ -78,3 +79,13 @@ class VideoFrameIterator(FrameIterator):
     def video_path(self) -> Path:
         """Return the video file path."""
         return self._video_path
+
+    def get_source_frame_index(self, iterator_offset: int) -> int:
+        """Return the zero-based source frame index for an iterator offset."""
+        return self.start_frame + iterator_offset
+
+    def get_embedding_cache_metadata(self) -> Dict[str, Any]:
+        """Return source metadata that affects the pixels sent to the embedder."""
+        return {
+            "rotation_angle": self.rotation_angle,
+        }

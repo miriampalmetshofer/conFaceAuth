@@ -2,17 +2,44 @@
 import numpy as np
 import cv2
 import time
-from typing import Optional
+from pathlib import Path
+from typing import Any, Dict, Optional, Protocol
 
-from face_auth.authentication.core.models import AuthenticationResult, AuthenticationStatus
+from face_auth.authentication.core.models import (
+    AuthenticationResult,
+    AuthenticationStatus,
+    FrameAuthenticationInput,
+)
 from face_auth.authentication.core.backend.authenticator_backend import AuthenticatorBackend
 from face_auth.authentication.embedder.embedder import Embedder
+from face_auth.authentication.embedder.models import EmbeddingResult
+
+
+class EmbeddingCache(Protocol):
+    """Interface for source-frame embedding cache implementations."""
+
+    def get_or_compute(
+        self,
+        video_path: Path,
+        source_frame_index: int,
+        frame_rgb: np.ndarray,
+        source_metadata: Optional[Dict[str, Any]] = None,
+    ) -> EmbeddingResult:
+        """Return a cached embedding or compute it for a source frame."""
+        ...
 
 
 class FrameAuthenticator:
     """Processes individual frames for face authentication."""
 
-    def __init__(self, embedder: Embedder, authenticator: AuthenticatorBackend, fps: int, use_wall_clock_time: bool = False):
+    def __init__(
+        self,
+        embedder: Embedder,
+        authenticator: AuthenticatorBackend,
+        fps: int,
+        use_wall_clock_time: bool = False,
+        embedding_cache: Optional[EmbeddingCache] = None
+    ):
         """Initialize frame processor.
 
         Args:
@@ -26,27 +53,38 @@ class FrameAuthenticator:
         self._fps = fps
         self._use_wall_clock_time = use_wall_clock_time
         self._start_time: Optional[float] = None
+        self._embedding_cache = embedding_cache
 
-    def authenticate(self, frame_bgr: np.ndarray, frame_index: int) -> AuthenticationResult:
+    def authenticate(self, frame: FrameAuthenticationInput) -> AuthenticationResult:
         """Process frame and return authentication result.
 
         Args:
-            frame_bgr: Frame image in BGR format
-            frame_index: 1-indexed frame number
+            frame: Frame image and metadata in the composed timeline
 
         Returns:
             Authentication result for the frame
         """
-        frame_rgb = cv2.cvtColor(frame_bgr, cv2.COLOR_BGR2RGB)
+        frame_rgb = cv2.cvtColor(frame.image_bgr, cv2.COLOR_BGR2RGB)
 
         if self._use_wall_clock_time:
             if self._start_time is None:
                 self._start_time = time.time()
             timestamp_ms = (time.time() - self._start_time) * 1000
         else:
-            timestamp_ms = (frame_index / self._fps) * 1000
+            timestamp_ms = (frame.frame_index / self._fps) * 1000
 
-        embedding_result = self._embedder.get_embedding(frame_rgb)
+        if (
+            self._embedding_cache is not None
+            and frame.source is not None
+        ):
+            embedding_result = self._embedding_cache.get_or_compute(
+                video_path=frame.source.video_path,
+                source_frame_index=frame.source.frame_index,
+                frame_rgb=frame_rgb,
+                source_metadata=frame.source.metadata,
+            )
+        else:
+            embedding_result = self._embedder.get_embedding(frame_rgb)
 
         if not embedding_result.face_detected:
             return self._create_result_for_no_face(timestamp_ms)

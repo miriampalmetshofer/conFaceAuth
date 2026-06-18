@@ -1,7 +1,10 @@
 """Data models for face authentication core components."""
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import Enum
-from typing import Optional
+from pathlib import Path
+from typing import Any, Dict, Optional
+
+import numpy as np
 
 from face_auth.authentication.detection import BoundingBox
 
@@ -20,6 +23,22 @@ class AuthenticationResult:
     trust: float
     face_detected: bool
     bounding_box: Optional[BoundingBox] = None
+
+
+@dataclass
+class SourceFrame:
+    """Identifies a cacheable source video frame."""
+    video_path: Path
+    frame_index: int
+    metadata: Dict[str, Any] = field(default_factory=dict)
+
+
+@dataclass
+class FrameAuthenticationInput:
+    """Frame image and metadata needed for authentication."""
+    image_bgr: np.ndarray
+    frame_index: int
+    source: Optional[SourceFrame] = None
 
 
 @dataclass
