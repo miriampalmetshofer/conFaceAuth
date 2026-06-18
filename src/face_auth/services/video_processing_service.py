@@ -70,9 +70,15 @@ class VideoProcessingService:
 
         all_frame_results = []
         frame_index = 1
+        video_name = video.path.name
 
-        for iterator in video.iterators:
-            logger.info(f"Processing {iterator.get_source_name()}")
+        logger.info(f"Processing composed video {video_name}")
+
+        for segment_index, iterator in enumerate(video.iterators, start=1):
+            logger.debug(
+                f"{video_name}: segment {segment_index}/{len(video.iterators)} "
+                f"({iterator.get_source_name()})"
+            )
 
             results = video_processor.process_iterator(
                 iterator=iterator,
@@ -82,7 +88,10 @@ class VideoProcessingService:
             frame_index = results[-1].frame_index + 1 if results else frame_index
             all_frame_results.extend(results)
 
-        logger.info(f"Processed video with {len(all_frame_results)} total frame results")
+        logger.info(
+            f"Completed composed video {video_name} "
+            f"({len(all_frame_results)} sampled frames)"
+        )
         return VideoResult(
             video=video,
             frame_results=all_frame_results

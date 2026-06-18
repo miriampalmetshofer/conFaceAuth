@@ -25,7 +25,7 @@ class ColoredFormatter(logging.Formatter):
 def setup_logging(level=logging.INFO):
     """Configure logging for the face authentication system."""
     formatter = ColoredFormatter(
-        '%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+        '%(asctime)s - %(processName)s - %(name)s - %(levelname)s - %(message)s',
         datefmt='%Y-%m-%d %H:%M:%S'
     )
 

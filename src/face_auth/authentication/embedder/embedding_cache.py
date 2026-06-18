@@ -51,6 +51,7 @@ class EmbeddingCache:
             embedder_model,
             embedder_config or {},
         )
+        self._reported_miss_paths: set[Path] = set()
         self.cache_dir.mkdir(parents=True, exist_ok=True)
 
     def get_or_compute(
@@ -73,9 +74,13 @@ class EmbeddingCache:
                 )
                 return cached
 
-        logger.debug(
-            f"Embedding cache miss for {video_path.name} frame {source_frame_index}"
-        )
+        if cache_path not in self._reported_miss_paths:
+            logger.info(
+                f"Embedding cache miss for {video_path.name}; "
+                "computing missing source frames"
+            )
+            self._reported_miss_paths.add(cache_path)
+
         computed = self.embedder.get_embedding(frame_rgb)
 
         with self._file_lock(cache_path):

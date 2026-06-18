@@ -70,7 +70,6 @@ class VideoProcessor:
 
                     if not auth_result.face_detected:
                         no_face_count += 1
-                        logger.debug(f"No face detected at frame {frame_index}")
                         self.debug_saver.save_frame(frame, frame_index, source_name)
 
                     similarity_str = f"{auth_result.similarity:.4f}" if auth_result.similarity is not None else "N/A"
@@ -95,9 +94,10 @@ class VideoProcessor:
 
         cv2.destroyAllWindows()
 
-        # Log summary instead of per-frame details
         if no_face_count > 0:
-            logger.warning(f"{source_name}: {no_face_count}/{len(results)} frames with no face detected")
+            logger.debug(
+                f"{source_name}: no face in {no_face_count}/{len(results)} sampled frames"
+            )
 
         return results
 

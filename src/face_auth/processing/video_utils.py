@@ -3,6 +3,10 @@ import subprocess
 import json
 from pathlib import Path
 
+from face_auth.config.logging_config import get_logger
+
+logger = get_logger(__name__)
+
 
 def get_video_rotation_from_metadata(video_path: Path) -> int:
     """
@@ -42,7 +46,9 @@ def get_video_rotation_from_metadata(video_path: Path) -> int:
                         # Normalize to 0, 90, 180, 270
                         rotation_angle = rotation_angle % 360
                         if rotation_angle != 0:
-                            print(f"Detected rotation: {rotation_angle}° for {video_path.name}")
+                            logger.debug(
+                                f"Detected rotation {rotation_angle}° for {video_path.name}"
+                            )
                             return rotation_angle
                     except (ValueError, TypeError):
                         pass
@@ -54,12 +60,14 @@ def get_video_rotation_from_metadata(video_path: Path) -> int:
                         try:
                             rotation_angle = int(float(rotation))
                             rotation_angle = (-rotation_angle) % 360  # Display matrix uses negative angles
-                            print(f"Detected rotation from display matrix: {rotation_angle}° for {video_path.name}")
+                            logger.debug(
+                                f"Detected display-matrix rotation {rotation_angle}° "
+                                f"for {video_path.name}"
+                            )
                             return rotation_angle
                         except (ValueError, TypeError):
                             pass
 
-        print(f"No rotation metadata found for {video_path.name}, assuming 0°")
         return 0
 
     except subprocess.TimeoutExpired:
@@ -93,7 +101,7 @@ def rotate_frame(frame, rotation_angle):
     elif rotation_angle == 270:
         return cv2.rotate(frame, cv2.ROTATE_90_COUNTERCLOCKWISE)
     else:
-        print(f"Warning: Unsupported rotation angle {rotation_angle}, not rotating")
+        logger.warning(f"Unsupported rotation angle {rotation_angle}; frame not rotated")
         return frame
 
 
