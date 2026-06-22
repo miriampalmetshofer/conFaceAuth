@@ -63,12 +63,16 @@ def find_lockout_transition(video_frames: list[FrameData], first_imposter_idx: i
 def is_eligible_for_imposter_rejection(video_frames: list[FrameData], first_imposter_idx: int) -> bool:
     """Return whether a video is eligible for imposter rejection metrics.
 
-    A composed video is eligible only if it is still unlocked when the imposter
-    segment starts. If the offline trace already contains a lock before that
-    point, a deployed device would have locked before the takeover.
+    A composed video is ineligible only if it locks during the genuine-user
+    segment. A lock during the black transition remains eligible and results
+    in an immediate (zero-second) lockout when the imposter segment starts.
     """
-    frames_until_imposter = video_frames[:first_imposter_idx + 1]
-    return all(f.predicted_state == 'Unlocked' for f in frames_until_imposter)
+    genuine_frames = (
+        frame
+        for frame in video_frames[:first_imposter_idx]
+        if frame.segment_type == SegmentType.GENUINE
+    )
+    return all(frame.predicted_state == 'Unlocked' for frame in genuine_frames)
 
 
 def find_genuine_lockout_transition(video_frames: list[FrameData], fps: int) -> Optional[float]:
@@ -97,7 +101,7 @@ def report_excluded_imposter_videos(excluded_videos: list[str]) -> None:
     if excluded_videos:
         print(
             f"\nINFO: Excluded {len(excluded_videos)} video(s) from imposter rejection metrics "
-            "because the device locked before the imposter segment."
+            "because the device locked during the genuine-user segment."
         )
         print()
 

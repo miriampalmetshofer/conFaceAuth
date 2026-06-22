@@ -91,9 +91,9 @@ def compute_ilt_per_participant(frames, participants, scenarios, devices, fps):
     """Compute mean unauthorized-user lockout time per (participant, scenario, device).
 
     For each participant, takes the mean lockout time across all impostor
-    videos in that condition. Videos where the device locked before the
-    impostor segment, and videos where the impostor is never locked out, are
-    excluded from the mean.
+    videos in that condition. Videos where the device locked during the
+    genuine-user segment, and videos where the impostor is never locked out,
+    are excluded from the mean.
 
     Returns:
         dict mapping (participant, scenario, device) -> mean ILT in seconds
