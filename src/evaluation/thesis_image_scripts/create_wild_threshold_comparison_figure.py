@@ -16,10 +16,13 @@ from evaluation.shared.visualization import (
 
 PROJECT_ROOT = Path(__file__).parent.parent.parent.parent
 THESIS_ROOT = PROJECT_ROOT.parent / "master-thesis"
-PRIMARY_RESULTS_FOLDER = "data/in_the_wild/_results_archive/V10"
-SECONDARY_RESULTS_FOLDER = "data/in_the_wild/_results_archive/V09"
+PAPER_ROOT = PROJECT_ROOT.parent / "paper"
+PRIMARY_RESULTS_FOLDER = "data/in_the_wild/_results_archive/V13"
+SECONDARY_RESULTS_FOLDER = "data/in_the_wild/_results_archive/V14"
 DEFAULT_PNG_OUTPUT_PATH = THESIS_ROOT / "images/trust_scores"
 DEFAULT_PNG_FILENAME = "wild_threshold_comparison.png"
+PAPER_PNG_OUTPUT_PATH = PAPER_ROOT / "images/trust_scores"
+PAPER_PNG_FILENAME = "wild.png"
 PRIMARY_THRESHOLD = 0.5
 SECONDARY_THRESHOLD = 0.4
 SECONDARY_THRESHOLD_COLOR = "#0072B2"
@@ -150,6 +153,7 @@ def main() -> None:
     print(f"Results: {results_path}")
     print(f"Secondary results: {secondary_results_path}")
     print(f"PNG output: {DEFAULT_PNG_OUTPUT_PATH / DEFAULT_PNG_FILENAME}")
+    print(f"Paper PNG output: {PAPER_PNG_OUTPUT_PATH / PAPER_PNG_FILENAME}")
 
     data = load_evaluation_data(results_path, parse_scenario=False)
     if data.threshold != PRIMARY_THRESHOLD:
@@ -177,8 +181,10 @@ def main() -> None:
     _move_metric_markers_to_front(fig)
 
     png_output = save_plotly_png(fig, DEFAULT_PNG_OUTPUT_PATH, DEFAULT_PNG_FILENAME, width=1200, height=560)
+    paper_png_output = save_plotly_png(fig, PAPER_PNG_OUTPUT_PATH, PAPER_PNG_FILENAME, width=1200, height=560)
 
     print(f"Saved threshold comparison PNG to: {png_output}")
+    print(f"Saved paper threshold comparison PNG to: {paper_png_output}")
 
 
 if __name__ == "__main__":
