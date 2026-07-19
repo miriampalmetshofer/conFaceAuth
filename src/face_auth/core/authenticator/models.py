@@ -1,28 +1,24 @@
 """Data models for face authentication core components."""
 from dataclasses import dataclass, field
-from enum import Enum
 from pathlib import Path
 from typing import Any, Dict, Optional
 
-import numpy as np
-
 from face_auth.core.detection.models import BoundingBox
-
-
-class AuthenticationStatus(Enum):
-    """Authentication state of a user."""
-    LOCKED = "Locked"
-    UNLOCKED = "Unlocked"
 
 
 @dataclass
 class AuthenticationResult:
     """Pure authentication result from authenticator."""
-    status: AuthenticationStatus
+    is_authenticated: bool
     similarity: Optional[float]
     trust: float
     face_detected: bool
     bounding_box: Optional[BoundingBox] = None
+
+    @property
+    def predicted_state(self) -> str:
+        """Return the display label used in result files."""
+        return "Unlocked" if self.is_authenticated else "Locked"
 
 
 @dataclass
@@ -31,14 +27,6 @@ class SourceFrame:
     video_path: Path
     frame_index: int
     metadata: Dict[str, Any] = field(default_factory=dict)
-
-
-@dataclass
-class FrameAuthenticationInput:
-    """Frame image and metadata needed for authentication."""
-    image_bgr: np.ndarray
-    frame_index: int
-    source: Optional[SourceFrame] = None
 
 
 @dataclass
@@ -52,7 +40,7 @@ class FrameAuthenticationResult:
         """Convert to dictionary format for CSV output."""
         return {
             'frame': self.frame_index,
-            'predicted_state': self.auth_result.status.value,
+            'predicted_state': self.auth_result.predicted_state,
             'similarity': self.auth_result.similarity,
             'trust_score': self.auth_result.trust,
             'face_detected': self.auth_result.face_detected,

@@ -11,9 +11,10 @@ import json
 import cv2
 import logging
 import argparse
+import time
 
+from face_auth.core.authenticator.models import AuthenticationResult
 from face_auth.core.embedder.embedder import Embedder
-from face_auth.core.authenticator.frame_authenticator import FrameAuthenticator
 from face_auth.core.authenticator.temporal_logic.backend.authenticator_factory import (
     create_authenticator,
     AuthenticatorBackendType
@@ -62,6 +63,7 @@ class LiveFaceAuth:
 
         self.enrollment_embeddings = None
         self.authenticator = None
+        self.authenticator_start_time = None
 
     def _load_config(self, config_path: str) -> dict:
         """Load configuration from JSON file."""
@@ -137,8 +139,8 @@ class LiveFaceAuth:
             self.enrollment_embeddings
         )
 
-        fps = self.config.get("fps")
-        self.authenticator = FrameAuthenticator(self.embedder, authenticator_backend, fps, use_wall_clock_time=True)
+        self.authenticator = authenticator_backend
+        self.authenticator_start_time = None
         logger.info("Authenticator initialized")
 
     def run_live_authentication(self):
@@ -165,7 +167,6 @@ class LiveFaceAuth:
 
         logger.info("Starting live authentication. Press 'q' to quit.")
 
-        frame_index = 1
         try:
             while True:
                 ret, frame = cap.read()
@@ -177,8 +178,7 @@ class LiveFaceAuth:
                 frame = cv2.flip(frame, 1)
 
                 # Authenticate frame
-                auth_result = self.authenticator.authenticate(frame, frame_index)
-                frame_index += 1
+                auth_result = self._authenticate_frame(frame)
 
                 # Get bounding box using InsightFace directly
                 frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
@@ -213,13 +213,48 @@ class LiveFaceAuth:
         height = bbox[3] - bbox[1]
         return width * height
 
+    def _authenticate_frame(self, frame_bgr):
+        """Authenticate one live camera frame."""
+        frame_rgb = cv2.cvtColor(frame_bgr, cv2.COLOR_BGR2RGB)
+        timestamp_ms = self._get_timestamp_ms()
+        embedding_result = self.embedder.get_embedding(frame_rgb)
+
+        if not embedding_result.face_detected:
+            self.authenticator.update_with_no_face(timestamp_ms)
+            return AuthenticationResult(
+                is_authenticated=self.authenticator.is_authenticated(),
+                similarity=None,
+                trust=self.authenticator.get_score(),
+                face_detected=False,
+                bounding_box=None
+            )
+
+        if embedding_result.embedding is None:
+            raise ValueError("Face was detected but no embedding was returned")
+
+        self.authenticator.update_with_embedding(embedding_result.embedding, timestamp_ms)
+        return AuthenticationResult(
+            is_authenticated=self.authenticator.is_authenticated(),
+            similarity=self.authenticator.get_last_similarity(),
+            trust=self.authenticator.get_score(),
+            face_detected=True,
+            bounding_box=None
+        )
+
+    def _get_timestamp_ms(self):
+        """Return elapsed wall-clock time since live authentication started."""
+        if self.authenticator_start_time is None:
+            self.authenticator_start_time = time.time()
+
+        return (time.time() - self.authenticator_start_time) * 1000
+
     def _draw_overlays(self, frame, auth_result, faces, threshold):
         """Draw authentication status and bounding boxes on frame."""
         display_frame = frame.copy()
         h, w = display_frame.shape[:2]
 
         # Determine colors based on authentication status
-        is_unlocked = auth_result.status.value == "Unlocked"
+        is_unlocked = auth_result.is_authenticated
         status_color = (0, 255, 0) if is_unlocked else (0, 0, 255)  # Green/Red
 
         # Draw bounding box if face detected

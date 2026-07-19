@@ -3,7 +3,6 @@
 from pathlib import Path
 
 from face_auth.config.models import AuthenticationConfig
-from face_auth.core.authenticator.frame_authenticator import FrameAuthenticator
 from face_auth.core.authenticator.temporal_logic.backend.authenticator_backend import AuthenticatorBackend
 from face_auth.core.authenticator.temporal_logic.backend.authenticator_factory import (
     create_authenticator,
@@ -60,10 +59,12 @@ class VideoProcessingService:
             VideoResult with frame-by-frame authentication results
         """
         authenticator = self._create_authenticator(enrollment_data)
-        frame_authenticator = self._create_frame_authenticator(authenticator)
         video_processor = VideoProcessor(
-            frame_authenticator=frame_authenticator,
-            debug_output_folder=Path("debug/no_face_frames")
+            embedder=self.embedder,
+            authenticator=authenticator,
+            fps=self.config.fps,
+            debug_output_folder=Path("debug/no_face_frames"),
+            embedding_cache=self.embedding_cache,
         )
 
         all_frame_results = []
@@ -112,13 +113,4 @@ class VideoProcessingService:
             backend_type=backend_type,
             config=backend_config,
             enrollment_embeddings=enrollment_data.embeddings
-        )
-
-    def _create_frame_authenticator(self, authenticator: AuthenticatorBackend) -> FrameAuthenticator:
-        """Create frame authenticator instance."""
-        return FrameAuthenticator(
-            embedder=self.embedder,
-            authenticator=authenticator,
-            fps=self.config.fps,
-            embedding_cache=self.embedding_cache
         )
