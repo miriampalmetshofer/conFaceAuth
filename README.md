@@ -277,7 +277,7 @@ python src/main.py
 
 The pipeline outputs a CSV file (`results.csv`) with the following columns:
 - `frame` - Frame number within the video
-- `predicted_state` - Authentication state: "Unlocked" or "Locked"
+- `is_authenticated` - Boolean authentication decision (`True` for authenticated, `False` for locked)
 - `similarity` - Cosine similarity to enrollment embeddings (0.0-1.0, higher = more similar)
 - `trust_score` - Computed trust/confidence score (0.0-1.0)
 - `face_detected` - Boolean indicating whether a face was detected in the frame

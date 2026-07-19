@@ -33,6 +33,7 @@ class TemporalDecayAuthenticator(AuthenticatorBackend):
         self.k_weight = config.k_weight
         self.k_decay = config.k_decay
         self._current_trust: float = config.initial_confidence
+        self.threshold = config.threshold
         self._last_timestamp_ms: Optional[float] = None
         self._last_similarity: Optional[float] = None
 
@@ -104,10 +105,10 @@ class TemporalDecayAuthenticator(AuthenticatorBackend):
         if self._current_trust is None:
             raise ValueError("Cannot check authentication before processing any frames")
 
-        is_auth = self._current_trust >= self.config.threshold
+        is_auth = self._current_trust >= self.threshold
         logger.debug(
             f"trust: {self._current_trust:.4f}, "
-            f"threshold: {self.config.threshold}, "
+            f"threshold: {self.threshold}, "
             f"authenticated: {is_auth}"
         )
         return is_auth

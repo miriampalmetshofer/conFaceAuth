@@ -188,7 +188,7 @@ class VideoMetadata:
 class FrameData:
     """Single frame data point."""
     frame: int
-    predicted_state: str
+    is_authenticated: bool
     similarity: float
     trust_score: float
     face_detected: bool

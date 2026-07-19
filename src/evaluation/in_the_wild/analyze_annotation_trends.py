@@ -118,6 +118,15 @@ def to_float(value: str) -> float:
         return math.nan
 
 
+def to_bool(value: str) -> bool:
+    normalized = str(value).strip().lower()
+    if normalized == "true":
+        return True
+    if normalized == "false":
+        return False
+    raise ValueError(f"Invalid Boolean value: {value}")
+
+
 def load_annotations(base_path: Path) -> dict[str, dict]:
     annotations = {}
     for path in sorted(base_path.glob("*/annotations/*.json")):
@@ -153,7 +162,7 @@ def calculate_metrics(rows_by_video: dict[str, list[dict]]) -> dict[str, dict]:
         trust = [to_float(row["trust_score"]) for row in rows]
         similarity = [to_float(row["similarity"]) for row in rows if row["similarity"]]
         face_detected = [row["face_detected"] == "True" for row in rows]
-        locked = [row for row in rows if row["predicted_state"] == "Locked"]
+        locked = [row for row in rows if not to_bool(row["is_authenticated"])]
 
         metrics[video_id] = {
             "mean_trust": statistics.mean(trust),

@@ -49,12 +49,11 @@ def find_first_imposter_frame_index(video_frames: list[FrameData]) -> Optional[i
 
 
 def find_lockout_transition(video_frames: list[FrameData], first_imposter_idx: int, fps: int) -> Optional[float]:
-    """Return seconds from imposter segment start until first Unlocked→Locked transition, or None."""
-    if video_frames[first_imposter_idx].predicted_state == 'Locked':
+    """Return seconds from imposter segment start until first authenticated to locked transition, or None."""
+    if not video_frames[first_imposter_idx].is_authenticated:
         return 0.0
     for i in range(first_imposter_idx, len(video_frames) - 1):
-        if (video_frames[i].predicted_state == 'Unlocked' and
-                video_frames[i + 1].predicted_state == 'Locked'):
+        if video_frames[i].is_authenticated and not video_frames[i + 1].is_authenticated:
             lockout_frames = video_frames[i + 1].frame - video_frames[first_imposter_idx].frame
             return lockout_frames / fps
     return None
@@ -72,7 +71,7 @@ def is_eligible_for_imposter_rejection(video_frames: list[FrameData], first_impo
         for frame in video_frames[:first_imposter_idx]
         if frame.segment_type == SegmentType.GENUINE
     )
-    return all(frame.predicted_state == 'Unlocked' for frame in genuine_frames)
+    return all(frame.is_authenticated for frame in genuine_frames)
 
 
 def find_genuine_lockout_transition(video_frames: list[FrameData], fps: int) -> Optional[float]:
@@ -81,8 +80,8 @@ def find_genuine_lockout_transition(video_frames: list[FrameData], fps: int) -> 
         cur, nxt = video_frames[i], video_frames[i + 1]
         if (cur.segment_type == SegmentType.GENUINE and
                 nxt.segment_type == SegmentType.GENUINE and
-                cur.predicted_state == 'Unlocked' and
-                nxt.predicted_state == 'Locked'):
+                cur.is_authenticated and
+                not nxt.is_authenticated):
             return nxt.frame / fps
     return None
 

@@ -526,7 +526,7 @@ def _genuine_lockout_times_for_source(data: EvaluationData, source_name: str) ->
     for frames in frames_by_video.values():
         sorted_frames = sorted(frames, key=lambda frame: frame.frame)
         for current, following in zip(sorted_frames, sorted_frames[1:]):
-            if current.predicted_state == "Unlocked" and following.predicted_state == "Locked":
+            if current.is_authenticated and not following.is_authenticated:
                 lockout_times.append(following.frame / data.fps)
                 break
     return lockout_times

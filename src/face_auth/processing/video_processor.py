@@ -84,7 +84,7 @@ class VideoProcessor:
 
                     similarity_str = f"{auth_result.similarity:.4f}" if auth_result.similarity is not None else "N/A"
                     logger.debug(
-                        f"Frame {frame_index}: Predicted State={auth_result.predicted_state}, "
+                        f"Frame {frame_index}: Is Authenticated={auth_result.is_authenticated}, "
                         f"Similarity={similarity_str}, Trust Score={auth_result.trust:.4f}"
                     )
 

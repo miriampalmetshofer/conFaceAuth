@@ -14,6 +14,19 @@ from evaluation.shared.models import (
 )
 
 
+def parse_bool(value: object) -> bool:
+    """Parse Boolean values from CSV fields."""
+    if isinstance(value, bool):
+        return value
+
+    normalized = str(value).strip().lower()
+    if normalized == "true":
+        return True
+    if normalized == "false":
+        return False
+    raise ValueError(f"Invalid Boolean value: {value}")
+
+
 def load_evaluation_data(csv_path: Path, parse_scenario: bool = False) -> EvaluationData:
     """Load CSV and convert to domain objects."""
     print("Loading data...")
@@ -42,7 +55,7 @@ def load_evaluation_data(csv_path: Path, parse_scenario: bool = False) -> Evalua
 
         frames.append(FrameData(
             frame=row.frame,
-            predicted_state=row.predicted_state,
+            is_authenticated=parse_bool(row.is_authenticated),
             similarity=getattr(row, similarity_field, 0.0),
             trust_score=getattr(row, trust_field, 0.0),
             face_detected=row.face_detected,

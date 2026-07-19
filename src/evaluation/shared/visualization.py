@@ -749,8 +749,8 @@ def plot_state_pie_chart(ax: plt.Axes, data: EvaluationData, segment_type: Segme
     """Plot pie chart for locked/unlocked proportions."""
     frames = [f for f in data.frames if f.segment_type == segment_type]
 
-    unlocked = sum(1 for f in frames if f.predicted_state == 'Unlocked')
-    locked = sum(1 for f in frames if f.predicted_state == 'Locked')
+    unlocked = sum(1 for f in frames if f.is_authenticated)
+    locked = sum(1 for f in frames if not f.is_authenticated)
 
     colors = ['#2ecc71', '#e74c3c']
     ax.pie([unlocked, locked], labels=['Unlocked', 'Locked'], autopct='%1.1f%%',

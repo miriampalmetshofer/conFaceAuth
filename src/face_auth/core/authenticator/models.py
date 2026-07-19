@@ -15,11 +15,6 @@ class AuthenticationResult:
     face_detected: bool
     bounding_box: Optional[BoundingBox] = None
 
-    @property
-    def predicted_state(self) -> str:
-        """Return the display label used in result files."""
-        return "Unlocked" if self.is_authenticated else "Locked"
-
 
 @dataclass
 class SourceFrame:
@@ -40,7 +35,7 @@ class FrameAuthenticationResult:
         """Convert to dictionary format for CSV output."""
         return {
             'frame': self.frame_index,
-            'predicted_state': self.auth_result.predicted_state,
+            'is_authenticated': self.auth_result.is_authenticated,
             'similarity': self.auth_result.similarity,
             'trust_score': self.auth_result.trust,
             'face_detected': self.auth_result.face_detected,
