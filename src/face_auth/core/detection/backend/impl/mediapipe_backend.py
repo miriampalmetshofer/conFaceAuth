@@ -4,7 +4,7 @@ from typing import Optional
 import numpy as np
 import mediapipe as mp
 
-from face_auth.core.detection.models import BoundingBox
+from face_auth.core.detection.models import BoundingBox, DetectionResult
 
 
 class MediaPipeBackend:
@@ -25,10 +25,8 @@ class MediaPipeBackend:
 
         self._detector = FaceDetector.create_from_options(options)
 
-    def detect(self, image_rgb: np.ndarray) -> Optional[BoundingBox]:
-        """Detect the largest face in an RGB image."""
-        h, w = image_rgb.shape[:2]
-
+    def detect(self, image_rgb: np.ndarray) -> Optional[DetectionResult]:
+        """Detect and extract the largest face in an RGB image."""
         mp_image = mp.Image(
             image_format=mp.ImageFormat.SRGB,
             data=image_rgb
@@ -39,7 +37,7 @@ class MediaPipeBackend:
         if not result.detections:
             return None
 
-        best_bbox = None
+        best_bbox: Optional[BoundingBox] = None
         best_area = 0
 
         for detection in result.detections:
@@ -60,4 +58,12 @@ class MediaPipeBackend:
                     height=height,
                 )
 
-        return best_bbox
+        if best_bbox is None:
+            return None
+
+        face_region = image_rgb[
+            best_bbox.y:best_bbox.y + best_bbox.height,
+            best_bbox.x:best_bbox.x + best_bbox.width
+        ]
+
+        return DetectionResult(face_image=face_region, bounding_box=best_bbox)

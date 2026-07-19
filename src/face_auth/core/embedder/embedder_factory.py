@@ -1,6 +1,6 @@
 """Factory for creating face embedder backends."""
 from typing import Dict, Any
-from face_auth.core.detection.face_detector import FaceDetector
+from face_auth.core.detection.detector_factory import create_detector
 from face_auth.core.embedder.backend.embedder_backend import EmbedderBackend
 from face_auth.core.embedder.backend.impl.facenet_backend import FaceNetBackend
 from face_auth.core.embedder.backend.impl.insightface_backend import InsightFaceBackend
@@ -39,9 +39,7 @@ def create_embedder(
     # FaceNet backend uses the detector and requests its own input size.
     if backend_name == "facenet":
         target_size = backend_config.get("target_size", [160, 160])
-        detector = FaceDetector(
-            detector_backend=backend_config.get("detector", "mediapipe")
-        )
+        detector = create_detector(backend_config.get("detector"))
 
         return FaceNetBackend(detector=detector, target_size=tuple(target_size))
 
