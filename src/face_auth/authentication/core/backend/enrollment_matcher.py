@@ -1,7 +1,6 @@
 """Component for matching query embeddings against enrollment set."""
 import numpy as np
 
-from face_auth.authentication.core.backend.percentile_filter import PercentileFilter
 from face_auth.config.logging_config import get_logger
 
 logger = get_logger(__name__)
@@ -22,7 +21,7 @@ class EnrollmentMatcher:
             similarity_percentile: Percentile for filtering enrollment embeddings
         """
         self._enrollment_embeddings = enrollment_embeddings
-        self._percentile_filter = PercentileFilter(similarity_percentile)
+        self.similarity_percentile = similarity_percentile
 
     def compute_similarity(self, embedding: np.ndarray) -> float:
         """Compute percentile-based similarity to the enrollment embeddings.
@@ -36,47 +35,44 @@ class EnrollmentMatcher:
         Returns:
             Percentile value of similarities to enrollment embeddings
         """
-        similarities = self.compute_similarities_to_all(
-            embedding, self._enrollment_embeddings
-        )
+
+        similarities = [
+            float(np.dot(embedding, ref_embedding))
+            for ref_embedding in  self._enrollment_embeddings
+        ]
+
         logger.debug(f"Similarities to enrollment embeddings: {similarities}")
 
-        percentile_similarity = self._percentile_filter.get_percentile(similarities)
+        percentile_similarity = self.get_percentile(similarities, self.similarity_percentile)
         logger.debug(f"Percentile similarity to enrollment embeddings: {percentile_similarity:.4f}")
 
         return percentile_similarity
 
-    def compute(
-            self,
-            embedding: np.ndarray,
-            reference_embedding: np.ndarray
-    ) -> float:
-        """Compute cosine similarity between two embeddings.
+
+    def get_percentile(self, similarities: list[float], similarity_percentile: float) -> float:
+        """Get the percentile value of similarities. Used to reduce the list of
+        similarities to the most relevant ones based on the configured percentile.
 
         Args:
-            embedding: Query embedding vector
-            reference_embedding: Reference embedding vector to compare against
+            similarities: List of similarity values
+            similarity_percentile: Percentile threshold in (0, 1].
+                                 E.g., 0.9 means use top 10% most similar.
 
         Returns:
-            Cosine similarity in range [-1, 1] (higher = more similar)
+            The similarity value at the specified percentile.
+
+        Raises:
+            ValueError: If similarities list is empty
+
         """
-        return float(np.dot(embedding, reference_embedding))
 
-    def compute_similarities_to_all(
-            self,
-            embedding: np.ndarray,
-            reference_embeddings: list[np.ndarray]
-    ) -> list[float]:
-        """Compute similarities from embedding to all reference embeddings.
+        if not 0 < similarity_percentile <= 1.0:
+            raise ValueError(
+                f"Similarity percentile must be in (0, 1], got {similarity_percentile}"
+            )
+        if not similarities:
+            raise ValueError("Cannot compute percentile from empty similarity list")
 
-        Args:
-            embedding: Query embedding vector
-            reference_embeddings: List of reference embeddings
-
-        Returns:
-            List of similarities in same order as reference_embeddings
-        """
-        return [
-            self.compute(embedding, ref_embedding)
-            for ref_embedding in reference_embeddings
-        ]
+        # Return the percentile value directly
+        # E.g., 0.9 percentile = 90th percentile value
+        return float(np.percentile(similarities, self.similarity_percentile * 100))
