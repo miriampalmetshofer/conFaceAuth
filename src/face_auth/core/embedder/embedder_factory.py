@@ -1,6 +1,7 @@
 """Factory for creating face embedder backends."""
 from typing import Dict, Any
-from face_auth.core.detection import FaceDetector, FaceExtractor
+from face_auth.core.detection.face_detector import FaceDetector
+from face_auth.core.detection.face_extractor import FaceExtractor
 from face_auth.core.embedder.backend.embedder_backend import EmbedderBackend
 from face_auth.core.embedder.backend.impl.facenet_backend import FaceNetBackend
 from face_auth.core.embedder.backend.impl.insightface_backend import InsightFaceBackend

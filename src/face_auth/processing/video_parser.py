@@ -4,7 +4,7 @@ from abc import ABC, abstractmethod
 from pathlib import Path
 from datetime import datetime
 
-from face_auth.config import Participant
+from face_auth.config.models import Participant
 from face_auth.processing.models import Video, EnrollmentVideo, Scenario, HeadRotation, ControlledStudyVideo
 
 

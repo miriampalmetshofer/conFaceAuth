@@ -5,7 +5,9 @@ from typing import List
 from face_auth.config.models import ApplicationConfig, ProcessingContext
 from face_auth.config.logging_config import get_logger
 from face_auth.pipeline.pipeline_factory import PipelineFactory
-from face_auth.batch import ProcessingJob, BatchProcessor, ProcessingReporter
+from face_auth.batch.processing_job import ProcessingJob
+from face_auth.batch.batch_processor import BatchProcessor
+from face_auth.batch.processing_reporter import ProcessingReporter
 from face_auth.batch.job_executor import execute_job
 from face_auth.processing.results_file_validator import ResultsFileValidator
 

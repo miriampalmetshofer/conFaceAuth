@@ -1,6 +1,7 @@
 """Factory for creating face detector backend."""
-from face_auth.core.detection.backend import MTCNNBackend, MediaPipeBackend
 from face_auth.core.detection.backend.detector_backend import DetectorBackend
+from face_auth.core.detection.backend.impl.mtcnn_backend import MTCNNBackend
+from face_auth.core.detection.backend.impl.mediapipe_backend import MediaPipeBackend
 
 # Registry of available detector backend
 DETECTOR_REGISTRY = {

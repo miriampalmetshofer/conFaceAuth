@@ -1,7 +1,8 @@
 """Face authentication system entry point."""
 
 import sys
-from face_auth.config import ConfigLoader, setup_logging, get_logger
+from face_auth.config.loader import ConfigLoader
+from face_auth.config.logging_config import setup_logging, get_logger
 from face_auth.application import FaceAuthApplication
 
 

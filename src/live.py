@@ -14,7 +14,7 @@ import argparse
 
 from face_auth.core.embedder.embedder import Embedder
 from face_auth.core.authenticator.frame_authenticator import FrameAuthenticator
-from face_auth.core.authenticator.temporal_logic.backend import (
+from face_auth.core.authenticator.temporal_logic.backend.authenticator_factory import (
     create_authenticator,
     AuthenticatorBackendType
 )

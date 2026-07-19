@@ -6,10 +6,6 @@ from face_auth.core.authenticator.temporal_logic.backend.authenticator_backend i
 from face_auth.core.authenticator.temporal_logic.backend.impl.temporal_decay.models import TemporalDecayConfig
 from face_auth.core.authenticator.temporal_logic.backend.enrollment_matcher import EnrollmentMatcher
 from face_auth.config.logging_config import get_logger
-from face_auth.core.authenticator.temporal_logic.backend.impl import (
-    weight_function,
-    decay_function
-)
 
 logger = get_logger(__name__)
 

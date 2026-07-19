@@ -5,8 +5,7 @@ from enum import Enum
 from pathlib import Path
 from typing import List, Optional
 
-from face_auth.config import Participant
-from face_auth.config.models import Scenario, HeadRotation
+from face_auth.config.models import Participant, Scenario, HeadRotation
 from face_auth.imposter_video_creation.iterators.frame_iterator import FrameIterator
 
 VIDEO_EXTENSIONS = ("mp4", "MP4")

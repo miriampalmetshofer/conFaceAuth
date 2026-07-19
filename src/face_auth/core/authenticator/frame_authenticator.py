@@ -10,7 +10,7 @@ from face_auth.core.authenticator.models import (
     AuthenticationStatus,
     FrameAuthenticationInput,
 )
-from face_auth.core.authenticator.temporal_logic.backend import AuthenticatorBackend
+from face_auth.core.authenticator.temporal_logic.backend.authenticator_backend import AuthenticatorBackend
 from face_auth.core.embedder.embedder import Embedder
 from face_auth.core.embedder.models import EmbeddingResult
 

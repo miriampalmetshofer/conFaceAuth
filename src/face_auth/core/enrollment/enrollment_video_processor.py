@@ -2,7 +2,7 @@ from collections import defaultdict
 from pathlib import Path
 from typing import Any
 
-from face_auth.core.enrollment.backend import EnrollmentBackend
+from face_auth.core.enrollment.backend.enrollment_backend import EnrollmentBackend
 from face_auth.core.enrollment.enrollment_frame_saver import EnrollmentFrameSaver
 from face_auth.core.enrollment.models import (
     EnrollmentFrames,

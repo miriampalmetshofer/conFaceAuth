@@ -4,17 +4,17 @@ from pathlib import Path
 
 from face_auth.config.models import AuthenticationConfig
 from face_auth.core.authenticator.frame_authenticator import FrameAuthenticator
-from face_auth.core.authenticator.temporal_logic.backend import AuthenticatorBackend
-from face_auth.core.authenticator.temporal_logic.backend import (
+from face_auth.core.authenticator.temporal_logic.backend.authenticator_backend import AuthenticatorBackend
+from face_auth.core.authenticator.temporal_logic.backend.authenticator_factory import (
     create_authenticator,
     AuthenticatorBackendType
 )
-from face_auth.core.authenticator.temporal_logic.backend import (
+from face_auth.core.authenticator.temporal_logic.backend.config_converter import (
     convert_trust_based_config,
     convert_temporal_decay_config
 )
 from face_auth.core.embedder.embedder import Embedder
-from face_auth.processing import VideoProcessor
+from face_auth.processing.video_processor import VideoProcessor
 from face_auth.processing.models import ComposedVideo
 from face_auth.services.models import EnrollmentData, VideoResult
 from face_auth.core.embedder.embedding_cache import EmbeddingCache

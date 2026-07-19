@@ -3,22 +3,23 @@
 from face_auth.config.models import ApplicationConfig, Pool
 from face_auth.core.embedder.embedder import Embedder
 from face_auth.imposter_video_creation.matching.matching_strategy_factory import create_matching_strategy
-from face_auth.processing import VideoParser, ControlledStudyParser
-from face_auth.processing.video_parser import InTheWildStudyParser
+from face_auth.processing.video_parser import (
+    ControlledStudyParser,
+    InTheWildStudyParser,
+    VideoParser,
+)
 from face_auth.services.enrollment_service import EnrollmentService
 from face_auth.services.video_processing_service import VideoProcessingService
 from face_auth.services.imposter_video_creation_service import ImposterVideoCreationService
 from face_auth.services.video_validation_service import VideoValidationService
 from face_auth.services.results_service import ResultsService
 from face_auth.core.embedder.embedding_cache import EmbeddingCache
-from face_auth.pipeline.stages import (
-    VideoDiscoveryStage,
-    VideoMatchingStage,
-    ImposterVideoCreationStage,
-    EnrollmentStage,
-    VideoProcessingStage,
-    ResultsPersistenceStage
-)
+from face_auth.pipeline.stages.video_discovery_stage import VideoDiscoveryStage
+from face_auth.pipeline.stages.video_matching_stage import VideoMatchingStage
+from face_auth.pipeline.stages.imposter_video_creation_stage import ImposterVideoCreationStage
+from face_auth.pipeline.stages.enrollment_stage import EnrollmentStage
+from face_auth.pipeline.stages.video_processing_stage import VideoProcessingStage
+from face_auth.pipeline.stages.results_persistance_stage import ResultsPersistenceStage
 
 
 class PipelineFactory:

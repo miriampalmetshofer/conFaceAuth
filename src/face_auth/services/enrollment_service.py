@@ -6,15 +6,13 @@ from typing import List
 
 from face_auth.config.models import EnrollmentConfig, PathsConfig, ProcessingContext, EnrollmentVideoPreference
 from face_auth.core.embedder.embedder import Embedder
-from face_auth.processing import VideoDiscovery
-from face_auth.processing import EnrollmentVideoParser
-from face_auth.processing import EnrollmentVideo
-from face_auth.core.enrollment.backend import create_enrollment_backend
-from face_auth.core.enrollment import (
-    EnrollmentVideoProcessor,
-    EnrollmentFrameSaver
-)
-from face_auth.core.enrollment import EnrollmentLoader
+from face_auth.processing.video_discovery import VideoDiscovery
+from face_auth.processing.video_parser import EnrollmentVideoParser
+from face_auth.processing.models import EnrollmentVideo
+from face_auth.core.enrollment.backend.factory import create_enrollment_backend
+from face_auth.core.enrollment.enrollment_video_processor import EnrollmentVideoProcessor
+from face_auth.core.enrollment.enrollment_frame_saver import EnrollmentFrameSaver
+from face_auth.core.enrollment.enrollment_loader import EnrollmentLoader
 from face_auth.services.models import EnrollmentData
 from face_auth.config.logging_config import get_logger
 

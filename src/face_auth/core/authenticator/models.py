@@ -6,7 +6,7 @@ from typing import Any, Dict, Optional
 
 import numpy as np
 
-from face_auth.core.detection import BoundingBox
+from face_auth.core.detection.models import BoundingBox
 
 
 class AuthenticationStatus(Enum):
