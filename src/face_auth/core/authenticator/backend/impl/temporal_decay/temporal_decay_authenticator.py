@@ -2,9 +2,9 @@
 from typing import Optional
 import numpy as np
 
-from face_auth.core.authenticator.temporal_logic.backend.authenticator_backend import AuthenticatorBackend
-from face_auth.core.authenticator.temporal_logic.backend.impl.temporal_decay.models import TemporalDecayConfig
-from face_auth.core.authenticator.temporal_logic.backend.enrollment_matcher import EnrollmentMatcher
+from face_auth.core.authenticator.backend.authenticator_backend import AuthenticatorBackend
+from face_auth.core.authenticator.backend.impl.temporal_decay.models import TemporalDecayConfig
+from face_auth.core.authenticator.backend.enrollment_matcher import EnrollmentMatcher
 from face_auth.config.logging_config import get_logger
 
 logger = get_logger(__name__)

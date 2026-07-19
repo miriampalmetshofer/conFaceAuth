@@ -3,12 +3,12 @@
 from pathlib import Path
 
 from face_auth.config.models import AuthenticationConfig
-from face_auth.core.authenticator.temporal_logic.backend.authenticator_backend import AuthenticatorBackend
-from face_auth.core.authenticator.temporal_logic.backend.authenticator_factory import (
+from face_auth.core.authenticator.backend.authenticator_backend import AuthenticatorBackend
+from face_auth.core.authenticator.backend.authenticator_factory import (
     create_authenticator,
     AuthenticatorBackendType
 )
-from face_auth.core.authenticator.temporal_logic.backend.config_converter import (
+from face_auth.core.authenticator.backend.config_converter import (
     convert_trust_based_config,
     convert_temporal_decay_config
 )

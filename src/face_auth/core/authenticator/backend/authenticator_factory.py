@@ -3,9 +3,9 @@ from enum import Enum
 from typing import Union
 import numpy as np
 
-from face_auth.core.authenticator.temporal_logic.backend.authenticator_backend import AuthenticatorBackend
-from face_auth.core.authenticator.temporal_logic.backend.impl.trust_based.models import TrustBasedConfig
-from face_auth.core.authenticator.temporal_logic.backend.impl.temporal_decay.models import TemporalDecayConfig
+from face_auth.core.authenticator.backend.authenticator_backend import AuthenticatorBackend
+from face_auth.core.authenticator.backend.impl.trust_based.models import TrustBasedConfig
+from face_auth.core.authenticator.backend.impl.temporal_decay.models import TemporalDecayConfig
 
 
 class AuthenticatorBackendType(Enum):
@@ -33,12 +33,12 @@ def create_authenticator(
         ValueError: If backend_type is not supported
     """
     if backend_type == AuthenticatorBackendType.TRUST_BASED:
-        from face_auth.core.authenticator.temporal_logic.backend.impl.trust_based.trust_based_authenticator import (
+        from face_auth.core.authenticator.backend.impl.trust_based.trust_based_authenticator import (
             RiskBasedAuthenticator
         )
         return RiskBasedAuthenticator(config, enrollment_embeddings)
     elif backend_type == AuthenticatorBackendType.TEMPORAL_DECAY:
-        from face_auth.core.authenticator.temporal_logic.backend.impl.temporal_decay.temporal_decay_authenticator import (
+        from face_auth.core.authenticator.backend.impl.temporal_decay.temporal_decay_authenticator import (
             TemporalDecayAuthenticator
         )
         return TemporalDecayAuthenticator(config, enrollment_embeddings)

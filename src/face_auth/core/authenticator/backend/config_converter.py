@@ -1,7 +1,7 @@
 """Converts pydantic config models to backend dataclass configs."""
 from face_auth.config.models import TrustBasedConfigModel, TemporalDecayConfigModel
-from face_auth.core.authenticator.temporal_logic.backend.impl.trust_based.models import TrustBasedConfig
-from face_auth.core.authenticator.temporal_logic.backend.impl.temporal_decay.models import TemporalDecayConfig
+from face_auth.core.authenticator.backend.impl.trust_based.models import TrustBasedConfig
+from face_auth.core.authenticator.backend.impl.temporal_decay.models import TemporalDecayConfig
 
 
 def convert_trust_based_config(model: TrustBasedConfigModel) -> TrustBasedConfig:

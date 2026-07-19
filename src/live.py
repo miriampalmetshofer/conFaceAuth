@@ -15,11 +15,11 @@ import time
 
 from face_auth.core.authenticator.models import AuthenticationResult
 from face_auth.core.embedder.embedder import Embedder
-from face_auth.core.authenticator.temporal_logic.backend.authenticator_factory import (
+from face_auth.core.authenticator.backend.authenticator_factory import (
     create_authenticator,
     AuthenticatorBackendType
 )
-from face_auth.core.authenticator.temporal_logic.backend.impl.temporal_decay.models import TemporalDecayConfig
+from face_auth.core.authenticator.backend.impl.temporal_decay.models import TemporalDecayConfig
 
 
 logging.basicConfig(
