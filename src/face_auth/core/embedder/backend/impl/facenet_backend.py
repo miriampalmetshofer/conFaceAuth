@@ -1,9 +1,9 @@
 """FaceNet embedder backend."""
+from typing import Tuple
 import numpy as np
 import cv2
 from keras_facenet import FaceNet
 from face_auth.core.detection.face_detector import FaceDetector
-from face_auth.core.detection.face_extractor import FaceExtractor
 from face_auth.core.embedder.backend.embedder_backend import EmbedderBackend
 from face_auth.core.embedder.models import EmbeddingResult
 
@@ -11,18 +11,16 @@ from face_auth.core.embedder.models import EmbeddingResult
 class FaceNetBackend(EmbedderBackend):
     """Face embedder using FaceNet model with integrated face detection."""
 
-    def __init__(self, detector: FaceDetector, extractor: FaceExtractor):
+    def __init__(self, detector: FaceDetector, target_size: Tuple[int, int]):
         """Initialize FaceNet model with face detection components.
 
         Args:
             detector: Face detector instance
-            extractor: Face extractor instance
+            target_size: Width and height requested for FaceNet input
         """
         self._detector = detector
-        self._extractor = extractor
+        self._target_size = target_size
         self._model = FaceNet()
-        # FaceNet expects 160x160 input
-        self._target_size = (160, 160)
 
     def get_embedding(self, frame_rgb: np.ndarray) -> EmbeddingResult:
         """Generate embedding vector using FaceNet.
@@ -37,19 +35,12 @@ class FaceNetBackend(EmbedderBackend):
         frame_bgr = cv2.cvtColor(frame_rgb, cv2.COLOR_RGB2BGR)
 
         # Detect and extract face
-        detection_result = self._extractor.detect_and_extract(frame_bgr, self._detector)
+        detection_result = self._detector.detect(frame_bgr)
 
         if detection_result is None:
             return EmbeddingResult.no_face()
 
-        # Crop face region using detection bbox
-        face_region = frame_rgb[
-            detection_result.bounding_box.y:detection_result.bounding_box.y + detection_result.bounding_box.height,
-            detection_result.bounding_box.x:detection_result.bounding_box.x + detection_result.bounding_box.width
-        ]
-
-        # Resize to FaceNet input size
-        face_resized = cv2.resize(face_region, self._target_size)
+        face_resized = cv2.resize(detection_result.face_image, self._target_size)
 
         # Generate embedding
         embeddings = self._model.embeddings([face_resized])

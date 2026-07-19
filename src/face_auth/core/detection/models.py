@@ -15,5 +15,5 @@ class BoundingBox:
 @dataclass(frozen=True)
 class DetectionResult:
     """Result of face detection and extraction."""
-    face_image: np.ndarray  # RGB format, preprocessed to target dimensions
+    face_image: np.ndarray  # Cropped face region in RGB format
     bounding_box: BoundingBox

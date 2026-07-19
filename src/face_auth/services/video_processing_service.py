@@ -8,10 +8,6 @@ from face_auth.core.authenticator.backend.authenticator_factory import (
     create_authenticator,
     AuthenticatorBackendType
 )
-from face_auth.core.authenticator.backend.config_converter import (
-    convert_trust_based_config,
-    convert_temporal_decay_config
-)
 from face_auth.core.embedder.embedder import Embedder
 from face_auth.processing.video_processor import VideoProcessor
 from face_auth.processing.models import ComposedVideo
@@ -98,17 +94,9 @@ class VideoProcessingService:
 
     def _create_authenticator(self, enrollment_data: EnrollmentData) -> AuthenticatorBackend:
         """Create authenticator backend instance."""
-        # Determine backend type and config
         backend_type = AuthenticatorBackendType(self.config.backend)
+        backend_config = self.config.to_backend_config()
 
-        if backend_type == AuthenticatorBackendType.TRUST_BASED:
-            backend_config = convert_trust_based_config(self.config.trust_based)
-        elif backend_type == AuthenticatorBackendType.TEMPORAL_DECAY:
-            backend_config = convert_temporal_decay_config(self.config.temporal_decay)
-        else:
-            raise ValueError(f"Unsupported backend type: {backend_type}")
-
-        # Create and return backend directly
         return create_authenticator(
             backend_type=backend_type,
             config=backend_config,
