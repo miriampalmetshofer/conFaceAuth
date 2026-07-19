@@ -8,7 +8,7 @@ from face_auth.core.authenticator.backend.authenticator_factory import (
     create_authenticator,
     AuthenticatorBackendType
 )
-from face_auth.core.embedder.embedder import Embedder
+from face_auth.core.embedder.backend.embedder_backend import EmbedderBackend
 from face_auth.processing.video_processor import VideoProcessor
 from face_auth.processing.models import ComposedVideo
 from face_auth.services.models import EnrollmentData, VideoResult
@@ -24,7 +24,7 @@ class VideoProcessingService:
     def __init__(
         self,
         config: AuthenticationConfig,
-        embedder: Embedder,
+        embedder: EmbedderBackend,
         embedding_cache: EmbeddingCache
     ):
         """Initialize video processing service.

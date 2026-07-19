@@ -14,7 +14,7 @@ import argparse
 import time
 
 from face_auth.core.authenticator.models import AuthenticationResult
-from face_auth.core.embedder.embedder import Embedder
+from face_auth.core.embedder.embedder_factory import create_embedder
 from face_auth.core.authenticator.backend.authenticator_factory import (
     create_authenticator,
     AuthenticatorBackendType
@@ -46,9 +46,9 @@ class LiveFaceAuth:
         self.config = self._load_config(str(config_path))
 
         logger.info("Initializing InsightFace embedder...")
-        self.embedder = Embedder(
-            model_name=self.config["embedder"]["model"],
-            model_config=self.config["embedder"]["config"]
+        self.embedder = create_embedder(
+            backend_name=self.config["embedder"]["model"],
+            backend_config=self.config["embedder"]["config"]
         )
 
         # Initialize InsightFace app directly for bbox extraction

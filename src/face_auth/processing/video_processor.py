@@ -9,7 +9,7 @@ from face_auth.core.authenticator.models import (
     SourceFrame,
 )
 from face_auth.core.authenticator.backend.authenticator_backend import AuthenticatorBackend
-from face_auth.core.embedder.embedder import Embedder
+from face_auth.core.embedder.backend.embedder_backend import EmbedderBackend
 from face_auth.core.embedder.embedding_cache import EmbeddingCache
 from face_auth.core.embedder.models import EmbeddingResult
 from face_auth.imposter_video_creation.iterators.frame_iterator import FrameIterator
@@ -24,7 +24,7 @@ class VideoProcessor:
 
     def __init__(
         self,
-        embedder: Embedder,
+        embedder: EmbedderBackend,
         authenticator: AuthenticatorBackend,
         fps: int,
         debug_output_folder: Path,

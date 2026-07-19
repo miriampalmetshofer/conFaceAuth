@@ -3,7 +3,7 @@ import numpy as np
 from pathlib import Path
 
 from face_auth.config.logging_config import get_logger
-from face_auth.core.embedder.embedder import Embedder
+from face_auth.core.embedder.backend.embedder_backend import EmbedderBackend
 
 logger = get_logger(__name__)
 
@@ -11,11 +11,11 @@ logger = get_logger(__name__)
 class EnrollmentLoader:
     """Loads enrollment images from disc and computes their embeddings."""
 
-    def __init__(self, embedder: Embedder):
+    def __init__(self, embedder: EmbedderBackend):
         """Initialize embedding loader.
 
         Args:
-            embedder: Embedder instance for generating embeddings
+            embedder: Backend for generating embeddings
         """
         self.embedder = embedder
 

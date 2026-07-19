@@ -15,8 +15,8 @@ from face_auth.config.logging_config import get_logger
 logger = get_logger(__name__)
 
 
-class Embedder(Protocol):
-    """Interface for embedder implementations used by the cache."""
+class EmbeddingProvider(Protocol):
+    """Interface for embedding providers used by the cache."""
 
     def get_embedding(self, frame_rgb: np.ndarray) -> EmbeddingResult:
         """Generate an embedding result for an RGB frame."""
@@ -32,7 +32,7 @@ class EmbeddingCache:
     def __init__(
         self,
         cache_dir: Path,
-        embedder: Embedder,
+        embedder: EmbeddingProvider,
         embedder_model: str,
         embedder_config: Dict[str, Any],
     ):
@@ -40,7 +40,7 @@ class EmbeddingCache:
 
         Args:
             cache_dir: Directory where cache files are stored
-            embedder: Embedder used for cache misses
+            embedder: Embedding provider used for cache misses
             embedder_model: Configured embedder model name
             embedder_config: Configured embedder model parameters
         """

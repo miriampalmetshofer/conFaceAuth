@@ -1,7 +1,8 @@
 """Factory for creating pipeline stages."""
 
 from face_auth.config.models import ApplicationConfig, Pool
-from face_auth.core.embedder.embedder import Embedder
+from face_auth.core.embedder.backend.embedder_backend import EmbedderBackend
+from face_auth.core.embedder.embedder_factory import create_embedder
 from face_auth.imposter_video_creation.matching.matching_strategy_factory import create_matching_strategy
 from face_auth.processing.video_parser import (
     ControlledStudyParser,
@@ -31,12 +32,12 @@ class PipelineFactory:
         self._embedder = None
         self._embedding_cache = None
 
-    def _create_embedder(self) -> Embedder:
+    def _create_embedder(self) -> EmbedderBackend:
         """Create embedder instance (cached)."""
         if self._embedder is None:
-            self._embedder = Embedder(
-                model_name=self.config.models.embedder.model,
-                model_config=self.config.models.embedder.config
+            self._embedder = create_embedder(
+                backend_name=self.config.models.embedder.model,
+                backend_config=self.config.models.embedder.config
             )
         return self._embedder
 

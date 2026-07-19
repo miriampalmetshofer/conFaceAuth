@@ -5,7 +5,7 @@ import shutil
 from typing import List
 
 from face_auth.config.models import EnrollmentConfig, PathsConfig, ProcessingContext, EnrollmentVideoPreference
-from face_auth.core.embedder.embedder import Embedder
+from face_auth.core.embedder.backend.embedder_backend import EmbedderBackend
 from face_auth.processing.video_discovery import VideoDiscovery
 from face_auth.processing.video_parser import EnrollmentVideoParser
 from face_auth.processing.models import EnrollmentVideo
@@ -31,7 +31,7 @@ class EnrollmentService:
         self,
         config: EnrollmentConfig,
         paths_config: PathsConfig,
-        embedder: Embedder
+        embedder: EmbedderBackend
     ):
         """Initialize enrollment service.
 
