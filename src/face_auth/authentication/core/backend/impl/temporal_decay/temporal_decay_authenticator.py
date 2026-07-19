@@ -4,9 +4,12 @@ import numpy as np
 
 from face_auth.authentication.core.backend.authenticator_backend import AuthenticatorBackend
 from face_auth.authentication.core.backend.impl.temporal_decay.models import TemporalDecayConfig
-from face_auth.authentication.core.backend.impl.temporal_decay.trust_scorer import TrustScorer
 from face_auth.authentication.core.backend.enrollment_matcher import EnrollmentMatcher
 from face_auth.config.logging_config import get_logger
+from face_auth.authentication.core.backend.impl.temporal_decay.time_functions import (
+    weight_function,
+    decay_function
+)
 
 logger = get_logger(__name__)
 
@@ -31,22 +34,11 @@ class TemporalDecayAuthenticator(AuthenticatorBackend):
             enrollment_embeddings,
             config.similarity_percentile
         )
-        self._trust_scorer = TrustScorer(config.k_weight, config.k_decay)
-
+        self.k_weight = config.k_weight
+        self.k_decay = config.k_decay
         self._current_trust: float = config.initial_confidence
         self._last_timestamp_ms: Optional[float] = None
         self._last_similarity: Optional[float] = None
-
-    def _compute_similarity_to_enrollment(self, embedding: np.ndarray) -> float:
-        """Compute similarity from embedding to enrollment set.
-
-        Args:
-            embedding: Query embedding to compare
-
-        Returns:
-            Percentile-based similarity to enrollment embeddings
-        """
-        return self._enrollment_matcher.compute_similarity(embedding)
 
     def _get_delta_t_milliseconds(self, current_timestamp_ms: float) -> float:
         """Calculate elapsed time since last observation.
@@ -63,21 +55,21 @@ class TemporalDecayAuthenticator(AuthenticatorBackend):
         return current_timestamp_ms - self._last_timestamp_ms
 
     def update_with_embedding(self, embedding: np.ndarray, timestamp_ms: float) -> None:
-        """Update internal state with face embedding.
+        """Calculate new trust score when face is detected.
+
+        Xt = (Xt-1 · fwei) + (Zt · (1 - fwei))
 
         Args:
             embedding: Face embedding vector
             timestamp_ms: Video timestamp in milliseconds
         """
-        similarity = self._compute_similarity_to_enrollment(embedding)
+        similarity = self._enrollment_matcher.compute_similarity(embedding)
         self._last_similarity = similarity
 
         delta_t = self._get_delta_t_milliseconds(timestamp_ms)
-        self._current_trust = self._trust_scorer.compute_with_face(
-            self._current_trust,
-            similarity,
-            delta_t
-        )
+
+        weight = weight_function(delta_t, self.k_weight)
+        self._current_trust = (self._current_trust * weight) + (similarity * (1 - weight))
         self._last_timestamp_ms = timestamp_ms
 
         logger.debug(
@@ -86,16 +78,17 @@ class TemporalDecayAuthenticator(AuthenticatorBackend):
         )
 
     def update_with_no_face(self, timestamp_ms: float) -> None:
-        """Update internal state when no face was detected.
+        """Calculate new trust score when no face detected.
+
+              Xt = Xt-1 · fdec
 
         Args:
             timestamp_ms: Video timestamp in milliseconds
         """
         delta_t = self._get_delta_t_milliseconds(timestamp_ms)
-        self._current_trust = self._trust_scorer.compute_with_no_face(
-            self._current_trust,
-            delta_t
-        )
+        decay = decay_function(delta_t, self.k_decay)
+
+        self._current_trust =  self._current_trust * decay
         self._last_timestamp_ms = timestamp_ms
 
         logger.debug(
