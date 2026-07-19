@@ -18,7 +18,7 @@ class TrustScorer:
     def compute_trust_score(self, similarity_window: Sequence[float]) -> float:
         """Compute exponentially-weighted average of similarities.
 
-        More recent similarities receive higher weight based on alpha parameter.
+
 
         Args:
             similarity_window: Sequence of similarity values (oldest to newest)
@@ -29,8 +29,4 @@ class TrustScorer:
         Raises:
             ValueError: If similarity_window is empty
         """
-        if not similarity_window:
-            raise ValueError("Cannot compute trsut score from empty window")
 
-        weights = np.exp(np.linspace(-self.alpha, 0, len(similarity_window)))
-        return float(np.average(similarity_window, weights=weights))

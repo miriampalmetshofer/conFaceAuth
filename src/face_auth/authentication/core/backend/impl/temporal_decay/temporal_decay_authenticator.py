@@ -68,7 +68,7 @@ class TemporalDecayAuthenticator(AuthenticatorBackend):
 
         delta_t = self._get_delta_t_milliseconds(timestamp_ms)
 
-        weight = weight_function(delta_t, self.k_weight)
+        weight = float(np.exp(-delta_t / self.k_weight))
         self._current_trust = (self._current_trust * weight) + (similarity * (1 - weight))
         self._last_timestamp_ms = timestamp_ms
 
@@ -86,7 +86,7 @@ class TemporalDecayAuthenticator(AuthenticatorBackend):
             timestamp_ms: Video timestamp in milliseconds
         """
         delta_t = self._get_delta_t_milliseconds(timestamp_ms)
-        decay = decay_function(delta_t, self.k_decay)
+        decay = float(np.exp(-delta_t / self.k_decay))
 
         self._current_trust =  self._current_trust * decay
         self._last_timestamp_ms = timestamp_ms

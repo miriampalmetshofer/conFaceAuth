@@ -34,22 +34,11 @@ class RiskBasedAuthenticator(AuthenticatorBackend):
         )
         self._similarity_window = TemporalWindow[float](config.window_size)
         self._trust_scorer = TrustScorer(config.alpha)
-
+        self.alpha = config.alpha
         self._current_trust_score: Optional[float] = None
         self._last_similarity: Optional[float] = None
 
-    def _compute_similarity_to_enrollment(self, embedding: np.ndarray) -> float:
-        """Compute similarity from embedding to enrollment set.
-
-        Args:
-            embedding: Query embedding to compare
-
-        Returns:
-            Percentile-based similarity to enrollment embeddings
-        """
-        return self._enrollment_matcher.compute_similarity(embedding)
-
-    def _update_state(self, similarity: float) -> None:
+    def _update_score(self, similarity: float) -> None:
         """Update risk score with similarity value.
 
         Args:
@@ -57,9 +46,14 @@ class RiskBasedAuthenticator(AuthenticatorBackend):
         """
         self._last_similarity = similarity
         self._similarity_window.append(similarity)
-        self._current_trust_score = self._trust_scorer.compute_trust_score(
-            self._similarity_window.get_values()
-        )
+
+        if not self._similarity_window:
+            raise ValueError("Cannot compute trust score from empty window")
+
+        # More recent similarities receive higher weight based on alpha parameter.
+        weights = np.exp(np.linspace(-self.alpha, 0, len(self._similarity_window.get_values())))
+        self.current_trust_score = float(np.average(self._similarity_window.get_values(), weights=weights))
+
         logger.debug(f"Updated trust_score: {self._current_trust_score:.4f}")
 
     def update_with_embedding(self, embedding: np.ndarray, timestamp_ms: float) -> None:
@@ -69,8 +63,8 @@ class RiskBasedAuthenticator(AuthenticatorBackend):
             embedding: Face embedding vector
             timestamp_ms: Video timestamp in milliseconds (unused for risk-based)
         """
-        similarity = self._compute_similarity_to_enrollment(embedding)
-        self._update_state(similarity)
+        similarity = self._enrollment_matcher.compute_similarity(embedding)
+        self._update_score(similarity)
 
     def update_with_no_face(self, timestamp_ms: float) -> None:
         """Update internal state when no face was detected.
@@ -78,7 +72,7 @@ class RiskBasedAuthenticator(AuthenticatorBackend):
         Args:
             timestamp_ms: Video timestamp in milliseconds (unused for risk-based)
         """
-        self._update_state(self.config.no_face_penalty)
+        self._update_score(self.config.no_face_penalty)
 
     def is_authenticated(self) -> bool:
         """Check if current risk score indicates user is authenticated.
