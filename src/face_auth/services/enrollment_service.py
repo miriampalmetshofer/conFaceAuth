@@ -5,16 +5,16 @@ import shutil
 from typing import List
 
 from face_auth.config.models import EnrollmentConfig, PathsConfig, ProcessingContext, EnrollmentVideoPreference
-from face_auth.authentication.embedder.embedder import Embedder
+from face_auth.core.embedder.embedder import Embedder
 from face_auth.processing import VideoDiscovery
 from face_auth.processing import EnrollmentVideoParser
 from face_auth.processing import EnrollmentVideo
-from face_auth.authentication.enrollment.backend import create_enrollment_backend
-from face_auth.authentication.enrollment import (
+from face_auth.core.enrollment.backend import create_enrollment_backend
+from face_auth.core.enrollment import (
     EnrollmentVideoProcessor,
     EnrollmentFrameSaver
 )
-from face_auth.authentication.enrollment import EnrollmentLoader
+from face_auth.core.enrollment import EnrollmentLoader
 from face_auth.services.models import EnrollmentData
 from face_auth.config.logging_config import get_logger
 

@@ -3,9 +3,9 @@ from typing import List
 import cv2
 from pathlib import Path
 
-from face_auth.authentication.core import FrameAuthenticationResult
-from face_auth.authentication.core.models import FrameAuthenticationInput, SourceFrame
-from face_auth.authentication.core.frame_authenticator import FrameAuthenticator
+from face_auth.core.authenticator import FrameAuthenticationResult
+from face_auth.core.authenticator.models import FrameAuthenticationInput, SourceFrame
+from face_auth.core.authenticator.frame_authenticator import FrameAuthenticator
 from face_auth.imposter_video_creation.iterators.frame_iterator import FrameIterator
 from face_auth.processing.debug_frame_saver import DebugFrameSaver
 from face_auth.config.logging_config import get_logger

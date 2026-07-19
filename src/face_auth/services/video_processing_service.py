@@ -1,25 +1,23 @@
 """Video processing service for authentication pipeline."""
 
 from pathlib import Path
-from typing import List
 
 from face_auth.config.models import AuthenticationConfig
-from face_auth.authentication.core.frame_authenticator import FrameAuthenticator
-from face_auth.authentication.core.backend.authenticator_backend import AuthenticatorBackend
-from face_auth.authentication.core.backend.authenticator_factory import (
+from face_auth.core.authenticator.frame_authenticator import FrameAuthenticator
+from face_auth.core.authenticator.temporal_logic.backend import AuthenticatorBackend
+from face_auth.core.authenticator.temporal_logic.backend import (
     create_authenticator,
     AuthenticatorBackendType
 )
-from face_auth.authentication.core.backend.config_converter import (
+from face_auth.core.authenticator.temporal_logic.backend import (
     convert_trust_based_config,
     convert_temporal_decay_config
 )
-from face_auth.authentication.embedder.embedder import Embedder
+from face_auth.core.embedder.embedder import Embedder
 from face_auth.processing import VideoProcessor
-from face_auth.authentication.core import FrameAuthenticationResult
 from face_auth.processing.models import ComposedVideo
 from face_auth.services.models import EnrollmentData, VideoResult
-from face_auth.authentication.embedder.embedding_cache import EmbeddingCache
+from face_auth.core.embedder.embedding_cache import EmbeddingCache
 from face_auth.config.logging_config import get_logger
 
 logger = get_logger(__name__)

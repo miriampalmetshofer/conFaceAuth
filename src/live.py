@@ -12,13 +12,13 @@ import cv2
 import logging
 import argparse
 
-from face_auth.authentication.embedder.embedder import Embedder
-from face_auth.authentication.core.frame_authenticator import FrameAuthenticator
-from face_auth.authentication.core.backend.authenticator_factory import (
+from face_auth.core.embedder.embedder import Embedder
+from face_auth.core.authenticator.frame_authenticator import FrameAuthenticator
+from face_auth.core.authenticator.temporal_logic.backend import (
     create_authenticator,
     AuthenticatorBackendType
 )
-from face_auth.authentication.core.backend.impl.temporal_decay.models import TemporalDecayConfig
+from face_auth.core.authenticator.temporal_logic.backend.impl.temporal_decay.models import TemporalDecayConfig
 
 
 logging.basicConfig(

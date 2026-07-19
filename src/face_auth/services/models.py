@@ -6,7 +6,7 @@ from typing import List
 import numpy as np
 
 from face_auth.processing import Video
-from face_auth.authentication.core.models import FrameAuthenticationResult
+from face_auth.core.authenticator.models import FrameAuthenticationResult
 
 
 @dataclass

@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import List
 from face_auth.config.logging_config import get_logger
 from face_auth.config.models import ProcessingContext, ApplicationConfig
-from face_auth.authentication.core.models import FrameAuthenticationResult
+from face_auth.core.authenticator.models import FrameAuthenticationResult
 
 logger = get_logger(__name__)
 
