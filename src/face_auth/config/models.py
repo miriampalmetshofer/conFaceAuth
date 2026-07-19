@@ -1,11 +1,14 @@
 """Configuration domain models."""
 
 from pathlib import Path
-from typing import List, Optional
+from typing import List, Optional, Union
 from enum import Enum
 import logging
 
 from pydantic import BaseModel, Field, field_validator, ConfigDict
+
+from face_auth.core.authenticator.backend.impl.temporal_decay.models import TemporalDecayConfig
+from face_auth.core.authenticator.backend.impl.trust_based.models import TrustBasedConfig
 
 '''
   - ge = greater than or equal to (>=)
@@ -63,6 +66,16 @@ class TrustBasedConfigModel(BaseModel):
 
     model_config = ConfigDict(frozen=True)
 
+    def to_backend_config(self) -> TrustBasedConfig:
+        """Convert to the backend-specific authentication config."""
+        return TrustBasedConfig(
+            threshold=self.threshold,
+            window_size=self.window_size,
+            similarity_percentile=self.similarity_percentile,
+            alpha=self.alpha,
+            no_face_penalty=self.no_face_penalty,
+        )
+
 
 class TemporalDecayConfigModel(BaseModel):
     """Configuration for temporal decay authentication using time-weighted confidence."""
@@ -73,6 +86,16 @@ class TemporalDecayConfigModel(BaseModel):
     initial_confidence: float = Field(..., ge=-1.0, le=1.0)
 
     model_config = ConfigDict(frozen=True)
+
+    def to_backend_config(self) -> TemporalDecayConfig:
+        """Convert to the backend-specific authentication config."""
+        return TemporalDecayConfig(
+            threshold=self.threshold,
+            similarity_percentile=self.similarity_percentile,
+            k_weight=self.k_weight,
+            k_decay=self.k_decay,
+            initial_confidence=self.initial_confidence,
+        )
 
 
 class AuthenticationConfig(BaseModel):
@@ -87,10 +110,20 @@ class AuthenticationConfig(BaseModel):
 
     def model_post_init(self, __context) -> None:
         """Validate that correct config is provided for selected backend."""
+        if self.backend not in {"trust_based", "temporal_decay"}:
+            raise ValueError("authentication backend must be one of: trust_based, temporal_decay")
         if self.backend == "trust_based" and self.trust_based is None:
             raise ValueError("trust_based configuration required when backend='trust_based'")
         if self.backend == "temporal_decay" and self.temporal_decay is None:
             raise ValueError("temporal_decay configuration required when backend='temporal_decay'")
+
+    def to_backend_config(self) -> Union[TrustBasedConfig, TemporalDecayConfig]:
+        """Return the configured authenticator backend settings."""
+        if self.backend == "trust_based":
+            return self.trust_based.to_backend_config()
+        if self.backend == "temporal_decay":
+            return self.temporal_decay.to_backend_config()
+        raise ValueError(f"Unsupported authentication backend: {self.backend}")
 
 
 class EnrollmentVideoPreference(BaseModel):
