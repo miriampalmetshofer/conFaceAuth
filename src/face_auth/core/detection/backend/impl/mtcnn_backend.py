@@ -3,15 +3,20 @@ from typing import Optional
 import numpy as np
 from mtcnn import MTCNN
 
+from face_auth.core.detection.backend.detector_backend import DetectorBackend
 from face_auth.core.detection.models import BoundingBox, DetectionResult
 
 
-class MTCNNBackend:
+class MTCNNBackend(DetectorBackend):
     """Face detector using MTCNN."""
 
     def __init__(self):
         """Initialize MTCNN detector."""
         self._detector = MTCNN()
+
+    def get_backend_name(self) -> str:
+        """Return the detector backend name used in configuration."""
+        return "mtcnn"
 
     def detect(self, image_rgb: np.ndarray) -> Optional[DetectionResult]:
         """Detect and extract the largest face in an RGB image.

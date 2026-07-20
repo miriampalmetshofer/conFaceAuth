@@ -4,10 +4,11 @@ from typing import Optional
 import numpy as np
 import mediapipe as mp
 
+from face_auth.core.detection.backend.detector_backend import DetectorBackend
 from face_auth.core.detection.models import BoundingBox, DetectionResult
 
 
-class MediaPipeBackend:
+class MediaPipeBackend(DetectorBackend):
     """Face detector using MediaPipe FaceDetector (BlazeFace)."""
 
     def __init__(self, model_path: str = "src/face_auth/core/detection/backend/impl/blaze_face_short_range.tflite"):
@@ -24,6 +25,10 @@ class MediaPipeBackend:
         )
 
         self._detector = FaceDetector.create_from_options(options)
+
+    def get_backend_name(self) -> str:
+        """Return the detector backend name used in configuration."""
+        return "mediapipe"
 
     def detect(self, image_rgb: np.ndarray) -> Optional[DetectionResult]:
         """Detect and extract the largest face in an RGB image."""

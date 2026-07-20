@@ -13,6 +13,11 @@
     "embedder": {
       "model": "insightface",
       "config": {
+        "model_name": "buffalo_sc",
+        "det_size": [
+          640,
+          640
+        ],
         "min_detection_confidence": 0.6
       }
     }

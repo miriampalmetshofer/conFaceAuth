@@ -246,8 +246,8 @@ Example configuration structure:
 - `paths.base_path`: Directory containing study videos
 - `paths.enrollment_base_path`: Directory containing enrollment data
 - `paths.results_file`: Output CSV path (supports `{base_path}` placeholder)
-- `models.detector`: Face detector (`"mediapipe"` or `"mtcnn"`) - **Note: unused when `embedder.model` is `"insightface"` (current default), as InsightFace has built-in detection. Only used with `"facenet"` embedder.**
-- `models.embedder.model`: Embedding model (`"insightface"` or `"facenet"`)
+- `models.detector`: Face detector (`"mediapipe"` or `"mtcnn"`). This is only used with `"facenet"` because FaceNet needs a separate detector. It is ignored when `embedder.model` is `"insightface"` because InsightFace performs detection internally.
+- `models.embedder.model`: Embedding provider (`"insightface"` or `"facenet"`)
 - `models.embedder.config`: Model-specific configuration (e.g., detection confidence threshold)
 - `processing.skip_frames`: Process every Nth frame (30 = 1 frame per second at 30 FPS)
 - `processing.matching_strategy.type`: Video pairing strategy (`"scenario"` matches same scenarios)
@@ -300,8 +300,8 @@ The evaluation module analyzes authentication results from `results.csv` and gen
 
 **Face Detection:**
 - MTCNN: ~2.2 MB (optional, only if using FaceNet embedder)
-- MediaPipe BlazeFace: 224 KB (required for batch processing with default config)
-- InsightFace RetinaFace (det_10g): 16 MB (included in buffalo models, used by live.py)
+- MediaPipe BlazeFace: 224 KB (optional, only if using FaceNet with the MediaPipe detector)
+- InsightFace detector: included in the selected InsightFace model pack
 
 **Face Recognition (Embeddings):**
 - FaceNet: ~90 MB (Inception-ResNet, optional)
@@ -314,5 +314,5 @@ The evaluation module analyzes authentication results from `results.csv` and gen
 
 **Typical Configurations:**
 - **live.py (default):** InsightFace buffalo_sc (~20 MB total) - all models download automatically
-- **main.py (default):** InsightFace buffalo_sc + MediaPipe BlazeFace (~21 MB total) - BlazeFace requires manual download
+- **main.py (default):** InsightFace buffalo_sc (~20 MB total) - no separate detector model required
 - **With FaceNet:** FaceNet + MTCNN (~92 MB total) - all models download automatically

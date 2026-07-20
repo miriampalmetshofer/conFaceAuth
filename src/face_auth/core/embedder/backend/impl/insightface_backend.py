@@ -1,4 +1,6 @@
 """InsightFace (ArcFace) embedder backend."""
+from typing import Any, Dict, Tuple
+
 import numpy as np
 import cv2
 import logging
@@ -10,7 +12,12 @@ from face_auth.core.embedder.models import EmbeddingResult
 class InsightFaceBackend(EmbedderBackend):
     """Face embedder using InsightFace ArcFace model with integrated detection."""
 
-    def __init__(self, model_name: str = 'buffalo_sc', det_size: tuple = (640, 640), min_detection_confidence: float = 0.5):
+    def __init__(
+        self,
+        model_name: str,
+        det_size: Tuple[int, int],
+        min_detection_confidence: float,
+    ):
         """Initialize InsightFace model.
 
         Args:
@@ -20,10 +27,8 @@ class InsightFaceBackend(EmbedderBackend):
                                'buffalo_sc' (smallest/fastest)
             det_size: Detection size for the model (width, height)
                      Larger = more accurate but slower
-                     Default: (640, 640)
             min_detection_confidence: Minimum detection confidence threshold (0-1)
                                      Faces with confidence below this are treated as "no face"
-                                     Default: 0.5
         """
         logging.getLogger('onnxruntime').setLevel(logging.ERROR)
 
@@ -47,7 +52,10 @@ class InsightFaceBackend(EmbedderBackend):
         )
         self._app.prepare(ctx_id=-1, det_size=det_size)
 
-    def get_embedding(self, frame_rgb: np.ndarray) -> EmbeddingResult:
+    def get_embedding(
+        self,
+        frame_rgb: np.ndarray,
+    ) -> EmbeddingResult:
         """Generate embedding vector using InsightFace.
 
         Args:
@@ -88,3 +96,14 @@ class InsightFaceBackend(EmbedderBackend):
         if norm > 0:
             embedding = embedding / norm
         return embedding
+
+    def get_config(self) -> Dict[str, Any]:
+        """Return a JSON-serializable description of this embedder configuration."""
+        return {
+            "backend": "insightface",
+            "config": {
+                "model_name": self.model_name,
+                "det_size": list(self.det_size),
+                "min_detection_confidence": self.min_detection_confidence,
+            },
+        }

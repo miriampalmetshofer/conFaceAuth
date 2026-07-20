@@ -1,5 +1,6 @@
 """FaceNet embedder backend."""
-from typing import Tuple
+from typing import Any, Dict, Tuple
+
 import numpy as np
 import cv2
 from keras_facenet import FaceNet
@@ -11,7 +12,11 @@ from face_auth.core.embedder.models import EmbeddingResult
 class FaceNetBackend(EmbedderBackend):
     """Face embedder using FaceNet model with integrated face detection."""
 
-    def __init__(self, detector: DetectorBackend, target_size: Tuple[int, int]):
+    def __init__(
+        self,
+        detector: DetectorBackend,
+        target_size: Tuple[int, int],
+    ):
         """Initialize FaceNet model with face detection components.
 
         Args:
@@ -22,7 +27,10 @@ class FaceNetBackend(EmbedderBackend):
         self._target_size = target_size
         self._model = FaceNet()
 
-    def get_embedding(self, frame_rgb: np.ndarray) -> EmbeddingResult:
+    def get_embedding(
+        self,
+        frame_rgb: np.ndarray,
+    ) -> EmbeddingResult:
         """Generate embedding vector using FaceNet.
 
         Args:
@@ -40,3 +48,13 @@ class FaceNetBackend(EmbedderBackend):
 
         embeddings = self._model.embeddings([face_resized])
         return EmbeddingResult.success(embeddings[0])
+
+    def get_config(self) -> Dict[str, Any]:
+        """Return a JSON-serializable description of this embedder configuration."""
+        return {
+            "backend": "facenet",
+            "config": {
+                "detector": self._detector.get_backend_name(),
+                "target_size": list(self._target_size),
+            },
+        }

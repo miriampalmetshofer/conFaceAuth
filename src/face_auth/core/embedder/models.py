@@ -1,4 +1,4 @@
-"""Data models for face authentication core components."""
+"""Data models for face embedding components."""
 from dataclasses import dataclass
 from typing import Optional
 
@@ -6,7 +6,12 @@ import numpy as np
 
 @dataclass
 class EmbeddingResult:
-    """Result of embedding generation, explicitly handling no-face cases."""
+    """Frame-level face embedding result.
+
+    A no-face result means the embedding provider did not produce an embedding,
+    either because its internal detector found no face or because its delegated
+    detector found no face.
+    """
     embedding: Optional[np.ndarray]
     face_detected: bool
 

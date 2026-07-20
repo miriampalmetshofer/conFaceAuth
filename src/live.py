@@ -4,6 +4,8 @@
 import sys
 from pathlib import Path
 
+from face_auth.processing.frame_authenticator import FrameAuthenticator
+
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root / "src"))
 
@@ -13,7 +15,6 @@ import logging
 import argparse
 import time
 
-from face_auth.core.authenticator.models import AuthenticationResult
 from face_auth.core.embedder.embedder_factory import create_embedder
 from face_auth.core.authenticator.backend.authenticator_factory import (
     create_authenticator,
@@ -48,21 +49,24 @@ class LiveFaceAuth:
         logger.info("Initializing InsightFace embedder...")
         self.embedder = create_embedder(
             backend_name=self.config["embedder"]["model"],
-            backend_config=self.config["embedder"]["config"]
+            backend_config=self.config["embedder"]["config"],
+            cache_enabled=False,
+            cache_dir=None,
         )
 
         # Initialize InsightFace app directly for bbox extraction
         from insightface.app import FaceAnalysis
         embedder_config = self.config["embedder"]["config"]
         self.face_app = FaceAnalysis(
-            name=embedder_config.get("model_name", "buffalo_sc"),
+            name=embedder_config["model_name"],
             providers=['CPUExecutionProvider']
         )
-        det_size = tuple(embedder_config.get("det_size", [640, 640]))
+        det_size = tuple(embedder_config["det_size"])
         self.face_app.prepare(ctx_id=-1, det_size=det_size)
 
         self.enrollment_embeddings = None
         self.authenticator = None
+        self.video_processor = None
         self.authenticator_start_time = None
 
     def _load_config(self, config_path: str) -> dict:
@@ -140,12 +144,16 @@ class LiveFaceAuth:
         )
 
         self.authenticator = authenticator_backend
+        self.video_processor = FrameAuthenticator(
+            embedder=self.embedder,
+            authenticator=authenticator_backend,
+        )
         self.authenticator_start_time = None
         logger.info("Authenticator initialized")
 
     def run_live_authentication(self):
         """Run live authentication using webcam."""
-        if self.authenticator is None:
+        if self.video_processor is None:
             raise RuntimeError("Must process enrollment video first!")
 
         camera_index = self.config.get("camera_index")
@@ -215,30 +223,13 @@ class LiveFaceAuth:
 
     def _authenticate_frame(self, frame_bgr):
         """Authenticate one live camera frame."""
-        frame_rgb = cv2.cvtColor(frame_bgr, cv2.COLOR_BGR2RGB)
+        if self.video_processor is None:
+            raise RuntimeError("Must process enrollment video first!")
+
         timestamp_ms = self._get_timestamp_ms()
-        embedding_result = self.embedder.get_embedding(frame_rgb)
-
-        if not embedding_result.face_detected:
-            self.authenticator.update_with_no_face(timestamp_ms)
-            return AuthenticationResult(
-                is_authenticated=self.authenticator.is_authenticated(),
-                similarity=None,
-                trust=self.authenticator.get_score(),
-                face_detected=False,
-                bounding_box=None
-            )
-
-        if embedding_result.embedding is None:
-            raise ValueError("Face was detected but no embedding was returned")
-
-        self.authenticator.update_with_embedding(embedding_result.embedding, timestamp_ms)
-        return AuthenticationResult(
-            is_authenticated=self.authenticator.is_authenticated(),
-            similarity=self.authenticator.get_last_similarity(),
-            trust=self.authenticator.get_score(),
-            face_detected=True,
-            bounding_box=None
+        return self.video_processor.authenticate_frame_bgr(
+            frame_bgr=frame_bgr,
+            timestamp_ms=timestamp_ms,
         )
 
     def _get_timestamp_ms(self):

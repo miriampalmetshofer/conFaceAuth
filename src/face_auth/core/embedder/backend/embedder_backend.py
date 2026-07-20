@@ -1,5 +1,7 @@
 """Face embedder backend interface."""
 from abc import ABC, abstractmethod
+from typing import Any, Dict
+
 import numpy as np
 
 from face_auth.core.embedder.models import EmbeddingResult
@@ -12,7 +14,10 @@ class EmbedderBackend(ABC):
     """
 
     @abstractmethod
-    def get_embedding(self, frame_rgb: np.ndarray) -> EmbeddingResult:
+    def get_embedding(
+        self,
+        frame_rgb: np.ndarray,
+    ) -> EmbeddingResult:
         """Generate embedding vector from a frame.
 
         Args:
@@ -21,4 +26,9 @@ class EmbedderBackend(ABC):
         Returns:
             EmbeddingResult with embedding vector and face detection status
         """
+        pass
+
+    @abstractmethod
+    def get_config(self) -> Dict[str, Any]:
+        """Return a JSON-serializable description of this embedder configuration."""
         pass

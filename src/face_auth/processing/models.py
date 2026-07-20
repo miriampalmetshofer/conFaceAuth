@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import List, Optional
 
 from face_auth.config.models import Participant, Scenario, HeadRotation
+from face_auth.core.authenticator.models import AuthenticationResult
 from face_auth.imposter_video_creation.iterators.frame_iterator import FrameIterator
 
 VIDEO_EXTENSIONS = ("mp4", "MP4")
@@ -48,3 +49,22 @@ class ImposterSamplePair:
 class ComposedVideo(Video):
     """Virtual video composed from multiple frame iterators without physical file."""
     iterators: List['FrameIterator']
+
+
+@dataclass
+class FrameAuthenticationResult:
+    """Frame-level authentication result with processing metadata."""
+    auth_result: AuthenticationResult
+    frame_index: int
+    source_type: str
+
+    def to_dict(self) -> dict:
+        """Convert to dictionary format for CSV output."""
+        return {
+            'frame': self.frame_index,
+            'is_authenticated': self.auth_result.is_authenticated,
+            'similarity': self.auth_result.similarity,
+            'trust_score': self.auth_result.trust,
+            'face_detected': self.auth_result.face_detected,
+            'source_type': self.source_type
+        }

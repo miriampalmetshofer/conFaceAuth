@@ -174,7 +174,7 @@ class EmbedderConfig(BaseModel):
     """Configuration for embedder model and parameters."""
 
     model: str = Field(..., min_length=1, description="Embedder model name (facenet, arcface, insightface)")
-    config: dict = Field(default_factory=dict, description="Model-specific configuration parameters")
+    config: dict = Field(..., description="Model-specific configuration parameters")
 
     model_config = ConfigDict(frozen=True)
 

@@ -1,13 +1,20 @@
 """Face detector backend interface."""
-from typing import Protocol, Optional
+from abc import ABC, abstractmethod
+from typing import Optional
 import numpy as np
 
 from face_auth.core.detection.models import DetectionResult
 
 
-class DetectorBackend(Protocol):
+class DetectorBackend(ABC):
     """Interface that all face detector backend must implement."""
 
+    @abstractmethod
+    def get_backend_name(self) -> str:
+        """Return the detector backend name used in configuration."""
+        pass
+
+    @abstractmethod
     def detect(self, image_rgb: np.ndarray) -> Optional[DetectionResult]:
         """Detect and extract the largest face in an RGB image.
 
@@ -18,4 +25,4 @@ class DetectorBackend(Protocol):
             DetectionResult with extracted face and bounding box,
             or None if no face found
         """
-        ...
+        pass

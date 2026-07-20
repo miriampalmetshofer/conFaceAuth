@@ -2,7 +2,7 @@
 
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Any, Dict, Iterator, Optional
+from typing import Iterator, Optional
 import numpy as np
 from face_auth.config.logging_config import get_logger
 
@@ -32,11 +32,3 @@ class FrameIterator(ABC):
     def video_path(self) -> Optional[Path]:
         """Return the video path if this iterator reads from a file, None otherwise."""
         pass
-
-    def get_source_frame_index(self, iterator_offset: int) -> Optional[int]:
-        """Return the zero-based source frame index for an iterator offset."""
-        return None
-
-    def get_embedding_cache_metadata(self) -> Dict[str, Any]:
-        """Return source metadata that affects the pixels sent to the embedder."""
-        return {}

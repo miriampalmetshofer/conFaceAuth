@@ -14,7 +14,6 @@ from face_auth.services.video_processing_service import VideoProcessingService
 from face_auth.services.imposter_video_creation_service import ImposterVideoCreationService
 from face_auth.services.video_validation_service import VideoValidationService
 from face_auth.services.results_service import ResultsService
-from face_auth.core.embedder.embedding_cache import EmbeddingCache
 from face_auth.pipeline.stages.video_discovery_stage import VideoDiscoveryStage
 from face_auth.pipeline.stages.video_matching_stage import VideoMatchingStage
 from face_auth.pipeline.stages.imposter_video_creation_stage import ImposterVideoCreationStage
@@ -30,14 +29,15 @@ class PipelineFactory:
         self.config = config
         # Cache shared dependencies
         self._embedder = None
-        self._embedding_cache = None
 
     def _create_embedder(self) -> EmbedderBackend:
         """Create embedder instance (cached)."""
         if self._embedder is None:
             self._embedder = create_embedder(
                 backend_name=self.config.models.embedder.model,
-                backend_config=self.config.models.embedder.config
+                backend_config=self.config.models.embedder.config,
+                cache_enabled=True,
+                cache_dir=self.config.paths.base_path / "embedding_cache",
             )
         return self._embedder
 
@@ -54,19 +54,7 @@ class PipelineFactory:
         return VideoProcessingService(
             config=self.config.authentication,
             embedder=self._create_embedder(),
-            embedding_cache=self._create_embedding_cache()
         )
-
-    def _create_embedding_cache(self) -> EmbeddingCache:
-        """Create persistent source-frame embedding cache."""
-        if self._embedding_cache is None:
-            self._embedding_cache = EmbeddingCache(
-                cache_dir=self.config.paths.base_path / "embedding_cache",
-                embedder=self._create_embedder(),
-                embedder_model=self.config.models.embedder.model,
-                embedder_config=self.config.models.embedder.config,
-            )
-        return self._embedding_cache
 
     def _create_imposter_creation_service(self) -> ImposterVideoCreationService:
         """Create imposter video creation service."""
