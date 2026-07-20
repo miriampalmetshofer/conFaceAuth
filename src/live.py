@@ -185,11 +185,9 @@ class LiveFaceAuth:
                 # Flip frame horizontally for mirror effect
                 frame = cv2.flip(frame, 1)
 
-                # Authenticate frame
-                auth_result = self._authenticate_frame(frame)
-
-                # Get bounding box using InsightFace directly
+                # Convert once for authentication and InsightFace bbox extraction
                 frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                auth_result = self._authenticate_frame(frame_rgb)
                 faces = self.face_app.get(frame_rgb)
 
                 # Draw overlays
@@ -221,14 +219,14 @@ class LiveFaceAuth:
         height = bbox[3] - bbox[1]
         return width * height
 
-    def _authenticate_frame(self, frame_bgr):
+    def _authenticate_frame(self, frame_rgb):
         """Authenticate one live camera frame."""
         if self.video_processor is None:
             raise RuntimeError("Must process enrollment video first!")
 
         timestamp_ms = self._get_timestamp_ms()
-        return self.video_processor.authenticate_frame_bgr(
-            frame_bgr=frame_bgr,
+        return self.video_processor.authenticate_frame(
+            frame_rgb=frame_rgb,
             timestamp_ms=timestamp_ms,
         )
 

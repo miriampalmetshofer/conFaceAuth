@@ -1,5 +1,4 @@
 """Runs authentication on individual video frames and returns the authentication result."""
-import cv2
 import numpy as np
 
 from face_auth.core.authenticator.backend.authenticator_backend import AuthenticatorBackend
@@ -25,16 +24,7 @@ class FrameAuthenticator:
         self.embedder = embedder
         self.authenticator = authenticator
 
-    def authenticate_frame_bgr(
-        self,
-        frame_bgr: np.ndarray,
-        timestamp_ms: float,
-    ) -> AuthenticationResult:
-        """Authenticate a BGR frame."""
-        frame_rgb = cv2.cvtColor(frame_bgr, cv2.COLOR_BGR2RGB)
-        return self.authenticate_frame_rgb(frame_rgb, timestamp_ms)
-
-    def authenticate_frame_rgb(
+    def authenticate_frame(
         self,
         frame_rgb: np.ndarray,
         timestamp_ms: float,
