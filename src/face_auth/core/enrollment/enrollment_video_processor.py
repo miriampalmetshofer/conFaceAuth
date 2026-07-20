@@ -57,5 +57,5 @@ class EnrollmentVideoProcessor:
     ) -> dict[HeadDirection, list[Any]]:
         grouped = defaultdict(list)
         for selection in selections:
-            grouped[selection.assigned_direction].append(selection.image_bgr)
+            grouped[selection.assigned_direction].append(selection.image_rgb)
         return dict(grouped)

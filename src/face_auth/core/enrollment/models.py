@@ -3,6 +3,8 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Any
 
+from face_auth.core.models import Frame
+
 
 class HeadDirection(Enum):
     FRONT = "front"
@@ -26,18 +28,9 @@ class HeadPose:
 
 
 @dataclass(frozen=True)
-class ExtractedFrame:
-    """Video frame sampled from one enrollment recording."""
-    image_bgr: Any
-    source_video_stem: str
-    frame_index: int
-    sample_index: int
-
-
-@dataclass(frozen=True)
 class EnrollmentCandidate:
     """Frame with a valid head pose estimate."""
-    extracted_frame: ExtractedFrame
+    frame: Frame
     pose: HeadPose
     detected_direction: HeadDirection
 
@@ -52,14 +45,14 @@ class SelectionReason(Enum):
 @dataclass(frozen=True)
 class SelectedEnrollmentFrame:
     """Frame selected for the final enrollment set."""
-    extracted_frame: ExtractedFrame
+    frame: Frame
     assigned_direction: HeadDirection
     reason: SelectionReason
 
     @property
-    def image_bgr(self) -> Any:
-        """Return the selected BGR image."""
-        return self.extracted_frame.image_bgr
+    def image_rgb(self) -> Any:
+        """Return the selected RGB image."""
+        return self.frame.image
 
 
 @dataclass

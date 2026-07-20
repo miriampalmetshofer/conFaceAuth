@@ -4,6 +4,7 @@
 import sys
 from pathlib import Path
 
+from face_auth.core.models import Frame
 from face_auth.processing.frame_authenticator import FrameAuthenticator
 
 project_root = Path(__file__).parent.parent
@@ -225,9 +226,11 @@ class LiveFaceAuth:
             raise RuntimeError("Must process enrollment video first!")
 
         timestamp_ms = self._get_timestamp_ms()
-        return self.video_processor.authenticate_frame(
-            frame_rgb=frame_rgb,
-            timestamp_ms=timestamp_ms,
+        return self.video_processor.update_authentication_with_new_evidence(
+            frame=Frame(
+                image=frame_rgb,
+                timestamp_ms=timestamp_ms,
+            ),
         )
 
     def _get_timestamp_ms(self):

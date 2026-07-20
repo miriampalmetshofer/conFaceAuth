@@ -26,14 +26,15 @@ class EnrollmentFrameSaver:
         for selection in selections:
             direction = selection.assigned_direction
             counters[direction] += 1
+            source_name = selection.frame.source_name or "frame"
 
             filename = (
-                f"{selection.extracted_frame.source_video_stem}_"
+                f"{source_name}_"
                 f"{direction.value}_"
-                f"{selection.reason.value}_"
                 f"{counters[direction] - 1:03d}.jpg"
             )
             output_path = output_folder / filename
-            cv2.imwrite(str(output_path), selection.image_bgr)
+            image_bgr = cv2.cvtColor(selection.image_rgb, cv2.COLOR_RGB2BGR)
+            cv2.imwrite(str(output_path), image_bgr)
 
         logger.info(f"Saved {len(selections)} enrollment frames to {output_folder}")

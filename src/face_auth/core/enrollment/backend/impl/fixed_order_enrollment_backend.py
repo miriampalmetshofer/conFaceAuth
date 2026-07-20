@@ -7,13 +7,12 @@ import numpy as np
 
 from face_auth.core.enrollment.backend.enrollment_backend import EnrollmentBackend
 from face_auth.core.enrollment.models import (
-    ExtractedFrame,
     HeadDirection,
     SelectedEnrollmentFrame,
-    SelectionReason,
 )
 from face_auth.core.enrollment.helper.video_frame_extractor import VideoFrameExtractor
 from face_auth.config.models import HeadRotation
+from face_auth.core.models import Frame
 from face_auth.config.logging_config import get_logger
 from face_auth.processing.models import EnrollmentVideo
 
@@ -63,19 +62,18 @@ class FixedOrderEnrollmentBackend(EnrollmentBackend):
         all_selections = []
 
         for video in enrollment_videos:
-            extracted_frames = self.frame_extractor.extract_frames(video.path)
-            fps, frame_count = self._get_video_properties(video.path)
+            frames = self.frame_extractor.extract_frames(video.path)
+            video_duration_ms = self._get_video_duration_ms(video.path)
 
             logger.info(
                 f"Selecting frames from {video.path.name} ({video.head_rotation.value})"
             )
 
             video_selections = self._select_from_video(
-                extracted_frames=extracted_frames,
+                frames=frames,
                 head_rotation=video.head_rotation,
                 frames_per_direction=frames_per_direction_per_video,
-                fps=fps,
-                frame_count=frame_count,
+                video_duration_ms=video_duration_ms,
             )
             all_selections.extend(video_selections)
 
@@ -83,31 +81,28 @@ class FixedOrderEnrollmentBackend(EnrollmentBackend):
 
     def _select_from_video(
         self,
-        extracted_frames: list[ExtractedFrame],
+        frames: list[Frame],
         head_rotation: HeadRotation,
         frames_per_direction: int,
-        fps: float,
-        frame_count: int,
+        video_duration_ms: float,
     ) -> list[SelectedEnrollmentFrame]:
         """Select a fixed number of frames for each direction from one video."""
         selections = []
 
         for direction, progress in self._get_direction_progress_mapping(head_rotation):
-            frames = self._select_frames_for_direction(
-                extracted_frames=extracted_frames,
+            selected_frames = self._select_frames_for_direction(
+                frames=frames,
                 direction=direction,
                 target_progress=progress,
                 frames_per_direction=frames_per_direction,
-                fps=fps,
-                frame_count=frame_count,
+                video_duration_ms=video_duration_ms,
             )
             selections.extend(
                 SelectedEnrollmentFrame(
-                    extracted_frame=frame,
+                    frame=frame,
                     assigned_direction=direction,
-                    reason=SelectionReason.FIXED_ORDER,
                 )
-                for frame in frames
+                for frame in selected_frames
             )
 
         self._log_summary(selections, head_rotation)
@@ -131,46 +126,43 @@ class FixedOrderEnrollmentBackend(EnrollmentBackend):
 
     def _select_frames_for_direction(
         self,
-        extracted_frames: list[ExtractedFrame],
+        frames: list[Frame],
         direction: HeadDirection,
         target_progress: float,
         frames_per_direction: int,
-        fps: float,
-        frame_count: int,
-    ) -> list[ExtractedFrame]:
+        video_duration_ms: float,
+    ) -> list[Frame]:
         """Select frames for a single direction from a time window."""
-        # For frontal direction, sample from first window_seconds to avoid negative indices
         if direction == HeadDirection.FRONT:
-            max_frame = round(self.window_seconds * fps)
+            max_timestamp_ms = self.window_seconds * 1000
             window_frames = [
-                frame for frame in extracted_frames
-                if frame.frame_index <= max_frame
+                frame for frame in frames
+                if frame.timestamp_ms <= max_timestamp_ms
             ]
         else:
-            # For circular directions, use centered window around target frame
-            target_frame_index = round(target_progress * (frame_count - 1))
-            window_radius = round(self.window_seconds * fps / 2)
+            target_timestamp_ms = target_progress * video_duration_ms
+            window_radius_ms = self.window_seconds * 1000 / 2
             window_frames = [
-                frame for frame in extracted_frames
-                if abs(frame.frame_index - target_frame_index) <= window_radius
+                frame for frame in frames
+                if abs(frame.timestamp_ms - target_timestamp_ms) <= window_radius_ms
             ]
 
-        sorted_frames = sorted(window_frames, key=lambda f: f.frame_index)
+        sorted_frames = sorted(window_frames, key=lambda f: f.timestamp_ms)
         return self._select_evenly_spaced_frames(sorted_frames, frames_per_direction)
 
     def _select_evenly_spaced_frames(
         self,
-        frames: list[ExtractedFrame],
+        frames: list[Frame],
         count: int,
-    ) -> list[ExtractedFrame]:
+    ) -> list[Frame]:
         """Select a specified number of evenly spaced frames from the given list."""
         if not frames:
             return []
         indices = np.linspace(0, len(frames) - 1, count)
         return [frames[round(idx)] for idx in indices]
 
-    def _get_video_properties(self, video_path: Path) -> tuple[float, int]:
-        """Extract FPS and frame count from video file."""
+    def _get_video_duration_ms(self, video_path: Path) -> float:
+        """Extract video duration from a video file."""
         video = cv2.VideoCapture(str(video_path))
         if not video.isOpened():
             raise IOError(f"Could not open video {video_path}")
@@ -178,7 +170,9 @@ class FixedOrderEnrollmentBackend(EnrollmentBackend):
         try:
             fps = video.get(cv2.CAP_PROP_FPS)
             frame_count = int(video.get(cv2.CAP_PROP_FRAME_COUNT))
-            return fps, frame_count
+            if fps <= 0:
+                raise ValueError(f"Could not determine FPS for video {video_path}")
+            return (frame_count / fps) * 1000
         finally:
             video.release()
 

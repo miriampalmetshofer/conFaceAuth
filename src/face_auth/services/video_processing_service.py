@@ -11,12 +11,12 @@ from face_auth.core.authenticator.backend.authenticator_factory import (
     create_authenticator,
     AuthenticatorBackendType
 )
-from face_auth.core.authenticator.models import FrameAuthenticationResult
 from face_auth.core.embedder.backend.embedder_backend import EmbedderBackend
 from face_auth.imposter_video_creation.iterators.frame_iterator import FrameIterator
 from face_auth.processing.debug_frame_saver import DebugFrameSaver
 from face_auth.processing.frame_authenticator import FrameAuthenticator
-from face_auth.processing.models import ComposedVideo
+from face_auth.core.models import Frame
+from face_auth.processing.models import ComposedVideo, FrameAuthenticationResult
 from face_auth.services.models import EnrollmentData, VideoResult
 from face_auth.config.logging_config import get_logger
 
@@ -110,9 +110,11 @@ class VideoProcessingService:
             try:
                 if frame_index == 1 or frame_index % skip_frames == 0:
                     frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-                    auth_result = frame_authenticator.authenticate_frame(
-                        frame_rgb=frame_rgb,
-                        timestamp_ms=self._get_timestamp_ms(frame_index),
+                    auth_result = frame_authenticator.update_authentication_with_new_evidence(
+                        Frame(
+                            image=frame_rgb,
+                            timestamp_ms=self._get_timestamp_ms(frame_index),
+                        ),
                     )
 
                     if not auth_result.face_detected:

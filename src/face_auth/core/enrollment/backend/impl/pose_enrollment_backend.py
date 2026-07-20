@@ -1,7 +1,6 @@
 """Pose-estimation enrollment backend."""
 from collections import Counter, defaultdict
 
-import cv2
 import numpy as np
 
 from face_auth.core.enrollment.backend.enrollment_backend import EnrollmentBackend
@@ -11,7 +10,6 @@ from face_auth.core.enrollment.models import (
     HeadDirection,
     HeadPose,
     SelectedEnrollmentFrame,
-    SelectionReason,
 )
 from face_auth.core.enrollment.helper.video_frame_extractor import VideoFrameExtractor
 from face_auth.config.logging_config import get_logger
@@ -80,22 +78,21 @@ class PoseEnrollmentBackend(EnrollmentBackend):
         candidates = []
 
         for video in enrollment_videos:
-            extracted_frames = self.frame_extractor.extract_frames(video.path)
+            frames = self.frame_extractor.extract_frames(video.path)
             logger.info(
-                f"Estimating head pose for {len(extracted_frames)} extracted frames "
+                f"Estimating head pose for {len(frames)} extracted frames "
                 f"from {video.path.name}"
             )
 
-            for extracted_frame in extracted_frames:
-                frame_rgb = cv2.cvtColor(extracted_frame.image_bgr, cv2.COLOR_BGR2RGB)
-                pose = self.pose_estimator.estimate_pose(frame_rgb)
+            for frame in frames:
+                pose = self.pose_estimator.estimate_pose(frame.image)
                 if pose is None:
                     continue
 
                 detected_direction = self._classify(pose)
                 candidates.append(
                     EnrollmentCandidate(
-                        extracted_frame=extracted_frame,
+                        frame=frame,
                         pose=pose,
                         detected_direction=detected_direction,
                     )
@@ -147,9 +144,8 @@ class PoseEnrollmentBackend(EnrollmentBackend):
             )
             selected.extend(
                 SelectedEnrollmentFrame(
-                    extracted_frame=candidate.extracted_frame,
+                    frame=candidate.frame,
                     assigned_direction=direction,
-                    reason=SelectionReason.DIRECT_MATCH,
                 )
                 for candidate in chosen
             )
@@ -162,10 +158,10 @@ class PoseEnrollmentBackend(EnrollmentBackend):
         selected: list[SelectedEnrollmentFrame],
         quota_per_direction: int,
     ) -> list[SelectedEnrollmentFrame]:
-        selected_ids = {id(selection.extracted_frame) for selection in selected}
+        selected_ids = {id(selection.frame) for selection in selected}
         unused_candidates = [
             candidate for candidate in candidates
-            if id(candidate.extracted_frame) not in selected_ids
+            if id(candidate.frame) not in selected_ids
         ]
 
         while True:
@@ -188,9 +184,8 @@ class PoseEnrollmentBackend(EnrollmentBackend):
 
             selected.append(
                 SelectedEnrollmentFrame(
-                    extracted_frame=candidate.extracted_frame,
+                    frame=candidate.frame,
                     assigned_direction=direction,
-                    reason=SelectionReason.CLOSEST_POSE_FILL,
                 )
             )
             unused_candidates = [
@@ -233,17 +228,9 @@ class PoseEnrollmentBackend(EnrollmentBackend):
         total_target: int,
     ) -> None:
         counts = Counter(selection.assigned_direction for selection in selected)
-        fill_counts = Counter(
-            selection.assigned_direction
-            for selection in selected
-            if selection.reason == SelectionReason.CLOSEST_POSE_FILL
-        )
 
         logger.info(
             f"Selected {len(selected)} enrollment frames out of target {total_target}"
         )
         for direction in self.directions:
-            logger.info(
-                f"  {direction.value}: {counts[direction]} frames "
-                f"({fill_counts[direction]} closest-pose fill-up)"
-            )
+            logger.info(f"  {direction.value}: {counts[direction]} frames")
