@@ -1,7 +1,7 @@
 from pathlib import Path
 
 from face_auth.processing.models import Video, VIDEO_EXTENSIONS
-from face_auth.processing.video_parser import VideoParser
+from face_auth.processing.video_parser.parser import VideoParser
 from face_auth.config.logging_config import get_logger
 
 logger = get_logger(__name__)
@@ -20,7 +20,10 @@ class VideoDiscovery:
         Args:
             folder_path: Folder path to search for videos
         """
-        video_paths = self._find_video_files(folder_path)
+        video_paths = []
+        for ext in VIDEO_EXTENSIONS:
+            pattern = f"**/*.{ext}"
+            video_paths.extend(folder_path.glob(pattern))
 
         videos = []
         for video_path in video_paths:
@@ -33,11 +36,3 @@ class VideoDiscovery:
 
         logger.info(f"Found {len(videos)} video(s) in {folder_path}")
         return videos
-
-    def _find_video_files(self, folder: Path) -> list[Path]:
-        """Find all video files in folder recursively."""
-        video_paths = []
-        for ext in VIDEO_EXTENSIONS:
-            pattern = f"**/*.{ext}"
-            video_paths.extend(folder.glob(pattern))
-        return video_paths

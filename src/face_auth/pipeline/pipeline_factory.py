@@ -4,11 +4,9 @@ from face_auth.config.models import ApplicationConfig, Pool
 from face_auth.core.embedder.backend.embedder_backend import EmbedderBackend
 from face_auth.core.embedder.embedder_factory import create_embedder
 from face_auth.imposter_video_creation.matching.matching_strategy_factory import create_matching_strategy
-from face_auth.processing.video_parser import (
-    ControlledStudyParser,
-    InTheWildStudyParser,
-    VideoParser,
-)
+from face_auth.processing.video_parser.impl.controlled_study_parser import ControlledStudyParser
+from face_auth.processing.video_parser.impl.in_the_wild_study_parser import InTheWildStudyParser
+from face_auth.processing.video_parser.parser import VideoParser
 from face_auth.services.enrollment_service import EnrollmentService
 from face_auth.services.video_processing_service import VideoProcessingService
 from face_auth.services.imposter_video_creation_service import ImposterVideoCreationService
