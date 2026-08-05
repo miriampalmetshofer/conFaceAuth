@@ -5,11 +5,12 @@ from pathlib import Path
 from typing import List
 
 from face_auth.config.logging_config import get_logger
-from face_auth.config.models import StitchConfig
+from face_auth.config.models import Participant, StitchConfig
 from face_auth.imposter_video_creation.iterators.frame_iterator import FrameIterator
 from face_auth.imposter_video_creation.iterators.impl.black_frame_iterator import BlackFrameGenerator
 from face_auth.imposter_video_creation.iterators.impl.video_frame_iterator import VideoFrameIterator
-from face_auth.processing.models import ImposterSamplePair, ComposedVideo
+from face_auth.imposter_video_creation.matching.strategy.video_matching_strategy import VideoMatchingStrategy
+from face_auth.processing.models import ImposterSamplePair, ComposedVideo, Video
 from face_auth.services.video_validation_service import VideoValidationService
 
 logger = get_logger(__name__)
@@ -18,17 +19,46 @@ logger = get_logger(__name__)
 class ImposterVideoCreationService:
     """Service for creating composed imposter videos using frame iterators."""
 
-    def __init__(self, stitch_config: StitchConfig, video_validator: VideoValidationService):
-        """Initialize with stitching configuration and video validator.
+    def __init__(
+            self,
+            stitch_config: StitchConfig,
+            video_validator: VideoValidationService,
+            matching_strategy: VideoMatchingStrategy,
+    ):
+        """Initialize with stitching configuration, video validator and matching strategy.
 
         Args:
             stitch_config: Configuration for imposter creation
             video_validator: Validator for video FPS and duration requirements
+            matching_strategy: Strategy for pairing genuine videos with imposter videos
         """
         self.config = stitch_config
         self.video_validator = video_validator
+        self.matching_strategy = matching_strategy
 
-    def create_all(self, pairs: List[ImposterSamplePair]) -> List[ComposedVideo]:
+    def create_imposter_videos(
+            self,
+            all_videos: List[Video],
+            genuine_user: Participant,
+            allowed_participants: List[Participant],
+    ) -> List[ComposedVideo]:
+        """Match genuine videos with imposters and compose the resulting videos.
+
+        Args:
+            all_videos: All discovered videos
+            genuine_user: Genuine user participant
+            allowed_participants: Participants allowed to serve as imposters
+
+        Returns:
+            List of composed videos (no physical files)
+
+        Raises:
+            ValueError: If any video does not meet FPS or duration requirements
+        """
+        pairs = self.matching_strategy.match(all_videos, genuine_user, allowed_participants)
+        return self._compose_all(pairs)
+
+    def _compose_all(self, pairs: List[ImposterSamplePair]) -> List[ComposedVideo]:
         """Validate and create composed imposter videos for all pairs.
 
         Args:
@@ -53,33 +83,18 @@ class ImposterVideoCreationService:
                 f"Creating imposter video {i}/{len(pairs)}: "
                 f"{pair.genuine_video.path.name} + {pair.imposter_video.path.name}"
             )
-            imposter_videos.append(self.create(pair))
+            iterators = self._create_iterators(pair)
+            virtual_path = self._build_virtual_path(pair)
+
+            imposter_videos.append(ComposedVideo(
+                path=virtual_path,
+                recording_date=pair.genuine_video.recording_date,
+                participant=pair.genuine_video.participant,
+                iterators=iterators
+            ))
 
         return imposter_videos
 
-    def create(self, pair: ImposterSamplePair) -> ComposedVideo:
-        """Create composed imposter video from frame iterators.
-
-        Args:
-            pair: Containing genuine and imposter sample
-
-        Returns:
-            ComposedVideo with frame iterators (no physical file)
-        """
-        logger.debug(
-            f"Creating composed video: {pair.genuine_video.path.name} + "
-            f"{pair.imposter_video.path.name}"
-        )
-
-        iterators = self._create_iterators(pair)
-        virtual_path = self._build_virtual_path(pair)
-
-        return ComposedVideo(
-            path=virtual_path,
-            recording_date=pair.genuine_video.recording_date,
-            participant=pair.genuine_video.participant,
-            iterators=iterators
-        )
 
     def _create_iterators(self, pair):
         width, height = self._get_video_dimensions(pair.genuine_video.path)

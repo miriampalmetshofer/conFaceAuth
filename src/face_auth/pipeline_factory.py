@@ -4,7 +4,6 @@ from face_auth.config.models import ApplicationConfig, Pool
 from face_auth.core.embedder.backend.embedder_backend import EmbedderBackend
 from face_auth.core.embedder.backend.embedder_factory import create_embedder
 from face_auth.imposter_video_creation.matching.matching_strategy_factory import create_matching_strategy
-from face_auth.imposter_video_creation.matching.strategy.video_matching_strategy import VideoMatchingStrategy
 from face_auth.processing.result_writer import ResultWriter
 from face_auth.processing.video_discovery import VideoDiscovery
 from face_auth.processing.video_parser.impl.controlled_study_parser import ControlledStudyParser
@@ -38,10 +37,6 @@ class PipelineFactory:
         """Create video discovery with the parser matching the configured pool."""
         return VideoDiscovery(parser=self._get_parser_for_pool())
 
-    def create_matching_strategy(self) -> VideoMatchingStrategy:
-        """Create the video matching strategy for the configured pool."""
-        return create_matching_strategy(self.config.processing.matching_strategy)
-
     def create_enrollment_service(self) -> EnrollmentService:
         """Create enrollment service with all dependencies."""
         return EnrollmentService(
@@ -51,10 +46,11 @@ class PipelineFactory:
         )
 
     def create_imposter_creation_service(self) -> ImposterVideoCreationService:
-        """Create imposter video creation service with its video validator."""
+        """Create imposter video creation service with its validator and matching strategy."""
         return ImposterVideoCreationService(
             stitch_config=self.config.imposter_creation,
-            video_validator=VideoValidationService(expected_fps=self.config.imposter_creation.fps)
+            video_validator=VideoValidationService(expected_fps=self.config.imposter_creation.fps),
+            matching_strategy=create_matching_strategy(self.config.processing.matching_strategy),
         )
 
     def create_video_processing_service(self) -> VideoProcessingService:
