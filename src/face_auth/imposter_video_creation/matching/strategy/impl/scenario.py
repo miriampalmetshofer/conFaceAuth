@@ -10,8 +10,8 @@ logger = get_logger(__name__)
 class ScenarioMatchingStrategy(VideoMatchingStrategy):
     """Match videos by scenario (easy, angle, lighting) for controlled study."""
 
-    def match(self, all_videos: List[ControlledStudyVideo], genuine_user: Participant,
-              allowed_participants: List[Participant]) -> List[ImposterSamplePair]:
+    def _match(self, all_videos: List[ControlledStudyVideo], genuine_user: Participant,
+               allowed_participants: List[Participant]) -> List[ImposterSamplePair]:
         """Match genuine user videos with imposter videos of same scenario.
 
         Args:

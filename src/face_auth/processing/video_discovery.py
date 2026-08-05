@@ -19,6 +19,9 @@ class VideoDiscovery:
 
         Args:
             folder_path: Folder path to search for videos
+
+        Raises:
+            FileNotFoundError: If no videos are found in the folder
         """
         video_paths = []
         for ext in VIDEO_EXTENSIONS:
@@ -33,6 +36,9 @@ class VideoDiscovery:
                     videos.append(video)
                 except ValueError as e:
                     logger.warning(f"Could not parse {video_path.name}: {e}")
+
+        if not videos:
+            raise FileNotFoundError(f"No videos found in {folder_path}")
 
         logger.info(f"Found {len(videos)} video(s) in {folder_path}")
         return videos

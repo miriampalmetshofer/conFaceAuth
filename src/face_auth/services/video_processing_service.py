@@ -40,7 +40,49 @@ class VideoProcessingService:
         self.config = config
         self.embedder = embedder
 
-    def process_video(
+    def process_videos(
+        self,
+        videos: List[ComposedVideo],
+        enrollment_data: EnrollmentData,
+        skip_frames: int
+    ) -> List[VideoResult]:
+        """Process all composed videos and return their authentication results.
+
+        Args:
+            videos: Composed videos to process
+            enrollment_data: Enrollment data with embeddings
+            skip_frames: Process every Nth frame
+
+        Returns:
+            Authentication results for each successfully processed video
+
+        Raises:
+            RuntimeError: If every video fails to process
+        """
+        logger.info(f"Processing {len(videos)} video(s)")
+
+        video_results = []
+        for idx, video in enumerate(videos, 1):
+            try:
+                video_result = self.process_video(
+                    video=video,
+                    enrollment_data=enrollment_data,
+                    skip_frames=skip_frames
+                )
+                video_results.append(video_result)
+                logger.debug(f"[{idx}/{len(videos)}] Completed: {video.path.name}")
+            except Exception as e:
+                logger.error(
+                    f"[{idx}/{len(videos)}] Failed to process {video.path.name}: {e}",
+                    exc_info=True
+                )
+
+        if not video_results:
+            raise RuntimeError("All videos failed to process")
+
+        return video_results
+
+    def _process_video(
         self,
         video: ComposedVideo,
         enrollment_data: EnrollmentData,

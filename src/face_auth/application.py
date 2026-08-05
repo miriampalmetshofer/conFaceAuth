@@ -30,7 +30,7 @@ class FaceAuthApplication:
             log_level=config.logging.get_log_level()
         )
         self.reporter = ProcessingReporter()
-        self.video_discovery_stage = self.pipeline_factory.create_video_discovery_stage()
+        self.video_discovery = self.pipeline_factory.create_video_discovery()
 
     def run(self):
         """Run the face authentication application."""
@@ -51,7 +51,7 @@ class FaceAuthApplication:
         jobs = []
         for device in self.config.devices:
             logger.info(f"Discovering videos on {device.value}...")
-            all_videos = self.video_discovery_stage.execute(device)
+            all_videos = self.video_discovery.discover(self.config.paths.base_path / device.value)
 
             for participant in self.config.participants:
                 context = ProcessingContext(

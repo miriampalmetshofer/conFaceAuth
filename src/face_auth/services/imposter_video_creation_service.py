@@ -10,6 +10,7 @@ from face_auth.imposter_video_creation.iterators.frame_iterator import FrameIter
 from face_auth.imposter_video_creation.iterators.impl.black_frame_iterator import BlackFrameGenerator
 from face_auth.imposter_video_creation.iterators.impl.video_frame_iterator import VideoFrameIterator
 from face_auth.processing.models import ImposterSamplePair, ComposedVideo
+from face_auth.services.video_validation_service import VideoValidationService
 
 logger = get_logger(__name__)
 
@@ -17,13 +18,44 @@ logger = get_logger(__name__)
 class ImposterVideoCreationService:
     """Service for creating composed imposter videos using frame iterators."""
 
-    def __init__(self, stitch_config: StitchConfig):
-        """Initialize with stitching configuration.
+    def __init__(self, stitch_config: StitchConfig, video_validator: VideoValidationService):
+        """Initialize with stitching configuration and video validator.
 
         Args:
             stitch_config: Configuration for imposter creation
+            video_validator: Validator for video FPS and duration requirements
         """
         self.config = stitch_config
+        self.video_validator = video_validator
+
+    def create_all(self, pairs: List[ImposterSamplePair]) -> List[ComposedVideo]:
+        """Validate and create composed imposter videos for all pairs.
+
+        Args:
+            pairs: List of imposter sample pairs to compose
+
+        Returns:
+            List of composed videos (no physical files)
+
+        Raises:
+            ValueError: If any video does not meet FPS or duration requirements
+        """
+        logger.info(f"Creating imposter videos from {len(pairs)} pair(s)")
+
+        logger.info("Validating video requirements (FPS, duration)...")
+        for pair in pairs:
+            self.video_validator.validate(pair.genuine_video.path, self.config.genuine_user_seconds)
+            self.video_validator.validate(pair.imposter_video.path, self.config.impostor_seconds)
+
+        imposter_videos = []
+        for i, pair in enumerate(pairs, 1):
+            logger.info(
+                f"Creating imposter video {i}/{len(pairs)}: "
+                f"{pair.genuine_video.path.name} + {pair.imposter_video.path.name}"
+            )
+            imposter_videos.append(self.create(pair))
+
+        return imposter_videos
 
     def create(self, pair: ImposterSamplePair) -> ComposedVideo:
         """Create composed imposter video from frame iterators.

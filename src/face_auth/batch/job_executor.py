@@ -19,32 +19,36 @@ def execute_job(job: ProcessingJob) -> ProcessingResult:
     logger.info(f"Processing: {job}")
 
     try:
-        # Create pipeline stages for this worker
+        # Create the services for this worker
         pipeline_factory = PipelineFactory(config=job.config)
-        enrollment_stage = pipeline_factory.create_enrollment_stage()
-        video_matching_stage = pipeline_factory.create_video_matching_stage()
-        imposter_video_creation_stage = pipeline_factory.create_imposter_video_creation_stage()
-        video_processing_stage = pipeline_factory.create_video_processing_stage()
-        results_persistence_stage = pipeline_factory.create_results_persistence_stage()
+        enrollment_service = pipeline_factory.create_enrollment_service()
+        matching_strategy = pipeline_factory.create_matching_strategy()
+        imposter_creation_service = pipeline_factory.create_imposter_creation_service()
+        video_processing_service = pipeline_factory.create_video_processing_service()
+        results_service = pipeline_factory.create_results_service()
 
         # Get enrollment data
-        enrollment_data = enrollment_stage.execute(job.context)
+        enrollment_data = enrollment_service.get_enrollment(job.context)
 
         # Match genuine user videos with imposter videos
-        imposter_data_for_stitching = video_matching_stage.execute(
+        pairs = matching_strategy.match(
             job.all_videos,
             job.context.participant,
             job.all_participants
         )
 
-        # Create imposter videos
-        imposter_videos = imposter_video_creation_stage.execute(imposter_data_for_stitching)
+        # Compose imposter videos from the matched pairs
+        imposter_videos = imposter_creation_service.create_all(pairs)
 
-        # Process imposter videos
-        video_results = video_processing_stage.execute(imposter_videos, enrollment_data)
+        # Authenticate every frame of every composed video
+        video_results = video_processing_service.process_videos(
+            imposter_videos,
+            enrollment_data,
+            job.config.processing.skip_frames
+        )
 
         # Save results
-        results_persistence_stage.execute(video_results, job.context)
+        results_service.write_results(video_results, job.context)
 
         logger.info(f"Successfully processed {job}")
         return ProcessingResult(

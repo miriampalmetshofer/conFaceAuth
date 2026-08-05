@@ -11,9 +11,34 @@ logger = get_logger(__name__)
 class VideoMatchingStrategy(ABC):
     """Protocol for video matching strategy."""
 
-    @abstractmethod
     def match(self, all_videos: List[Video], genuine_user: Participant,
               allowed_participants: List[Participant]) -> List[ImposterSamplePair]:
+        """Match genuine user videos with imposter videos and validate the result.
+
+        Args:
+            all_videos: All discovered videos
+            genuine_user: Genuine user participant
+            allowed_participants: List of allowed participants from config
+
+        Returns:
+            List of ImposterSamplePair objects
+
+        Raises:
+            ValueError: If no imposter sample pairs could be created
+        """
+        pairs = self._match(all_videos, genuine_user, allowed_participants)
+
+        if not pairs:
+            raise ValueError(
+                f"No imposter sample pairs created for {genuine_user.name}. "
+                "Ensure genuine user has videos and matching imposters exist."
+            )
+
+        return pairs
+
+    @abstractmethod
+    def _match(self, all_videos: List[Video], genuine_user: Participant,
+               allowed_participants: List[Participant]) -> List[ImposterSamplePair]:
         """Match genuine user videos with imposter videos.
 
         Args:

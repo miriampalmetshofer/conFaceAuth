@@ -21,8 +21,8 @@ class RandomSamplingMatchingStrategy(VideoMatchingStrategy):
         self.imposters_per_genuine = imposters_per_genuine
         random.seed(random_seed)
 
-    def match(self, all_videos: List[Video], genuine_user: Participant,
-              allowed_participants: List[Participant]) -> List[ImposterSamplePair]:
+    def _match(self, all_videos: List[Video], genuine_user: Participant,
+               allowed_participants: List[Participant]) -> List[ImposterSamplePair]:
         """Match genuine user videos with K randomly selected imposter videos.
 
         Args:

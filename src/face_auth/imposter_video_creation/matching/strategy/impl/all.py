@@ -11,8 +11,8 @@ logger = get_logger(__name__)
 class AllVideosMatchingStrategy(VideoMatchingStrategy):
     """Match all imposter videos with each genuine video for in-the-wild study."""
 
-    def match(self, all_videos: List[Video], genuine_user: Participant,
-              allowed_participants: List[Participant]) -> List[ImposterSamplePair]:
+    def _match(self, all_videos: List[Video], genuine_user: Participant,
+               allowed_participants: List[Participant]) -> List[ImposterSamplePair]:
         """Match genuine user videos with all available imposter videos.
 
         Args:
