@@ -7,10 +7,7 @@ import cv2
 
 from face_auth.config.models import AuthenticationConfig
 from face_auth.core.authenticator.backend.authenticator_backend import AuthenticatorBackend
-from face_auth.core.authenticator.backend.authenticator_factory import (
-    create_authenticator,
-    AuthenticatorBackendType
-)
+from face_auth.core.authenticator.backend.authenticator_factory import create_authenticator
 from face_auth.core.embedder.backend.embedder_backend import EmbedderBackend
 from face_auth.imposter_video_creation.iterators.frame_iterator import FrameIterator
 from face_auth.processing.debug_frame_saver import DebugFrameSaver
@@ -194,11 +191,7 @@ class VideoProcessingService:
 
     def _create_authenticator(self, enrollment_data: EnrollmentData) -> AuthenticatorBackend:
         """Create authenticator backend instance."""
-        backend_type = AuthenticatorBackendType(self.config.backend)
-        backend_config = self.config.backend_config
-
         return create_authenticator(
-            backend_type=backend_type,
-            config=backend_config,
+            config=self.config,
             enrollment_embeddings=enrollment_data.embeddings
         )

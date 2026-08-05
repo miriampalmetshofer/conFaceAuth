@@ -1,46 +1,36 @@
 """Factory for creating authenticator backends."""
-from enum import Enum
-from typing import Union
 import numpy as np
 
 from face_auth.core.authenticator.backend.authenticator_backend import AuthenticatorBackend
-from face_auth.core.authenticator.backend.impl.trust_based.models import TrustBasedConfig
-from face_auth.core.authenticator.backend.impl.temporal_decay.models import TemporalDecayConfig
-
-
-class AuthenticatorBackendType(Enum):
-    """Available authenticator backend types."""
-    TRUST_BASED = "trust_based"
-    TEMPORAL_DECAY = "temporal_decay"
+from face_auth.config.models import AuthenticationConfig
 
 
 def create_authenticator(
-    backend_type: AuthenticatorBackendType,
-    config: Union[TrustBasedConfig, TemporalDecayConfig],
+    config: AuthenticationConfig,
     enrollment_embeddings: list[np.ndarray]
 ) -> AuthenticatorBackend:
-    """Create an authenticator backend based on type and configuration.
+    """Create the configured authenticator backend.
 
     Args:
-        backend_type: Type of authenticator to create
-        config: Backend-specific configuration
+        config: Authentication configuration selecting the backend and its settings
         enrollment_embeddings: Reference embeddings for enrolled user
 
     Returns:
         Configured authenticator backend instance
 
     Raises:
-        ValueError: If backend_type is not supported
+        ValueError: If the configured backend is not supported
     """
-    if backend_type == AuthenticatorBackendType.TRUST_BASED:
+    if config.backend == "trust_based":
         from face_auth.core.authenticator.backend.impl.trust_based.trust_based_authenticator import (
             RiskBasedAuthenticator
         )
-        return RiskBasedAuthenticator(config, enrollment_embeddings)
-    elif backend_type == AuthenticatorBackendType.TEMPORAL_DECAY:
+        return RiskBasedAuthenticator(config.backend_config, enrollment_embeddings)
+
+    if config.backend == "temporal_decay":
         from face_auth.core.authenticator.backend.impl.temporal_decay.temporal_decay_authenticator import (
             TemporalDecayAuthenticator
         )
-        return TemporalDecayAuthenticator(config, enrollment_embeddings)
-    else:
-        raise ValueError(f"Unsupported backend type: {backend_type}")
+        return TemporalDecayAuthenticator(config.backend_config, enrollment_embeddings)
+
+    raise ValueError(f"Unsupported authentication backend: {config.backend}")

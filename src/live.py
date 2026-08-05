@@ -15,12 +15,10 @@ import argparse
 import time
 
 from face_auth.core.embedder.backend.embedder_factory import create_embedder
-from face_auth.core.authenticator.backend.authenticator_factory import (
-    create_authenticator,
-    AuthenticatorBackendType
-)
+from face_auth.core.authenticator.backend.authenticator_factory import create_authenticator
 from face_auth.core.authenticator.backend.impl.temporal_decay.models import TemporalDecayConfig
 from face_auth.core.embedder.models import InsightFaceEmbedderConfig
+from face_auth.config.models import AuthenticationConfig, EmbedderConfig
 
 
 logging.basicConfig(
@@ -48,8 +46,10 @@ class LiveFaceAuth:
 
         logger.info("Initializing InsightFace embedder...")
         self.embedder = create_embedder(
-            backend_name=self.config["embedder"]["model"],
-            backend_config=InsightFaceEmbedderConfig(**self.config["embedder"]["config"]),
+            config=EmbedderConfig(
+                model=self.config["embedder"]["model"],
+                insightface=InsightFaceEmbedderConfig(**self.config["embedder"]["config"]),
+            ),
             cache_enabled=False,
             cache_dir=None,
         )
@@ -129,18 +129,15 @@ class LiveFaceAuth:
         self.enrollment_embeddings = embeddings
 
         # Initialize authenticator with enrollment embeddings
-        temporal_decay_config = TemporalDecayConfig(
-            threshold=self.config["temporal_decay"]["threshold"],
-            similarity_percentile=self.config["temporal_decay"]["similarity_percentile"],
-            k_weight=self.config["temporal_decay"]["k_weight"],
-            k_decay=self.config["temporal_decay"]["k_decay"],
-            initial_confidence=self.config["temporal_decay"]["initial_confidence"]
+        authentication_config = AuthenticationConfig(
+            backend="temporal_decay",
+            fps=self.config["fps"],
+            temporal_decay=TemporalDecayConfig(**self.config["temporal_decay"]),
         )
 
         authenticator_backend = create_authenticator(
-            AuthenticatorBackendType.TEMPORAL_DECAY,
-            temporal_decay_config,
-            self.enrollment_embeddings
+            config=authentication_config,
+            enrollment_embeddings=self.enrollment_embeddings,
         )
 
         self.authenticator = authenticator_backend
