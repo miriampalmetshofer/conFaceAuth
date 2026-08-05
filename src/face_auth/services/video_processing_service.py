@@ -114,7 +114,7 @@ class VideoProcessingService:
         for segment_index, iterator in enumerate(video.iterators, start=1):
             logger.debug(
                 f"{video_name}: segment {segment_index}/{len(video.iterators)} "
-                f"({iterator.get_source_name()})"
+                f"({iterator.source_name})"
             )
 
             results, frame_index = self._process_iterator(
@@ -146,7 +146,7 @@ class VideoProcessingService:
         """Process sampled frames from one iterator and return the next frame index."""
         frame_index = start_frame_index
         results = []
-        source_name = iterator.get_source_name()
+        source_name = iterator.source_name
 
         for frame in iterator:
             try:

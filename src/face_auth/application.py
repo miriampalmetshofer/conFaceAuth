@@ -27,7 +27,7 @@ class FaceAuthApplication:
         self.pipeline_factory = PipelineFactory(config=self.config)
         self.batch_processor = BatchProcessor(
             num_workers=config.processing.num_workers,
-            log_level=config.logging.get_log_level()
+            log_level=config.logging.log_level
         )
         self.reporter = ProcessingReporter()
         self.video_discovery = self.pipeline_factory.create_video_discovery()
@@ -40,7 +40,7 @@ class FaceAuthApplication:
         jobs = self._create_jobs()
         results = self.batch_processor.process(jobs, execute_job)
 
-        self.reporter.log_summary(results, self.config.paths.get_results_path())
+        self.reporter.log_summary(results, self.config.paths.results_path)
 
     def _create_jobs(self) -> List[ProcessingJob]:
         """Create all processing jobs from configuration.
@@ -72,4 +72,4 @@ class FaceAuthApplication:
 
     def _validate_prerequisites(self):
         """Validate prerequisites before starting processing."""
-        ResultsFileValidator.validate(self.config.paths.get_results_path())
+        ResultsFileValidator.validate(self.config.paths.results_path)

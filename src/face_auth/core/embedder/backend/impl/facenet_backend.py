@@ -27,7 +27,7 @@ class FaceNetBackend(EmbedderBackend):
         self._target_size = target_size
         self._model = FaceNet()
 
-    def get_embedding(
+    def embed(
         self,
         frame_rgb: np.ndarray,
     ) -> EmbeddingResult:
@@ -54,7 +54,7 @@ class FaceNetBackend(EmbedderBackend):
         return {
             "backend": "facenet",
             "config": {
-                "detector": self._detector.get_backend_name(),
+                "detector": self._detector.backend_name,
                 "target_size": list(self._target_size),
             },
         }

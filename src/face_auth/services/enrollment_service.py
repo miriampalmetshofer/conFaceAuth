@@ -44,7 +44,7 @@ class EnrollmentService:
         self.paths = paths_config
         self.embedder = embedder
 
-    def get_enrollment(
+    def enroll(
         self,
         context: ProcessingContext
     ) -> EnrollmentData:

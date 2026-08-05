@@ -25,10 +25,10 @@ def execute_job(job: ProcessingJob) -> ProcessingResult:
         matching_strategy = pipeline_factory.create_matching_strategy()
         imposter_creation_service = pipeline_factory.create_imposter_creation_service()
         video_processing_service = pipeline_factory.create_video_processing_service()
-        results_service = pipeline_factory.create_results_service()
+        result_writer = pipeline_factory.create_result_writer()
 
         # Get enrollment data
-        enrollment_data = enrollment_service.get_enrollment(job.context)
+        enrollment_data = enrollment_service.enroll(job.context)
 
         # Match genuine user videos with imposter videos
         pairs = matching_strategy.match(
@@ -48,7 +48,7 @@ def execute_job(job: ProcessingJob) -> ProcessingResult:
         )
 
         # Save results
-        results_service.write_results(video_results, job.context)
+        result_writer.write_all(video_results, job.context)
 
         logger.info(f"Successfully processed {job}")
         return ProcessingResult(

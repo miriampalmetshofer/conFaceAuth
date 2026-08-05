@@ -31,12 +31,9 @@ class TemporalWindow(Generic[T]):
         """
         self._window.append(value)
 
-    def get_values(self) -> list[T]:
-        """Get all values in window from oldest to newest.
-
-        Returns:
-            List of values currently in window
-        """
+    @property
+    def values(self) -> list[T]:
+        """All values in window from oldest to newest."""
         return list(self._window)
 
     def is_empty(self) -> bool:

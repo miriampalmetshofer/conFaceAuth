@@ -51,8 +51,8 @@ class RiskBasedAuthenticator(AuthenticatorBackend):
             raise ValueError("Cannot compute trust score from empty window")
 
         # More recent similarities receive higher weight based on alpha parameter.
-        weights = np.exp(np.linspace(-self.alpha, 0, len(self._similarity_window.get_values())))
-        self.current_trust_score = float(np.average(self._similarity_window.get_values(), weights=weights))
+        weights = np.exp(np.linspace(-self.alpha, 0, len(self._similarity_window.values)))
+        self.current_trust_score = float(np.average(self._similarity_window.values, weights=weights))
 
         logger.debug(f"Updated trust_score: {self._current_trust_score:.4f}")
 
@@ -94,11 +94,9 @@ class RiskBasedAuthenticator(AuthenticatorBackend):
         )
         return is_auth
 
-    def get_score(self) -> float:
-        """Get current risk score.
-
-        Returns:
-            Current risk score
+    @property
+    def score(self) -> float:
+        """Current risk score.
 
         Raises:
             ValueError: If no risk score available yet
@@ -107,11 +105,9 @@ class RiskBasedAuthenticator(AuthenticatorBackend):
             raise ValueError("No risk score available before processing frames")
         return self._current_trust_score
 
-    def get_last_similarity(self) -> float:
-        """Get the last computed similarity value.
-
-        Returns:
-            Last computed similarity
+    @property
+    def last_similarity(self) -> float:
+        """The last computed similarity value.
 
         Raises:
             ValueError: If no similarity available yet

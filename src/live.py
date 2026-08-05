@@ -65,7 +65,7 @@ class LiveFaceAuth:
 
         self.enrollment_embeddings = None
         self.authenticator = None
-        self.video_processor = None
+        self.frame_authenticator = None
         self.authenticator_start_time = None
 
     def _load_config(self, config_path: str) -> dict:
@@ -109,7 +109,7 @@ class LiveFaceAuth:
             frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
 
             # Get embedding
-            embedding_result = self.embedder.get_embedding(frame_rgb)
+            embedding_result = self.embedder.embed(frame_rgb)
 
             if embedding_result.face_detected:
                 embeddings.append(embedding_result.embedding)
@@ -143,7 +143,7 @@ class LiveFaceAuth:
         )
 
         self.authenticator = authenticator_backend
-        self.video_processor = FrameAuthenticator(
+        self.frame_authenticator = FrameAuthenticator(
             embedder=self.embedder,
             authenticator=authenticator_backend,
         )
@@ -152,7 +152,7 @@ class LiveFaceAuth:
 
     def run_live_authentication(self):
         """Run live authentication using webcam."""
-        if self.video_processor is None:
+        if self.frame_authenticator is None:
             raise RuntimeError("Must process enrollment video first!")
 
         camera_index = self.config.get("camera_index")
@@ -220,11 +220,11 @@ class LiveFaceAuth:
 
     def _authenticate_frame(self, frame_rgb):
         """Authenticate one live camera frame."""
-        if self.video_processor is None:
+        if self.frame_authenticator is None:
             raise RuntimeError("Must process enrollment video first!")
 
         timestamp_ms = self._get_timestamp_ms()
-        return self.video_processor.update_authentication_with_new_evidence(
+        return self.frame_authenticator.update_authentication_with_new_evidence(
             frame=Frame(
                 image=frame_rgb,
                 timestamp_ms=timestamp_ms,

@@ -52,7 +52,7 @@ class EnrollmentLoader:
             return None
 
         image_rgb = cv2.cvtColor(image_bgr, cv2.COLOR_BGR2RGB)
-        embedding_result = self.embedder.get_embedding(image_rgb)
+        embedding_result = self.embedder.embed(image_rgb)
 
         if not embedding_result.face_detected:
             logger.warning(f"No face detected in enrollment image {image_path}. Skipping")

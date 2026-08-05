@@ -39,7 +39,7 @@ class VideoFrameIterator(FrameIterator):
         logger.debug(
             f"VideoFrameIterator: {video_path.name}, "
             f"frames {self.start_frame}-{self.end_frame} "
-            f"({self.get_frame_count()} frames total)"
+            f"({len(self)} frames total)"
         )
 
     def __iter__(self) -> Iterator[np.ndarray]:
@@ -66,12 +66,13 @@ class VideoFrameIterator(FrameIterator):
 
         cap.release()
 
-    def get_frame_count(self) -> int:
+    def __len__(self) -> int:
         """Return total number of frames this iterator will yield."""
         return max(0, self.end_frame - self.start_frame)
 
-    def get_source_name(self) -> str:
-        """Return name of the source video file."""
+    @property
+    def source_name(self) -> str:
+        """Name of the source video file."""
         return self._video_path.stem
 
     @property

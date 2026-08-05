@@ -51,8 +51,9 @@ class PathsConfig(BaseModel):
 
     model_config = ConfigDict(frozen=True)
 
-    def get_results_path(self) -> Path:
-        """Get formatted results file path."""
+    @property
+    def results_path(self) -> Path:
+        """Formatted results file path."""
         return Path(self.results_file.format(base_path=self.base_path))
 
 
@@ -226,8 +227,9 @@ class LoggingConfig(BaseModel):
 
     model_config = ConfigDict(frozen=True)
 
-    def get_log_level(self) -> int:
-        """Convert string log level to logging constant."""
+    @property
+    def log_level(self) -> int:
+        """String log level converted to logging constant."""
         return getattr(logging, self.level.upper(), logging.INFO)
 
     @field_validator('level')

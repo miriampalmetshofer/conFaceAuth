@@ -30,12 +30,14 @@ class AuthenticatorBackend(ABC):
         """Check if currently authenticated based on internal state."""
         pass
 
+    @property
     @abstractmethod
-    def get_score(self) -> float:
-        """Get current authentication score."""
+    def score(self) -> float:
+        """Current authentication score."""
         pass
 
+    @property
     @abstractmethod
-    def get_last_similarity(self) -> float:
-        """Get the last computed similarity value."""
+    def last_similarity(self) -> float:
+        """The last computed similarity value."""
         pass

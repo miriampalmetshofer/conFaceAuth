@@ -14,7 +14,7 @@ class EmbedderBackend(ABC):
     """
 
     @abstractmethod
-    def get_embedding(
+    def embed(
         self,
         frame_rgb: np.ndarray,
     ) -> EmbeddingResult:

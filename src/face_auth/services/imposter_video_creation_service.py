@@ -101,12 +101,12 @@ class ImposterVideoCreationService:
                 fps=self.config.fps
             )
         ]
-        total_frames = sum(it.get_frame_count() for it in iterators)
+        total_frames = sum(len(it) for it in iterators)
         logger.debug(
             f"Composed video will have {total_frames} frames "
-            f"({iterators[0].get_frame_count()} genuine + "
-            f"{iterators[1].get_frame_count()} black + "
-            f"{iterators[2].get_frame_count()} imposter)"
+            f"({len(iterators[0])} genuine + "
+            f"{len(iterators[1])} black + "
+            f"{len(iterators[2])} imposter)"
         )
 
         return iterators

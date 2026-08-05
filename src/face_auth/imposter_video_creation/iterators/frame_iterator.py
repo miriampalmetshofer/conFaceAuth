@@ -18,13 +18,14 @@ class FrameIterator(ABC):
         pass
 
     @abstractmethod
-    def get_frame_count(self) -> int:
+    def __len__(self) -> int:
         """Return total number of frames this iterator will yield."""
         pass
 
+    @property
     @abstractmethod
-    def get_source_name(self) -> str:
-        """Return name of the source (for debugging/logging)."""
+    def source_name(self) -> str:
+        """Name of the source (for debugging/logging)."""
         pass
 
     @property

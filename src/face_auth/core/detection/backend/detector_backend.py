@@ -9,9 +9,10 @@ from face_auth.core.detection.models import DetectionResult
 class DetectorBackend(ABC):
     """Interface that all face detector backend must implement."""
 
+    @property
     @abstractmethod
-    def get_backend_name(self) -> str:
-        """Return the detector backend name used in configuration."""
+    def backend_name(self) -> str:
+        """The detector backend name used in configuration."""
         pass
 
     @abstractmethod

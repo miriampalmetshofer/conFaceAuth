@@ -39,7 +39,7 @@ def main():
     config = config_loader.load(config_file)
 
     # Setup logging
-    setup_logging(config.logging.get_log_level())
+    setup_logging(config.logging.log_level)
     logger = get_logger(__name__)
 
     logger.info(f"Loaded configuration from: {config_file}")

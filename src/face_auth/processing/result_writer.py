@@ -5,6 +5,7 @@ from typing import List
 from face_auth.config.logging_config import get_logger
 from face_auth.config.models import ProcessingContext, ApplicationConfig
 from face_auth.processing.models import FrameAuthenticationResult
+from face_auth.services.models import VideoResult
 
 logger = get_logger(__name__)
 
@@ -14,6 +15,20 @@ class ResultWriter:
 
     def __init__(self, config: ApplicationConfig):
         self.config = config
+
+    def write_all(self, video_results: List[VideoResult], context: ProcessingContext) -> None:
+        """Write the results of every processed video to the results CSV."""
+        results_path = self.config.paths.results_path
+
+        for video_result in video_results:
+            self.write_results(
+                video_result.frame_results,
+                results_path,
+                video_result.video.path,
+                context
+            )
+
+        logger.debug(f"Wrote results for {len(video_results)} video(s) to {results_path}")
 
     def write_results(self, results: List[FrameAuthenticationResult], results_path: Path, video_path: Path, context: ProcessingContext) -> None:
         """Write authentication results to CSV with configuration metadata."""

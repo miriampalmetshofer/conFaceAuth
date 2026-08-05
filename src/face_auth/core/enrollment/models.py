@@ -61,10 +61,11 @@ class EnrollmentFrames:
     frames_by_direction: dict[HeadDirection, list[Any]]
     selected_frames: list[SelectedEnrollmentFrame] | None = None
 
-    def get_direction_count(self, direction: HeadDirection) -> int:
-        """Get number of frames for a specific direction."""
+    def direction_count(self, direction: HeadDirection) -> int:
+        """Return the number of frames for a specific direction."""
         return len(self.frames_by_direction.get(direction, []))
 
-    def get_all_directions(self) -> list[HeadDirection]:
-        """Get all directions that have frames."""
+    @property
+    def all_directions(self) -> list[HeadDirection]:
+        """All directions that have frames."""
         return list(self.frames_by_direction.keys())

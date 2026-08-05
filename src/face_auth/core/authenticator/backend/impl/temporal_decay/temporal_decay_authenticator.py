@@ -113,11 +113,9 @@ class TemporalDecayAuthenticator(AuthenticatorBackend):
         )
         return is_auth
 
-    def get_score(self) -> float:
-        """Get current trust score.
-
-        Returns:
-            Current trust score
+    @property
+    def score(self) -> float:
+        """Current trust score.
 
         Raises:
             ValueError: If no trust score available yet
@@ -126,11 +124,9 @@ class TemporalDecayAuthenticator(AuthenticatorBackend):
             raise ValueError("No trust score available before processing frames")
         return self._current_trust
 
-    def get_last_similarity(self) -> float:
-        """Get the last computed similarity value.
-
-        Returns:
-            Last computed similarity
+    @property
+    def last_similarity(self) -> float:
+        """The last computed similarity value.
 
         Raises:
             ValueError: If no similarity available yet

@@ -27,7 +27,7 @@ class FrameAuthenticator:
         frame: Frame,
     ) -> AuthenticationResult:
         """Authenticate an RGB frame."""
-        embedding_result = self.embedder.get_embedding(frame.image)
+        embedding_result = self.embedder.embed(frame.image)
 
         if embedding_result.face_detected:
             if embedding_result.embedding is None:
@@ -40,8 +40,8 @@ class FrameAuthenticator:
 
             return AuthenticationResult(
                 is_authenticated=self.authenticator.is_authenticated(),
-                similarity=self.authenticator.get_last_similarity(),
-                trust=self.authenticator.get_score(),
+                similarity=self.authenticator.last_similarity,
+                trust=self.authenticator.score,
                 face_detected=True,
                 bounding_box=None,
             )
@@ -52,7 +52,7 @@ class FrameAuthenticator:
             return AuthenticationResult(
                 is_authenticated=self.authenticator.is_authenticated(),
                 similarity=None,
-                trust=self.authenticator.get_score(),
+                trust=self.authenticator.score,
                 face_detected=False,
                 bounding_box=None,
             )

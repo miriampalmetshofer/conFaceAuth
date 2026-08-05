@@ -33,12 +33,13 @@ class BlackFrameGenerator(FrameIterator):
         for _ in range(self.num_frames):
             yield black_frame.copy()
 
-    def get_frame_count(self) -> int:
+    def __len__(self) -> int:
         """Return total number of frames this iterator will yield."""
         return self.num_frames
 
-    def get_source_name(self) -> str:
-        """Return name of the source (black frames have no source)."""
+    @property
+    def source_name(self) -> str:
+        """Name of the source (black frames have no source)."""
         return "black_frames"
 
     @property

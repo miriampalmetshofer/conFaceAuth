@@ -26,8 +26,9 @@ class MediaPipeBackend(DetectorBackend):
 
         self._detector = FaceDetector.create_from_options(options)
 
-    def get_backend_name(self) -> str:
-        """Return the detector backend name used in configuration."""
+    @property
+    def backend_name(self) -> str:
+        """The detector backend name used in configuration."""
         return "mediapipe"
 
     def detect(self, image_rgb: np.ndarray) -> Optional[DetectionResult]:

@@ -25,7 +25,7 @@ class CachedEmbedder(EmbedderBackend):
         self.embedder = embedder
         self.embedding_cache = embedding_cache
 
-    def get_embedding(
+    def embed(
         self,
         frame_rgb: np.ndarray,
     ) -> EmbeddingResult:

@@ -52,7 +52,7 @@ class InsightFaceBackend(EmbedderBackend):
         )
         self._app.prepare(ctx_id=-1, det_size=det_size)
 
-    def get_embedding(
+    def embed(
         self,
         frame_rgb: np.ndarray,
     ) -> EmbeddingResult:

@@ -62,7 +62,7 @@ class PersistentEmbeddingCache(EmbeddingCache):
             logger.info("Embedding cache miss; computing missing frames")
             self._reported_cache_miss = True
 
-        computed = self.embedder.get_embedding(frame_rgb)
+        computed = self.embedder.embed(frame_rgb)
 
         with self._file_lock(cache_path):
             records = self._load_records(cache_path)
