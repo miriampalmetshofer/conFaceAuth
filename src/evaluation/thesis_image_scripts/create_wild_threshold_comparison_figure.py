@@ -1,10 +1,6 @@
 """Create the in-the-wild trust timeline with two annotated thresholds."""
 import json
-import sys
 from pathlib import Path
-
-# Add src to path to enable imports when this script is run directly.
-sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 from evaluation.shared.data_loader import load_evaluation_data
 from evaluation.shared.metrics import calculate_metrics

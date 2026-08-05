@@ -1,14 +1,10 @@
 """Create the thesis figure comparing operating modes as stacked timelines."""
 from dataclasses import dataclass
 import json
-import sys
 from pathlib import Path
 
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
-
-# Add src to path to enable imports when this script is run directly.
-sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 from evaluation.shared.data_loader import load_evaluation_data
 from evaluation.shared.metrics import calculate_metrics

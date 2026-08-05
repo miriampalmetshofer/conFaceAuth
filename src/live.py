@@ -1,14 +1,12 @@
 #!/usr/bin/env python3
 """Live face authentication demo using webcam."""
 
-import sys
 from pathlib import Path
 
 from face_auth.core.models import Frame
 from face_auth.processing.frame_authenticator import FrameAuthenticator
 
 project_root = Path(__file__).parent.parent
-sys.path.insert(0, str(project_root / "src"))
 
 import json
 import cv2
