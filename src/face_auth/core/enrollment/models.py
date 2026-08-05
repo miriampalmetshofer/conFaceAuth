@@ -3,7 +3,25 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Any
 
+from pydantic import BaseModel, Field, ConfigDict
+
 from face_auth.core.models import Frame
+
+
+class PoseEnrollmentConfig(BaseModel):
+    """Configuration for pose-based enrollment frame sampling."""
+    yaw_threshold: float = Field(..., gt=0)
+    pitch_threshold: float = Field(..., gt=0)
+    frame_sampling_interval: int = Field(..., gt=0)
+
+    model_config = ConfigDict(frozen=True)
+
+
+class FixedOrderEnrollmentConfig(BaseModel):
+    """Configuration for fixed-order enrollment frame sampling."""
+    window_seconds: float = Field(..., gt=0)
+
+    model_config = ConfigDict(frozen=True)
 
 
 class HeadDirection(Enum):

@@ -195,7 +195,7 @@ class VideoProcessingService:
     def _create_authenticator(self, enrollment_data: EnrollmentData) -> AuthenticatorBackend:
         """Create authenticator backend instance."""
         backend_type = AuthenticatorBackendType(self.config.backend)
-        backend_config = self.config.to_backend_config()
+        backend_config = self.config.backend_config
 
         return create_authenticator(
             backend_type=backend_type,

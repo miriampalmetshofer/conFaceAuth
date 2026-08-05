@@ -12,7 +12,7 @@
     "detector": "mediapipe",
     "embedder": {
       "model": "insightface",
-      "config": {
+      "insightface": {
         "model_name": "buffalo_sc",
         "det_size": [
           640,
@@ -26,7 +26,7 @@
     "skip_frames": 30,
     "matching_strategy": {
       "type": "random_sampling",
-      "config": {
+      "random_sampling": {
         "imposters_per_genuine": 18,
         "random_seed": 42
       }
@@ -56,7 +56,7 @@
     },
     "force_reenrollment": false,
     "backend": "fixed_order",
-    "config": {
+    "fixed_order": {
       "window_seconds": 2.0
     },
     "frames_per_direction": 5

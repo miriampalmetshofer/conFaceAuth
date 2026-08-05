@@ -9,6 +9,9 @@ from pydantic import BaseModel, Field, field_validator, ConfigDict
 
 from face_auth.core.authenticator.backend.impl.temporal_decay.models import TemporalDecayConfig
 from face_auth.core.authenticator.backend.impl.trust_based.models import TrustBasedConfig
+from face_auth.core.enrollment.models import PoseEnrollmentConfig, FixedOrderEnrollmentConfig
+from face_auth.core.embedder.models import FaceNetEmbedderConfig, InsightFaceEmbedderConfig
+from face_auth.imposter_video_creation.matching.models import RandomSamplingConfig
 
 '''
   - ge = greater than or equal to (>=)
@@ -57,54 +60,12 @@ class PathsConfig(BaseModel):
         return Path(self.results_file.format(base_path=self.base_path))
 
 
-class TrustBasedConfigModel(BaseModel):
-    """Configuration for windowed trust-based authentication using cosine similarity."""
-    threshold: float = Field(..., ge=-1.0, le=1.0)
-    window_size: int = Field(..., gt=0)
-    similarity_percentile: float = Field(..., ge=0, le=100)
-    alpha: float = Field(..., ge=0, le=1)
-    no_face_penalty: float = Field(..., ge=-1.0, le=1.0)
-
-    model_config = ConfigDict(frozen=True)
-
-    def to_backend_config(self) -> TrustBasedConfig:
-        """Convert to the backend-specific authentication config."""
-        return TrustBasedConfig(
-            threshold=self.threshold,
-            window_size=self.window_size,
-            similarity_percentile=self.similarity_percentile,
-            alpha=self.alpha,
-            no_face_penalty=self.no_face_penalty,
-        )
-
-
-class TemporalDecayConfigModel(BaseModel):
-    """Configuration for temporal decay authentication using time-weighted confidence."""
-    threshold: float = Field(..., ge=-1.0, le=1.0)
-    similarity_percentile: float = Field(..., ge=0, le=100)
-    k_weight: float = Field(..., gt=0)
-    k_decay: float = Field(..., gt=0)
-    initial_confidence: float = Field(..., ge=-1.0, le=1.0)
-
-    model_config = ConfigDict(frozen=True)
-
-    def to_backend_config(self) -> TemporalDecayConfig:
-        """Convert to the backend-specific authentication config."""
-        return TemporalDecayConfig(
-            threshold=self.threshold,
-            similarity_percentile=self.similarity_percentile,
-            k_weight=self.k_weight,
-            k_decay=self.k_decay,
-            initial_confidence=self.initial_confidence,
-        )
-
-
 class AuthenticationConfig(BaseModel):
     """Authentication parameters configuration."""
 
     backend: str = Field(..., description="Authentication backend type")
-    trust_based: Optional[TrustBasedConfigModel] = None
-    temporal_decay: Optional[TemporalDecayConfigModel] = None
+    trust_based: Optional[TrustBasedConfig] = None
+    temporal_decay: Optional[TemporalDecayConfig] = None
     fps: int = Field(..., gt=0, description="Frames per second for video processing")
 
     model_config = ConfigDict(frozen=True)
@@ -118,12 +79,13 @@ class AuthenticationConfig(BaseModel):
         if self.backend == "temporal_decay" and self.temporal_decay is None:
             raise ValueError("temporal_decay configuration required when backend='temporal_decay'")
 
-    def to_backend_config(self) -> Union[TrustBasedConfig, TemporalDecayConfig]:
-        """Return the configured authenticator backend settings."""
+    @property
+    def backend_config(self) -> Union[TrustBasedConfig, TemporalDecayConfig]:
+        """The configuration for the selected authenticator backend."""
         if self.backend == "trust_based":
-            return self.trust_based.to_backend_config()
+            return self.trust_based
         if self.backend == "temporal_decay":
-            return self.temporal_decay.to_backend_config()
+            return self.temporal_decay
         raise ValueError(f"Unsupported authentication backend: {self.backend}")
 
 
@@ -142,42 +104,48 @@ class EnrollmentConfig(BaseModel):
     enrollment_video_preference: EnrollmentVideoPreference
     force_reenrollment: bool = False
     backend: str = Field(..., min_length=1)
-    config: dict = Field(...)
+    pose: Optional[PoseEnrollmentConfig] = None
+    fixed_order: Optional[FixedOrderEnrollmentConfig] = None
     frames_per_direction: int = Field(..., gt=0)
 
     model_config = ConfigDict(frozen=True)
 
     def model_post_init(self, __context) -> None:
-        """Validate backend-specific enrollment settings."""
+        """Validate that correct config is provided for selected backend."""
         if self.backend not in {"pose", "fixed_order"}:
             raise ValueError("enrollment backend must be one of: pose, fixed_order")
-        if self.backend == "pose":
-            missing_keys = [
-                key for key in ("yaw_threshold", "pitch_threshold", "frame_sampling_interval")
-                if key not in self.config
-            ]
-            if missing_keys:
-                raise ValueError(
-                    "enrollment config is missing required pose key(s): "
-                    f"{', '.join(missing_keys)}"
-                )
-            if self.config["frame_sampling_interval"] <= 0:
-                raise ValueError(
-                    "enrollment config field frame_sampling_interval must be greater than 0"
-                )
-        if self.backend == "fixed_order" and "window_seconds" not in self.config:
-            raise ValueError(
-                "enrollment config is missing required fixed_order key: window_seconds"
-            )
+        if self.backend == "pose" and self.pose is None:
+            raise ValueError("pose configuration required when backend='pose'")
+        if self.backend == "fixed_order" and self.fixed_order is None:
+            raise ValueError("fixed_order configuration required when backend='fixed_order'")
 
 
 class EmbedderConfig(BaseModel):
     """Configuration for embedder model and parameters."""
 
-    model: str = Field(..., min_length=1, description="Embedder model name (facenet, arcface, insightface)")
-    config: dict = Field(..., description="Model-specific configuration parameters")
+    model: str = Field(..., min_length=1, description="Embedder model name (facenet, insightface)")
+    facenet: Optional[FaceNetEmbedderConfig] = None
+    insightface: Optional[InsightFaceEmbedderConfig] = None
 
     model_config = ConfigDict(frozen=True)
+
+    def model_post_init(self, __context) -> None:
+        """Validate that correct config is provided for selected model."""
+        if self.model not in {"facenet", "insightface"}:
+            raise ValueError("embedder model must be one of: facenet, insightface")
+        if self.model == "facenet" and self.facenet is None:
+            raise ValueError("facenet configuration required when model='facenet'")
+        if self.model == "insightface" and self.insightface is None:
+            raise ValueError("insightface configuration required when model='insightface'")
+
+    @property
+    def backend_config(self) -> Union[FaceNetEmbedderConfig, InsightFaceEmbedderConfig]:
+        """The configuration for the selected embedder model."""
+        if self.model == "facenet":
+            return self.facenet
+        if self.model == "insightface":
+            return self.insightface
+        raise ValueError(f"Unsupported embedder model: {self.model}")
 
 
 class ModelConfig(BaseModel):
@@ -193,9 +161,20 @@ class MatchingStrategyConfig(BaseModel):
     """Configuration for video matching strategy."""
 
     type: str = Field(..., min_length=1)
-    config: dict = Field(default_factory=dict)
+    random_sampling: Optional[RandomSamplingConfig] = None
 
     model_config = ConfigDict(frozen=True)
+
+    def model_post_init(self, __context) -> None:
+        """Validate that correct config is provided for selected strategy."""
+        if self.type not in {"scenario", "all_videos", "random_sampling"}:
+            raise ValueError(
+                "matching strategy type must be one of: scenario, all_videos, random_sampling"
+            )
+        if self.type == "random_sampling" and self.random_sampling is None:
+            raise ValueError(
+                "random_sampling configuration required when type='random_sampling'"
+            )
 
 
 class ProcessingConfig(BaseModel):

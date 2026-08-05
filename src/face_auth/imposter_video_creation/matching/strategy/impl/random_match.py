@@ -11,12 +11,12 @@ logger = get_logger(__name__)
 class RandomSamplingMatchingStrategy(VideoMatchingStrategy):
     """Match each genuine video with K randomly selected imposters."""
 
-    def __init__(self, imposters_per_genuine: int, random_seed: int = 42):
+    def __init__(self, imposters_per_genuine: int, random_seed: int):
         """Initialize random sampling strategy.
 
         Args:
             imposters_per_genuine: Number of imposters to match with each genuine video
-            random_seed: Seed for reproducibility (default: 42)
+            random_seed: Seed for reproducibility
         """
         self.imposters_per_genuine = imposters_per_genuine
         random.seed(random_seed)

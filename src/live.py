@@ -20,6 +20,7 @@ from face_auth.core.authenticator.backend.authenticator_factory import (
     AuthenticatorBackendType
 )
 from face_auth.core.authenticator.backend.impl.temporal_decay.models import TemporalDecayConfig
+from face_auth.core.embedder.models import InsightFaceEmbedderConfig
 
 
 logging.basicConfig(
@@ -48,7 +49,7 @@ class LiveFaceAuth:
         logger.info("Initializing InsightFace embedder...")
         self.embedder = create_embedder(
             backend_name=self.config["embedder"]["model"],
-            backend_config=self.config["embedder"]["config"],
+            backend_config=InsightFaceEmbedderConfig(**self.config["embedder"]["config"]),
             cache_enabled=False,
             cache_dir=None,
         )

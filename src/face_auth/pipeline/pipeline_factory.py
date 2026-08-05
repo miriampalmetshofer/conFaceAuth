@@ -29,7 +29,7 @@ class PipelineFactory:
         if self._embedder is None:
             self._embedder = create_embedder(
                 backend_name=self.config.models.embedder.model,
-                backend_config=self.config.models.embedder.config,
+                backend_config=self.config.models.embedder.backend_config,
                 cache_enabled=True,
                 cache_dir=self.config.paths.base_path / "embedding_cache",
             )
