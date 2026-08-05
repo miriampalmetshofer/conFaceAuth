@@ -3,7 +3,7 @@
 import sys
 from face_auth.config.loader import ConfigLoader
 from face_auth.config.logging_config import setup_logging, get_logger
-from face_auth.application import FaceAuthApplication
+from face_auth.pipeline import Pipeline
 
 
 def parse_cli_arguments() -> str:
@@ -45,8 +45,8 @@ def main():
     logger.info(f"Loaded configuration from: {config_file}")
 
     try:
-        app = FaceAuthApplication(config)
-        app.run()
+        pipeline = Pipeline(config)
+        pipeline.run()
 
     except Exception as e:
         logger.exception(f"Application failed: {e}")

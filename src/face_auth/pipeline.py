@@ -1,10 +1,10 @@
-"""Face authentication application orchestrator."""
+"""Batch face authentication pipeline orchestrator."""
 
 from typing import List
 
 from face_auth.config.models import ApplicationConfig, ProcessingContext
 from face_auth.config.logging_config import get_logger
-from face_auth.pipeline.pipeline_factory import PipelineFactory
+from face_auth.pipeline_factory import PipelineFactory
 from face_auth.batch.processing_job import ProcessingJob
 from face_auth.batch.batch_processor import BatchProcessor
 from face_auth.batch.processing_reporter import ProcessingReporter
@@ -14,11 +14,11 @@ from face_auth.processing.results_file_validator import ResultsFileValidator
 logger = get_logger(__name__)
 
 
-class FaceAuthApplication:
-    """Main application orchestrator for face authentication system."""
+class Pipeline:
+    """Orchestrates the batch face authentication run over recorded videos."""
 
     def __init__(self, config: ApplicationConfig):
-        """Initialize application.
+        """Initialize pipeline.
 
         Args:
             config: Application configuration
@@ -33,7 +33,7 @@ class FaceAuthApplication:
         self.video_discovery = self.pipeline_factory.create_video_discovery()
 
     def run(self):
-        """Run the face authentication application."""
+        """Run the batch face authentication pipeline."""
         self.reporter.log_start(self.config)
         self._validate_prerequisites()
 
