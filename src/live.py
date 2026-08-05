@@ -14,7 +14,7 @@ import logging
 import argparse
 import time
 
-from face_auth.core.embedder.embedder_factory import create_embedder
+from face_auth.core.embedder.backend.embedder_factory import create_embedder
 from face_auth.core.authenticator.backend.authenticator_factory import (
     create_authenticator,
     AuthenticatorBackendType

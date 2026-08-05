@@ -2,7 +2,7 @@
 
 from face_auth.config.models import ApplicationConfig, Pool
 from face_auth.core.embedder.backend.embedder_backend import EmbedderBackend
-from face_auth.core.embedder.embedder_factory import create_embedder
+from face_auth.core.embedder.backend.embedder_factory import create_embedder
 from face_auth.imposter_video_creation.matching.matching_strategy_factory import create_matching_strategy
 from face_auth.imposter_video_creation.matching.strategy.video_matching_strategy import VideoMatchingStrategy
 from face_auth.processing.result_writer import ResultWriter

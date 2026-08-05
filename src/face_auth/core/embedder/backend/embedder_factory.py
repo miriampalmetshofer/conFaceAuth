@@ -5,7 +5,7 @@ from typing import Optional, Union
 from face_auth.core.cache.backend.impl.persistent_embedding_cache import (
     PersistentEmbeddingCache,
 )
-from face_auth.core.detection.detector_factory import create_detector
+from face_auth.core.detection.backend.detector_factory import create_detector
 from face_auth.core.embedder.backend.embedder_backend import EmbedderBackend
 from face_auth.core.embedder.backend.impl.facenet_backend import FaceNetBackend
 from face_auth.core.embedder.backend.impl.insightface_backend import InsightFaceBackend
