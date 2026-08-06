@@ -6,7 +6,7 @@ from typing import List
 
 from face_auth.config.models import EnrollmentConfig, PathsConfig, ProcessingContext, EnrollmentVideoPreference
 from face_auth.core.embedder.backend.embedder_backend import EmbedderBackend
-from face_auth.processing.video_discovery import VideoDiscovery
+from face_auth.processing.video_discovery import discover_videos
 from face_auth.processing.video_parser.impl.enrollment_video_parser import EnrollmentVideoParser
 from face_auth.processing.models import EnrollmentVideo
 from face_auth.core.enrollment.backend.enrollment_factory import create_enrollment_backend
@@ -87,8 +87,7 @@ class EnrollmentService:
             ValueError: If no enrollment videos are found
         """
         participant_folder = self.paths.enrollment_base_path / context.device.value / context.participant.name
-        discovery = VideoDiscovery(EnrollmentVideoParser())
-        enrollment_videos = discovery.discover(participant_folder)
+        enrollment_videos = discover_videos(participant_folder, EnrollmentVideoParser())
 
         if not enrollment_videos:
             raise ValueError(

@@ -7,7 +7,6 @@ from face_auth.core.embedder.backend.embedder_backend import EmbedderBackend
 from face_auth.core.embedder.backend.embedder_factory import create_embedder
 from face_auth.imposter_video_creation.matching.matching_strategy_factory import create_matching_strategy
 from face_auth.processing.result_writer import ResultWriter
-from face_auth.processing.video_discovery import VideoDiscovery
 from face_auth.processing.video_parser.impl.controlled_study_parser import ControlledStudyParser
 from face_auth.processing.video_parser.impl.in_the_wild_study_parser import InTheWildStudyParser
 from face_auth.processing.video_parser.parser import VideoParser
@@ -34,9 +33,9 @@ class PipelineFactory:
             )
         return self._embedder
 
-    def create_video_discovery(self) -> VideoDiscovery:
-        """Create video discovery with the parser matching the configured pool."""
-        return VideoDiscovery(parser=self._get_parser_for_pool())
+    def create_parser(self) -> VideoParser:
+        """Create the video parser matching the configured pool."""
+        return self._get_parser_for_pool()
 
     def create_enrollment_service(self) -> EnrollmentService:
         """Create enrollment service with all dependencies."""

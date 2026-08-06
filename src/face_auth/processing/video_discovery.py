@@ -7,38 +7,32 @@ from face_auth.config.logging_config import get_logger
 logger = get_logger(__name__)
 
 
-class VideoDiscovery:
-    """Discovers videos from filesystem and parses metadata."""
+def discover_videos(folder_path: Path, parser: VideoParser) -> list[Video]:
+    """Discover and parse all videos in a folder using the given parser.
 
-    def __init__(self, parser: VideoParser):
-        """Initialize video discovery with a specific parser."""
-        self.parser = parser
+    Args:
+        folder_path: Folder path to search for videos
+        parser: Parser used to match and parse video metadata
 
-    def discover(self, folder_path: Path) -> list[Video]:
-        """Discover and parse all videos in folder using the configured parser.
+    Raises:
+        FileNotFoundError: If no videos are found in the folder
+    """
+    video_paths = []
+    for ext in VIDEO_EXTENSIONS:
+        pattern = f"**/*.{ext}"
+        video_paths.extend(folder_path.glob(pattern))
 
-        Args:
-            folder_path: Folder path to search for videos
+    videos = []
+    for video_path in video_paths:
+        if parser.matches(video_path):
+            try:
+                video = parser.parse(video_path)
+                videos.append(video)
+            except ValueError as e:
+                logger.warning(f"Could not parse {video_path.name}: {e}")
 
-        Raises:
-            FileNotFoundError: If no videos are found in the folder
-        """
-        video_paths = []
-        for ext in VIDEO_EXTENSIONS:
-            pattern = f"**/*.{ext}"
-            video_paths.extend(folder_path.glob(pattern))
+    if not videos:
+        raise FileNotFoundError(f"No videos found in {folder_path}")
 
-        videos = []
-        for video_path in video_paths:
-            if self.parser.matches(video_path):
-                try:
-                    video = self.parser.parse(video_path)
-                    videos.append(video)
-                except ValueError as e:
-                    logger.warning(f"Could not parse {video_path.name}: {e}")
-
-        if not videos:
-            raise FileNotFoundError(f"No videos found in {folder_path}")
-
-        logger.info(f"Found {len(videos)} video(s) in {folder_path}")
-        return videos
+    logger.info(f"Found {len(videos)} video(s) in {folder_path}")
+    return videos
