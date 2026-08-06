@@ -14,7 +14,6 @@ from face_auth.processing.video_parser.parser import VideoParser
 from face_auth.services.enrollment_service import EnrollmentService
 from face_auth.services.video_processing_service import VideoProcessingService
 from face_auth.services.imposter_video_creation_service import ImposterVideoCreationService
-from face_auth.services.video_validation_service import VideoValidationService
 
 
 class PipelineFactory:
@@ -48,10 +47,9 @@ class PipelineFactory:
         )
 
     def create_imposter_creation_service(self) -> ImposterVideoCreationService:
-        """Create imposter video creation service with its validator and matching strategy."""
+        """Create imposter video creation service with its matching strategy."""
         return ImposterVideoCreationService(
             stitch_config=self.config.imposter_creation,
-            video_validator=VideoValidationService(expected_fps=self.config.imposter_creation.fps),
             matching_strategy=create_matching_strategy(self.config.processing.matching_strategy),
         )
 

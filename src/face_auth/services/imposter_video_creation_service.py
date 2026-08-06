@@ -11,7 +11,7 @@ from face_auth.imposter_video_creation.iterators.impl.black_frame_iterator impor
 from face_auth.imposter_video_creation.iterators.impl.video_frame_iterator import VideoFrameIterator
 from face_auth.imposter_video_creation.matching.strategy.video_matching_strategy import VideoMatchingStrategy
 from face_auth.processing.models import ImposterSamplePair, ComposedVideo, Video
-from face_auth.services.video_validation_service import VideoValidationService
+from face_auth.services.video_validation import validate_video
 
 logger = get_logger(__name__)
 
@@ -22,18 +22,15 @@ class ImposterVideoCreationService:
     def __init__(
             self,
             stitch_config: StitchConfig,
-            video_validator: VideoValidationService,
             matching_strategy: VideoMatchingStrategy,
     ):
-        """Initialize with stitching configuration, video validator and matching strategy.
+        """Initialize with stitching configuration and matching strategy.
 
         Args:
             stitch_config: Configuration for imposter creation
-            video_validator: Validator for video FPS and duration requirements
             matching_strategy: Strategy for pairing genuine videos with imposter videos
         """
         self.config = stitch_config
-        self.video_validator = video_validator
         self.matching_strategy = matching_strategy
 
     def create_imposter_videos(
@@ -56,26 +53,13 @@ class ImposterVideoCreationService:
             ValueError: If any video does not meet FPS or duration requirements
         """
         pairs = self.matching_strategy.match(all_videos, genuine_user, allowed_participants)
-        return self._compose_all(pairs)
 
-    def _compose_all(self, pairs: List[ImposterSamplePair]) -> List[ComposedVideo]:
-        """Validate and create composed imposter videos for all pairs.
-
-        Args:
-            pairs: List of imposter sample pairs to compose
-
-        Returns:
-            List of composed videos (no physical files)
-
-        Raises:
-            ValueError: If any video does not meet FPS or duration requirements
-        """
         logger.info(f"Creating imposter videos from {len(pairs)} pair(s)")
 
         logger.info("Validating video requirements (FPS, duration)...")
         for pair in pairs:
-            self.video_validator.validate(pair.genuine_video.path, self.config.genuine_user_seconds)
-            self.video_validator.validate(pair.imposter_video.path, self.config.impostor_seconds)
+            validate_video(pair.genuine_video.path, self.config.fps, self.config.genuine_user_seconds)
+            validate_video(pair.imposter_video.path, self.config.fps, self.config.impostor_seconds)
 
         imposter_videos = []
         for i, pair in enumerate(pairs, 1):
@@ -94,6 +78,7 @@ class ImposterVideoCreationService:
 
 
     def _create_iterators(self, pair):
+        """Create frame iterators for a composed video. Currently this is fixed to genuine + black frames + imposter."""
         width, height = self._get_video_dimensions(pair.genuine_video.path)
 
         iterators: List[FrameIterator] = [
