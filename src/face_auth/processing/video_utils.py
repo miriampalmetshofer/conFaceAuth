@@ -103,11 +103,3 @@ def rotate_frame(frame, rotation_angle):
     else:
         logger.warning(f"Unsupported rotation angle {rotation_angle}; frame not rotated")
         return frame
-
-
-def get_frame_dimensions_after_rotation(width, height, rotation_angle):
-    """Get the dimensions of a frame after rotation."""
-    if rotation_angle in [90, 270]:
-        return height, width
-    else:
-        return width, height
