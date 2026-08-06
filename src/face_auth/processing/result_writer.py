@@ -1,97 +1,39 @@
 import pandas as pd
-import json
 from pathlib import Path
 from typing import List
 from face_auth.config.logging_config import get_logger
-from face_auth.config.models import ProcessingContext, ApplicationConfig
-from face_auth.processing.models import FrameAuthenticationResult
+from face_auth.config.models import ProcessingContext
 from face_auth.services.models import VideoResult
 
 logger = get_logger(__name__)
 
 
 class ResultWriter:
-    """Handles writing authentication results to CSV files."""
+    """Writes per-video authentication results as individual CSV files."""
 
-    def __init__(self, config: ApplicationConfig):
-        self.config = config
+    def __init__(self, run_dir: Path):
+        """Initialize with the directory of the current run.
+
+        Args:
+            run_dir: Unique directory for this run's results
+        """
+        self.run_dir = run_dir
 
     def write_all(self, video_results: List[VideoResult], context: ProcessingContext) -> None:
-        """Write the results of every processed video to the results CSV."""
-        results_path = self.config.paths.results_path
+        """Write one CSV per processed video under <run_dir>/<participant>/<device>/."""
+        video_dir = self.run_dir / context.participant.name / context.device.value
+        video_dir.mkdir(parents=True, exist_ok=True)
 
         for video_result in video_results:
-            self.write_results(
-                video_result.frame_results,
-                results_path,
-                video_result.video.path,
-                context
-            )
+            self._write_video(video_result, video_dir)
 
-        logger.debug(f"Wrote results for {len(video_results)} video(s) to {results_path}")
+        logger.debug(f"Wrote {len(video_results)} video result file(s) to {video_dir}")
 
-    def write_results(self, results: List[FrameAuthenticationResult], results_path: Path, video_path: Path, context: ProcessingContext) -> None:
-        """Write authentication results to CSV with configuration metadata."""
-        results_dicts = [result.to_dict() for result in results]
-        df = pd.DataFrame(results_dicts)
+    def _write_video(self, video_result: VideoResult, video_dir: Path) -> None:
+        """Write a single video's frame results to its own CSV."""
+        rows = [frame_result.to_dict() for frame_result in video_result.frame_results]
+        df = pd.DataFrame(rows)
 
-        metadata = self._extract_metadata(video_path, context)
-        for key, value in metadata.items():
-            df[key] = value
-
-        file_exists = results_path.exists()
-        logger.info(f"{'Appending' if file_exists else 'Creating'} results to {results_path}")
-
-        if not file_exists:
-            self._save_config_copy(results_path)
-
-        df.to_csv(results_path, mode='a', header=not file_exists, index=False)
-
-    def _save_config_copy(self, results_path: Path) -> None:
-        """Save a copy of the configuration file next to the results CSV."""
-        config_path = results_path.parent / "config.json"
-
-        config_dict = self.config.model_dump(mode='json')
-
-        with open(config_path, 'w') as f:
-            json.dump(config_dict, f, indent=2)
-
-        logger.info(f"Saved configuration copy to {config_path}")
-
-    def _extract_metadata(self, video_path: Path, context: ProcessingContext) -> dict:
-        """Extract relevant configuration fields for CSV output."""
-        auth_config = self.config.authentication
-        backend = auth_config.backend
-
-        metadata = {
-            "participant": context.participant.name,
-            "device": context.device.value,
-            "pool": context.pool.value,
-            "video_path": str(video_path),
-            "skip_frames": self.config.processing.skip_frames,
-            "embedder": self.config.models.embedder.model,
-            "detector": self.config.models.detector,
-            "enrollment_frames_per_direction": self.config.enrollment.frames_per_direction,
-            "backend": backend
-        }
-
-        if backend == "trust_based":
-            trust_config = auth_config.trust_based
-            metadata.update({
-                "window_size": trust_config.window_size,
-                "threshold": trust_config.threshold,
-                "similarity_percentile": trust_config.similarity_percentile,
-                "no_face_penalty": trust_config.no_face_penalty,
-                "alpha": trust_config.alpha
-            })
-        elif backend == "temporal_decay":
-            temporal_config = auth_config.temporal_decay
-            metadata.update({
-                "threshold": temporal_config.threshold,
-                "similarity_percentile": temporal_config.similarity_percentile,
-                "k_weight": temporal_config.k_weight,
-                "k_decay": temporal_config.k_decay,
-                "initial_confidence": temporal_config.initial_confidence
-            })
-
-        return metadata
+        csv_path = video_dir / f"{video_result.video.name}.csv"
+        df.to_csv(csv_path, index=False)
+        logger.info(f"Wrote {len(rows)} frame result(s) to {csv_path}")

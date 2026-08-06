@@ -26,12 +26,10 @@ class FrameAuthenticator:
         self,
         frame: Frame,
     ) -> AuthenticationResult:
-        """Authenticate an RGB frame."""
+
         embedding_result = self.embedder.embed(frame.image)
 
         if embedding_result.face_detected:
-            if embedding_result.embedding is None:
-                raise ValueError("Face was detected but no embedding was returned")
 
             self.authenticator.update_with_embedding(
                 embedding_result.embedding,

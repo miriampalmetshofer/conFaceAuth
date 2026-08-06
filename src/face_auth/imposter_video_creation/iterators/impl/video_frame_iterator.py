@@ -74,8 +74,3 @@ class VideoFrameIterator(FrameIterator):
     def source_name(self) -> str:
         """Name of the source video file."""
         return self._video_path.stem
-
-    @property
-    def video_path(self) -> Path:
-        """Return the video file path."""
-        return self._video_path

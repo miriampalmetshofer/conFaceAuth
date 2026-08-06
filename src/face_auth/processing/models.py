@@ -46,8 +46,13 @@ class ImposterSamplePair:
 
 
 @dataclass
-class ComposedVideo(Video):
-    """Virtual video composed from multiple frame iterators without physical file."""
+class ComposedVideo:
+    """Virtual video composed from multiple frame iterators, with no physical file.
+
+    A composed video is an in-memory sequence of frame iterators rather than a file
+    on disk, so it carries only an identifying name and its iterators.
+    """
+    name: str
     iterators: List['FrameIterator']
 
 

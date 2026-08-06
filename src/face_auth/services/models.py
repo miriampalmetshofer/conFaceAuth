@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import List
 import numpy as np
 
-from face_auth.processing.models import Video
+from face_auth.processing.models import ComposedVideo
 from face_auth.processing.models import FrameAuthenticationResult
 
 
@@ -21,5 +21,5 @@ class EnrollmentData:
 class VideoResult:
     """Container for video processing results."""
 
-    video: Video
+    video: ComposedVideo
     frame_results: List[FrameAuthenticationResult]

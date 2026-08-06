@@ -24,7 +24,7 @@ def execute_job(job: ProcessingJob) -> ProcessingResult:
         enrollment_service = pipeline_factory.create_enrollment_service()
         imposter_creation_service = pipeline_factory.create_imposter_creation_service()
         video_processing_service = pipeline_factory.create_video_processing_service()
-        result_writer = pipeline_factory.create_result_writer()
+        result_writer = pipeline_factory.create_result_writer(job.run_dir)
 
         # Get enrollment data
         enrollment_data = enrollment_service.enroll(job.context)

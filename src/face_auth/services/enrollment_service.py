@@ -19,11 +19,6 @@ from face_auth.config.logging_config import get_logger
 logger = get_logger(__name__)
 
 
-class EnrollmentException(Exception):
-    """Exception raised for enrollment-related errors."""
-    pass
-
-
 class EnrollmentService:
     """Handles all enrollment-related operations."""
 
@@ -57,7 +52,7 @@ class EnrollmentService:
             EnrollmentData with folder path and embeddings
 
         Raises:
-            EnrollmentException: If enrollment cannot be created or loaded
+            ValueError: If enrollment cannot be created or loaded
         """
         discovered_videos = self._discover_enrollment_videos(context)
 
@@ -89,14 +84,14 @@ class EnrollmentService:
             List of enrollment videos found
 
         Raises:
-            EnrollmentException: If no enrollment videos found
+            ValueError: If no enrollment videos are found
         """
         participant_folder = self.paths.enrollment_base_path / context.device.value / context.participant.name
         discovery = VideoDiscovery(EnrollmentVideoParser())
         enrollment_videos = discovery.discover(participant_folder)
 
         if not enrollment_videos:
-            raise EnrollmentException(
+            raise ValueError(
                 f"\n{'!' * 60}\n"
                 f"ERROR: No enrollment video found!\n"
                 f"Searched in: {participant_folder}\n"
@@ -145,7 +140,7 @@ class EnrollmentService:
             List of selected enrollment videos matching preference
 
         Raises:
-            EnrollmentException: If any required video is missing
+            ValueError: If any required video is missing
         """
         selected_videos = []
 
@@ -157,7 +152,7 @@ class EnrollmentService:
                     if v.scenario == scenario and v.head_rotation == rotation
                 ]
                 if not matching_videos:
-                    raise EnrollmentException(
+                    raise ValueError(
                         f"No enrollment video found for scenario '{scenario.value}' with rotation '{rotation.value}'"
                     )
                 # Use first match if multiple videos exist for same scenario+rotation
@@ -195,7 +190,7 @@ class EnrollmentService:
             EnrollmentData with created enrollment
 
         Raises:
-            EnrollmentException: If enrollment creation fails
+            ValueError: If enrollment creation fails
         """
         logger.info(
             f"Processing {len(enrollment_videos)} enrollment video(s): "
@@ -222,14 +217,14 @@ class EnrollmentService:
             EnrollmentData with loaded embeddings
 
         Raises:
-            EnrollmentException: If loading fails
+            ValueError: If loading fails
         """
         try:
             loader = EnrollmentLoader(self.embedder)
             embeddings = loader.load_embeddings(folder)
             return EnrollmentData(folder=folder, embeddings=embeddings)
         except Exception as e:
-            raise EnrollmentException(f"Failed to load enrollment: {e}")
+            raise ValueError(f"Failed to load enrollment: {e}")
 
     def _build_enrollment_video_processor(self) -> EnrollmentVideoProcessor:
         """Build enrollment video processor with configured components."""

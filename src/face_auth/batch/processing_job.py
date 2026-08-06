@@ -1,6 +1,7 @@
 """Processing job model for parallel execution."""
 
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Optional, List
 
 from face_auth.config.models import ProcessingContext, ApplicationConfig, Participant
@@ -24,6 +25,7 @@ class ProcessingJob:
     all_videos: List[Video]
     config: ApplicationConfig
     all_participants: List[Participant]
+    run_dir: Path
 
     def __str__(self) -> str:
         """String representation for logging."""

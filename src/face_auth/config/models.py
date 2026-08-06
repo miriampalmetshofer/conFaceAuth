@@ -50,14 +50,14 @@ class PathsConfig(BaseModel):
 
     base_path: Path
     enrollment_base_path: Path
-    results_file: str = Field(..., min_length=1)
+    results_dir: str = Field(..., min_length=1)
 
     model_config = ConfigDict(frozen=True)
 
     @property
     def results_path(self) -> Path:
-        """Formatted results file path."""
-        return Path(self.results_file.format(base_path=self.base_path))
+        """Formatted results directory path."""
+        return Path(self.results_dir.format(base_path=self.base_path))
 
 
 class AuthenticationConfig(BaseModel):

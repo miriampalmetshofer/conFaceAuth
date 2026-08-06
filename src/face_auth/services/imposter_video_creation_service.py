@@ -84,12 +84,9 @@ class ImposterVideoCreationService:
                 f"{pair.genuine_video.path.name} + {pair.imposter_video.path.name}"
             )
             iterators = self._create_iterators(pair)
-            virtual_path = self._build_virtual_path(pair)
 
             imposter_videos.append(ComposedVideo(
-                path=virtual_path,
-                recording_date=pair.genuine_video.recording_date,
-                participant=pair.genuine_video.participant,
+                name=self._build_name(pair),
                 iterators=iterators
             ))
 
@@ -134,9 +131,8 @@ class ImposterVideoCreationService:
         cap.release()
         return width, height
 
-    def _build_virtual_path(self, pair: ImposterSamplePair) -> Path:
-        """Build virtual path for composed video (for identification only)."""
+    def _build_name(self, pair: ImposterSamplePair) -> str:
+        """Build the identifying name for a composed video."""
         genuine_stem = pair.genuine_video.path.stem
         imposter_stem = pair.imposter_video.path.stem
-        filename = f"{genuine_stem}_vs_{imposter_stem}.composed"
-        return Path(f"<composed>/{filename}")
+        return f"{genuine_stem}_vs_{imposter_stem}"

@@ -6,7 +6,7 @@
   "paths": {
     "base_path": "data/in_the_wild",
     "enrollment_base_path": "data/enrollments",
-    "results_file": "{base_path}/results.csv"
+    "results_dir": "{base_path}/results"
   },
   "models": {
     "detector": "mediapipe",

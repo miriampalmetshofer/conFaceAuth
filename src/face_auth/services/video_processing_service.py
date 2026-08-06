@@ -67,10 +67,10 @@ class VideoProcessingService:
                     skip_frames=skip_frames
                 )
                 video_results.append(video_result)
-                logger.debug(f"[{idx}/{len(videos)}] Completed: {video.path.name}")
+                logger.debug(f"[{idx}/{len(videos)}] Completed: {video.name}")
             except Exception as e:
                 logger.error(
-                    f"[{idx}/{len(videos)}] Failed to process {video.path.name}: {e}",
+                    f"[{idx}/{len(videos)}] Failed to process {video.name}: {e}",
                     exc_info=True
                 )
 
@@ -104,7 +104,7 @@ class VideoProcessingService:
 
         all_frame_results = []
         frame_index = 1
-        video_name = video.path.name
+        video_name = video.name
 
         logger.info(f"Processing composed video {video_name}")
 
