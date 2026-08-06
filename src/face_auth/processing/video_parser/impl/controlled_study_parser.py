@@ -15,7 +15,7 @@ class ControlledStudyParser(VideoParser):
         r"^(?P<name>[^_]+)_(?P<scenario>[^_]+)_(?P<date>\d{4}-\d{2}-\d{2})_(?P<time>\d{2}-\d{2}-\d{2})$"
     )
 
-    def matches(self, path: Path) -> bool:
+    def can_parse(self, path: Path) -> bool:
         return bool(self.regex.match(path.stem))
 
     def parse(self, path: Path) -> Video:

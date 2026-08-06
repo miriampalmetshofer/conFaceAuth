@@ -11,7 +11,6 @@ from face_auth.batch.batch_processor import BatchProcessor
 from face_auth.batch.processing_reporter import ProcessingReporter
 from face_auth.batch.job_executor import execute_job
 from face_auth.processing.run_directory import create_run_directory
-from face_auth.processing.video_discovery import discover_videos
 
 logger = get_logger(__name__)
 
@@ -57,7 +56,7 @@ class Pipeline:
         jobs = []
         for device in self.config.devices:
             logger.info(f"Discovering videos on {device.value}...")
-            all_videos = discover_videos(self.config.paths.base_path / device.value, self.parser)
+            all_videos = self.parser.parse_folder(self.config.paths.base_path / device.value)
 
             for participant in self.config.participants:
                 context = ProcessingContext(
