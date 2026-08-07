@@ -1,6 +1,6 @@
 """Data models for face embedding components."""
 from dataclasses import dataclass
-from typing import Optional, Tuple
+from typing import Literal, Optional, Tuple
 
 import numpy as np
 from pydantic import BaseModel, Field, ConfigDict
@@ -8,6 +8,7 @@ from pydantic import BaseModel, Field, ConfigDict
 
 class FaceNetEmbedderConfig(BaseModel):
     """Configuration for the FaceNet embedder backend."""
+    type: Literal["facenet"]
     detector: str = Field(..., min_length=1)
     target_size: Tuple[int, int] = Field(...)
 
@@ -16,6 +17,7 @@ class FaceNetEmbedderConfig(BaseModel):
 
 class InsightFaceEmbedderConfig(BaseModel):
     """Configuration for the InsightFace embedder backend."""
+    type: Literal["insightface"]
     model_name: str = Field(..., min_length=1)
     det_size: Tuple[int, int] = Field(...)
     min_detection_confidence: float = Field(..., ge=0, le=1)

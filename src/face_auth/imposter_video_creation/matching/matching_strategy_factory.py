@@ -1,16 +1,16 @@
 """Factory for creating video matching strategy."""
-from face_auth.config.models import MatchingStrategyConfig
+from face_auth.config.models import MatchingStrategyChoice
 from face_auth.imposter_video_creation.matching.strategy.impl.all import AllVideosMatchingStrategy
 from face_auth.imposter_video_creation.matching.strategy.impl.random_match import RandomSamplingMatchingStrategy
 from face_auth.imposter_video_creation.matching.strategy.impl.scenario import ScenarioMatchingStrategy
 from face_auth.imposter_video_creation.matching.strategy.video_matching_strategy import VideoMatchingStrategy
 
 
-def create_matching_strategy(strategy_config: MatchingStrategyConfig) -> VideoMatchingStrategy:
+def create_matching_strategy(strategy_config: MatchingStrategyChoice) -> VideoMatchingStrategy:
     """Create a video matching strategy from config.
 
     Args:
-        strategy_config: Strategy configuration with type and strategy-specific settings
+        strategy_config: Strategy configuration with its type and strategy-specific settings
 
     Returns:
         Video matching strategy instance
@@ -26,8 +26,8 @@ def create_matching_strategy(strategy_config: MatchingStrategyConfig) -> VideoMa
 
     if strategy_config.type == "random_sampling":
         return RandomSamplingMatchingStrategy(
-            imposters_per_genuine=strategy_config.random_sampling.imposters_per_genuine,
-            random_seed=strategy_config.random_sampling.random_seed,
+            imposters_per_genuine=strategy_config.imposters_per_genuine,
+            random_seed=strategy_config.random_seed,
         )
 
     raise ValueError(f"Unsupported matching strategy: {strategy_config.type}")

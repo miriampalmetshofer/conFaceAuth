@@ -11,38 +11,34 @@
   "models": {
     "detector": "mediapipe",
     "embedder": {
-      "model": "insightface",
-      "insightface": {
-        "model_name": "buffalo_sc",
-        "det_size": [
-          640,
-          640
-        ],
-        "min_detection_confidence": 0.6
-      }
+      "type": "insightface",
+      "model_name": "buffalo_sc",
+      "det_size": [
+        640,
+        640
+      ],
+      "min_detection_confidence": 0.6
     }
   },
   "processing": {
     "skip_frames": 30,
     "matching_strategy": {
       "type": "random_sampling",
-      "random_sampling": {
-        "imposters_per_genuine": 18,
-        "random_seed": 42
-      }
+      "imposters_per_genuine": 18,
+      "random_seed": 42
     },
     "num_workers": 4
   },
   "authentication": {
-    "backend": "temporal_decay",
-    "fps": 30,
-    "temporal_decay": {
+    "backend": {
+      "type": "temporal_decay",
       "threshold": 0.5,
-      "similarity_percentile": 0.90,
-     "k_weight": 45000,
+      "similarity_percentile": 0.9,
+      "k_weight": 45000,
       "k_decay": 60000,
       "initial_confidence": 1
-    }
+    },
+    "fps": 30
   },
   "enrollment": {
     "enrollment_video_preference": {
@@ -55,8 +51,8 @@
       ]
     },
     "force_reenrollment": false,
-    "backend": "fixed_order",
-    "fixed_order": {
+    "backend": {
+      "type": "fixed_order",
       "window_seconds": 2.0
     },
     "frames_per_direction": 5
@@ -72,7 +68,7 @@
     "format": "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
   },
   "participants": [
-      {
+    {
       "name": "christina"
     },
     {
@@ -136,10 +132,10 @@
       "name": "sabine"
     },
     {
-        "name": "miriam1"
+      "name": "miriam1"
     },
     {
-        "name": "manuel"
+      "name": "manuel"
     },
     {
       "name": "elisa"

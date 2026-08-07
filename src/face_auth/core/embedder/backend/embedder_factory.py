@@ -10,18 +10,18 @@ from face_auth.core.embedder.backend.embedder_backend import EmbedderBackend
 from face_auth.core.embedder.backend.impl.facenet_backend import FaceNetBackend
 from face_auth.core.embedder.backend.impl.insightface_backend import InsightFaceBackend
 from face_auth.core.embedder.cached_embedder import CachedEmbedder
-from face_auth.config.models import EmbedderConfig
+from face_auth.config.models import EmbedderModelConfig
 
 
 def create_embedder(
-    config: EmbedderConfig,
+    config: EmbedderModelConfig,
     cache_enabled: bool,
     cache_dir: Optional[Path],
 ) -> EmbedderBackend:
     """Create a face embedder backend instance with all its dependencies.
 
     Args:
-        config: Embedder configuration selecting the model and its settings
+        config: Embedder model configuration selecting the model and its settings
         cache_enabled: Whether to wrap the embedder with a persistent embedding cache
         cache_dir: Directory where cache files are stored when caching is enabled
 
@@ -31,27 +31,25 @@ def create_embedder(
     Raises:
         ValueError: If the configured model is not recognized
     """
-    backend_config = config.backend_config
-
     # FaceNet backend uses the detector and requests its own input size.
-    if config.model == "facenet":
-        detector = create_detector(backend_config.detector)
+    if config.type == "facenet":
+        detector = create_detector(config.detector)
 
         embedder = FaceNetBackend(
             detector=detector,
-            target_size=backend_config.target_size,
+            target_size=config.target_size,
         )
 
     # InsightFace backend - handles detection internally
-    elif config.model == "insightface":
+    elif config.type == "insightface":
         embedder = InsightFaceBackend(
-            model_name=backend_config.model_name,
-            det_size=backend_config.det_size,
-            min_detection_confidence=backend_config.min_detection_confidence,
+            model_name=config.model_name,
+            det_size=config.det_size,
+            min_detection_confidence=config.min_detection_confidence,
         )
 
     else:
-        raise ValueError(f"Unsupported embedder model: {config.model}")
+        raise ValueError(f"Unsupported embedder model: {config.type}")
 
     if not cache_enabled:
         return embedder

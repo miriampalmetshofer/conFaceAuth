@@ -18,7 +18,7 @@ from face_auth.core.embedder.backend.embedder_factory import create_embedder
 from face_auth.core.authenticator.backend.authenticator_factory import create_authenticator
 from face_auth.core.authenticator.backend.impl.temporal_decay.models import TemporalDecayConfig
 from face_auth.core.embedder.models import InsightFaceEmbedderConfig
-from face_auth.config.models import AuthenticationConfig, EmbedderConfig
+from face_auth.config.models import AuthenticationConfig
 
 
 logging.basicConfig(
@@ -46,10 +46,7 @@ class LiveFaceAuth:
 
         logger.info("Initializing InsightFace embedder...")
         self.embedder = create_embedder(
-            config=EmbedderConfig(
-                model=self.config["embedder"]["model"],
-                insightface=InsightFaceEmbedderConfig(**self.config["embedder"]["config"]),
-            ),
+            config=InsightFaceEmbedderConfig(type="insightface", **self.config["embedder"]["config"]),
             cache_enabled=False,
             cache_dir=None,
         )
@@ -130,9 +127,8 @@ class LiveFaceAuth:
 
         # Initialize authenticator with enrollment embeddings
         authentication_config = AuthenticationConfig(
-            backend="temporal_decay",
+            backend=TemporalDecayConfig(type="temporal_decay", **self.config["temporal_decay"]),
             fps=self.config["fps"],
-            temporal_decay=TemporalDecayConfig(**self.config["temporal_decay"]),
         )
 
         authenticator_backend = create_authenticator(

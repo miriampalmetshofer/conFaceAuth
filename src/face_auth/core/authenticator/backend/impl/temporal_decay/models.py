@@ -1,9 +1,12 @@
 """Data models for temporal decay authenticator."""
+from typing import Literal
+
 from pydantic import BaseModel, Field, ConfigDict
 
 
 class TemporalDecayConfig(BaseModel):
     """Configuration for temporal decay authentication using time-weighted confidence."""
+    type: Literal["temporal_decay"]
     threshold: float = Field(..., ge=-1.0, le=1.0)
     similarity_percentile: float = Field(..., ge=0, le=100)
     k_weight: float = Field(..., gt=0)

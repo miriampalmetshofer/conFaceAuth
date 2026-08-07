@@ -21,16 +21,18 @@ def create_authenticator(
     Raises:
         ValueError: If the configured backend is not supported
     """
-    if config.backend == "trust_based":
+    backend = config.backend
+
+    if backend.type == "trust_based":
         from face_auth.core.authenticator.backend.impl.trust_based.trust_based_authenticator import (
             RiskBasedAuthenticator
         )
-        return RiskBasedAuthenticator(config.backend_config, enrollment_embeddings)
+        return RiskBasedAuthenticator(backend, enrollment_embeddings)
 
-    if config.backend == "temporal_decay":
+    if backend.type == "temporal_decay":
         from face_auth.core.authenticator.backend.impl.temporal_decay.temporal_decay_authenticator import (
             TemporalDecayAuthenticator
         )
-        return TemporalDecayAuthenticator(config.backend_config, enrollment_embeddings)
+        return TemporalDecayAuthenticator(backend, enrollment_embeddings)
 
-    raise ValueError(f"Unsupported authentication backend: {config.backend}")
+    raise ValueError(f"Unsupported authentication backend: {backend.type}")
