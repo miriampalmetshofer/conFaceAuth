@@ -1,6 +1,6 @@
 """Job executor function for parallel processing."""
 
-from face_auth.batch.processing_job import ProcessingJob, ProcessingResult
+from face_auth.batch.models import ProcessingJob, ProcessingResult
 from face_auth.pipeline_factory import PipelineFactory
 from face_auth.config.logging_config import get_logger
 
