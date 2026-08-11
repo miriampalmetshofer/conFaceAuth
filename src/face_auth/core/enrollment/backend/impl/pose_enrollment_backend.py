@@ -12,7 +12,7 @@ from face_auth.core.enrollment.models import (
     SelectedEnrollmentFrame,
 )
 from face_auth.config.logging_config import get_logger
-from face_auth.processing.models import EnrollmentVideo
+from face_auth.processing.models import Video
 from face_auth.processing.video_utils import read_frames
 
 logger = get_logger(__name__)
@@ -37,15 +37,15 @@ class PoseEnrollmentBackend(EnrollmentBackend):
 
     def select_frames(
         self,
-        enrollment_videos: list[EnrollmentVideo],
+        videos: list[Video],
         frames_per_direction_per_video: int,
     ) -> list[SelectedEnrollmentFrame]:
         """Select frames using the existing pose-based enrollment logic."""
-        candidates = self._collect_pose_candidates(enrollment_videos)
+        candidates = self._collect_pose_candidates(videos)
         return self._select_candidates(
             candidates=candidates,
             frames_per_direction_per_video=frames_per_direction_per_video,
-            video_count=len(enrollment_videos),
+            video_count=len(videos),
         )
 
     def _select_candidates(
@@ -73,11 +73,11 @@ class PoseEnrollmentBackend(EnrollmentBackend):
 
     def _collect_pose_candidates(
         self,
-        enrollment_videos: list[EnrollmentVideo],
+        videos: list[Video],
     ) -> list[EnrollmentCandidate]:
         candidates = []
 
-        for video in enrollment_videos:
+        for video in videos:
             frames = list(read_frames(video.path, sample_every=self.frame_sampling_interval))
             logger.info(
                 f"Estimating head pose for {len(frames)} extracted frames "
