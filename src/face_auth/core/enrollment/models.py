@@ -73,19 +73,3 @@ class SelectedEnrollmentFrame:
     def image_rgb(self) -> Any:
         """Return the selected RGB image."""
         return self.frame.image
-
-
-@dataclass
-class EnrollmentFrames:
-    """Frames organized by head direction."""
-    frames_by_direction: dict[HeadDirection, list[Any]]
-    selected_frames: list[SelectedEnrollmentFrame] | None = None
-
-    def direction_count(self, direction: HeadDirection) -> int:
-        """Return the number of frames for a specific direction."""
-        return len(self.frames_by_direction.get(direction, []))
-
-    @property
-    def all_directions(self) -> list[HeadDirection]:
-        """All directions that have frames."""
-        return list(self.frames_by_direction.keys())

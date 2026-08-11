@@ -1,5 +1,6 @@
 """Enrollment service for managing participant enrollment data."""
 
+from collections import Counter
 from pathlib import Path
 import shutil
 from typing import List
@@ -9,10 +10,10 @@ from face_auth.core.embedder.backend.embedder_backend import EmbedderBackend
 from face_auth.processing.video_parser.impl.enrollment_video_parser import EnrollmentVideoParser
 from face_auth.processing.models import EnrollmentVideo
 from face_auth.core.enrollment.backend.enrollment_factory import create_enrollment_backend
-from face_auth.core.enrollment.enrollment_video_processor import EnrollmentVideoProcessor
-from face_auth.core.enrollment.enrollment_frame_saver import EnrollmentFrameSaver
 from face_auth.core.enrollment.enrollment_loader import load_enrollment_embeddings
+from face_auth.core.enrollment.models import SelectedEnrollmentFrame
 from face_auth.services.models import EnrollmentData
+from face_auth.processing.video_utils import save_image_rgb
 from face_auth.config.logging_config import get_logger
 
 logger = get_logger(__name__)
@@ -55,7 +56,7 @@ class EnrollmentService:
         """
         discovered_videos = self._discover_enrollment_videos(context)
 
-        selected_videos = self._select_enrollment_videos(
+        selected_videos = self._filter_enrollment_videos(
             discovered_videos,
             self.config.enrollment_video_preference
         )
@@ -123,7 +124,7 @@ class EnrollmentService:
         folder_name = f"{context.participant.name}_enrollment_{scenarios_str}_{rotations_str}"
         return participant_folder / folder_name
 
-    def _select_enrollment_videos(
+    def _filter_enrollment_videos(
         self,
         available_videos: List[EnrollmentVideo],
         preference: EnrollmentVideoPreference
@@ -195,13 +196,12 @@ class EnrollmentService:
             f"{', '.join([v.path.name for v in enrollment_videos])}"
         )
 
-        processor = self._build_enrollment_video_processor()
-
-        processor.process_enrollment_videos(
-            enrollment_videos,
-            self.config.frames_per_direction,
-            enrollment_folder
+        backend = create_enrollment_backend(self.config)
+        selections = backend.select_frames(
+            enrollment_videos=enrollment_videos,
+            frames_per_direction_per_video=self.config.frames_per_direction,
         )
+        self._save_frames(selections, enrollment_folder)
 
         return self._load_enrollment(enrollment_folder)
 
@@ -223,9 +223,25 @@ class EnrollmentService:
         except Exception as e:
             raise ValueError(f"Failed to load enrollment: {e}")
 
-    def _build_enrollment_video_processor(self) -> EnrollmentVideoProcessor:
-        """Build enrollment video processor with configured components."""
-        return EnrollmentVideoProcessor(
-            backend=create_enrollment_backend(self.config),
-            frame_saver=EnrollmentFrameSaver()
-        )
+    def _save_frames(
+        self,
+        selections: list[SelectedEnrollmentFrame],
+        output_folder: Path,
+    ) -> None:
+        """Save selected frames named by head direction into the enrollment folder."""
+        output_folder.mkdir(parents=True, exist_ok=True)
+
+        counters = Counter()
+        for selection in selections:
+            direction = selection.assigned_direction
+            counters[direction] += 1
+            source_name = selection.frame.source_name or "frame"
+
+            filename = (
+                f"{source_name}_"
+                f"{direction.value}_"
+                f"{counters[direction] - 1:03d}.jpg"
+            )
+            save_image_rgb(selection.image_rgb, output_folder / filename)
+
+        logger.info(f"Saved {len(selections)} enrollment frames to {output_folder}")
