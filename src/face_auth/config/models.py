@@ -112,7 +112,7 @@ class EnrollmentConfig(BaseModel):
     model_config = ConfigDict(frozen=True)
 
 
-class ModelConfig(BaseModel):
+class FaceRecogintionModelConfig(BaseModel):
     """ML model configuration."""
 
     detector: str
@@ -131,7 +131,7 @@ class ProcessingConfig(BaseModel):
     model_config = ConfigDict(frozen=True)
 
 
-class StitchConfig(BaseModel):
+class ImposterConfig(BaseModel):
     """Imposter video creation configuration."""
 
     fps: int = Field(..., gt=0)
@@ -192,9 +192,9 @@ class ApplicationConfig(BaseModel):
     paths: PathsConfig
     authentication: AuthenticationConfig
     enrollment: EnrollmentConfig
-    models: ModelConfig
+    models: FaceRecogintionModelConfig
     processing: ProcessingConfig
-    imposter_creation: StitchConfig
+    imposter_creation: ImposterConfig
     logging: LoggingConfig
 
     model_config = ConfigDict(frozen=True)

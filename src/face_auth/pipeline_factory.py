@@ -6,7 +6,6 @@ from face_auth.config.models import ApplicationConfig, Pool
 from face_auth.core.embedder.backend.embedder_backend import EmbedderBackend
 from face_auth.core.embedder.backend.embedder_factory import create_embedder
 from face_auth.imposter_video_creation.matching.matching_strategy_factory import create_matching_strategy
-from face_auth.processing.result_writer import ResultWriter
 from face_auth.processing.video_parser.impl.controlled_study_parser import ControlledStudyParser
 from face_auth.processing.video_parser.impl.in_the_wild_study_parser import InTheWildStudyParser
 from face_auth.processing.video_parser.parser import VideoParser
@@ -58,10 +57,6 @@ class PipelineFactory:
             config=self.config.authentication,
             embedder=self._create_embedder(),
         )
-
-    def create_result_writer(self, run_dir: Path) -> ResultWriter:
-        """Create the result writer that persists authentication results."""
-        return ResultWriter(run_dir=run_dir)
 
     def _get_parser_for_pool(self) -> VideoParser:
         """Select appropriate parser based on pool type."""

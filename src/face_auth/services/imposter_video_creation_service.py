@@ -5,11 +5,11 @@ from pathlib import Path
 from typing import List
 
 from face_auth.config.logging_config import get_logger
-from face_auth.config.models import Participant, StitchConfig
+from face_auth.config.models import Participant, ImposterConfig
 from face_auth.imposter_video_creation.iterators.frame_iterator import FrameIterator
 from face_auth.imposter_video_creation.iterators.impl.black_frame_iterator import BlackFrameGenerator
 from face_auth.imposter_video_creation.iterators.impl.video_frame_iterator import VideoFrameIterator
-from face_auth.imposter_video_creation.matching.strategy.video_matching_strategy import VideoMatchingStrategy
+from face_auth.imposter_video_creation.matching.video_matching_strategy import VideoMatchingStrategy
 from face_auth.processing.models import ImposterSamplePair, ComposedVideo, Video
 from face_auth.services.video_validation import validate_video
 
@@ -21,7 +21,7 @@ class ImposterVideoCreationService:
 
     def __init__(
             self,
-            stitch_config: StitchConfig,
+            stitch_config: ImposterConfig,
             matching_strategy: VideoMatchingStrategy,
     ):
         """Initialize with stitching configuration and matching strategy.

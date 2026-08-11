@@ -1,9 +1,9 @@
 """Face authentication system entry point."""
-
 import sys
-from face_auth.config.loader import ConfigLoader
+
 from face_auth.config.logging_config import setup_logging, get_logger
 from face_auth.pipeline import Pipeline
+from face_auth.processing.io_utils import load_and_validate_config
 
 
 def parse_cli_arguments() -> str:
@@ -35,8 +35,7 @@ def main():
     config_file = parse_cli_arguments()
 
     # Load and validate configuration
-    config_loader = ConfigLoader()
-    config = config_loader.load(config_file)
+    config = load_and_validate_config(config_file)
 
     # Setup logging
     setup_logging(config.logging.log_level)

@@ -3,8 +3,8 @@
 import multiprocessing
 from typing import List, Callable
 
-from face_auth.batch.models import ProcessingJob, ProcessingResult
 from face_auth.config.logging_config import get_logger, setup_logging
+from face_auth.processing.models import ProcessingJob, ProcessingResult
 
 logger = get_logger(__name__)
 

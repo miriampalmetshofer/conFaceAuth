@@ -10,7 +10,7 @@ from face_auth.core.authenticator.backend.authenticator_backend import Authentic
 from face_auth.core.authenticator.backend.authenticator_factory import create_authenticator
 from face_auth.core.embedder.backend.embedder_backend import EmbedderBackend
 from face_auth.imposter_video_creation.iterators.frame_iterator import FrameIterator
-from face_auth.processing.debug_frame_saver import DebugFrameSaver
+from face_auth.processing.io_utils import save_debug_frame
 from face_auth.processing.frame_authenticator import FrameAuthenticator
 from face_auth.core.models import Frame
 from face_auth.processing.models import ComposedVideo, FrameAuthenticationResult
@@ -100,7 +100,7 @@ class VideoProcessingService:
             embedder=self.embedder,
             authenticator=authenticator,
         )
-        debug_saver = DebugFrameSaver(Path("debug/no_face_frames"))
+        debug_dir = Path("debug/no_face_frames")
 
         all_frame_results = []
         frame_index = 1
@@ -117,7 +117,7 @@ class VideoProcessingService:
             results, frame_index = self._process_iterator(
                 iterator=iterator,
                 frame_authenticator=frame_authenticator,
-                debug_saver=debug_saver,
+                debug_dir=debug_dir,
                 skip_frames=skip_frames,
                 start_frame_index=frame_index,
             )
@@ -136,7 +136,7 @@ class VideoProcessingService:
         self,
         iterator: FrameIterator,
         frame_authenticator: FrameAuthenticator,
-        debug_saver: DebugFrameSaver,
+        debug_dir: Path,
         skip_frames: int,
         start_frame_index: int,
     ) -> tuple[List[FrameAuthenticationResult], int]:
@@ -157,7 +157,7 @@ class VideoProcessingService:
                     )
 
                     if not auth_result.face_detected:
-                        debug_saver.save_frame(frame, frame_index, source_name)
+                        save_debug_frame(frame, frame_index, source_name, debug_dir)
 
                     similarity_str = (
                         f"{auth_result.similarity:.4f}"

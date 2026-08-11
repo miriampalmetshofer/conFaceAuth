@@ -3,11 +3,14 @@ from dataclasses import dataclass
 from datetime import date
 from enum import Enum
 from pathlib import Path
-from typing import List, Optional
+from typing import TYPE_CHECKING, List, Optional
 
-from face_auth.config.models import Participant, Scenario, HeadRotation
+from face_auth.config.models import Scenario, HeadRotation, ProcessingContext, ApplicationConfig, Participant
 from face_auth.core.authenticator.models import AuthenticationResult
 from face_auth.imposter_video_creation.iterators.frame_iterator import FrameIterator
+
+if TYPE_CHECKING:
+    from face_auth.services.models import VideoResult
 
 VIDEO_EXTENSIONS = ("mp4", "MP4")
 
@@ -73,3 +76,26 @@ class FrameAuthenticationResult:
             'face_detected': self.auth_result.face_detected,
             'source_type': self.source_type
         }
+
+
+@dataclass
+class ProcessingResult:
+    """Result of processing a single participant on a device."""
+    context: ProcessingContext
+    video_results: Optional[List["VideoResult"]]
+    success: bool
+    error_message: Optional[str] = None
+
+
+@dataclass
+class ProcessingJob:
+    """Encapsulates one unit of work: processing a participant on a device."""
+    context: ProcessingContext
+    all_videos: List[Video]
+    config: ApplicationConfig
+    all_participants: List[Participant]
+    run_dir: Path
+
+    def __str__(self) -> str:
+        """String representation for logging."""
+        return f"{self.context.participant.name} on {self.context.device.value}"

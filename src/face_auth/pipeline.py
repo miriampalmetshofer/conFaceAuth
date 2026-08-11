@@ -6,10 +6,9 @@ from typing import List
 from face_auth.config.models import ApplicationConfig, ProcessingContext
 from face_auth.config.logging_config import get_logger
 from face_auth.pipeline_factory import PipelineFactory
-from face_auth.batch.models import ProcessingJob, ProcessingResult
-from face_auth.batch.batch_processor import BatchProcessor
-from face_auth.batch.job_executor import execute_job
-from face_auth.processing.run_directory import create_run_directory
+from face_auth.processing.batch_processor import BatchProcessor
+from face_auth.processing.io_utils import create_run_directory, write_results
+from face_auth.processing.models import ProcessingJob, ProcessingResult
 
 logger = get_logger(__name__)
 
@@ -38,7 +37,7 @@ class Pipeline:
         run_dir = create_run_directory(self.config)
 
         jobs = self._create_jobs(run_dir)
-        results = self.batch_processor.process(jobs, execute_job)
+        results = self.batch_processor.process(jobs, self._execute_job)
 
         self.log_summary(results, run_dir)
 
@@ -73,6 +72,60 @@ class Pipeline:
 
         logger.info(f"Created {len(jobs)} processing jobs")
         return jobs
+
+    def _execute_job(self, job: ProcessingJob) -> ProcessingResult:
+        """Execute a single processing job (module-level function for multiprocessing).
+
+        Args:
+            job: Processing job to execute
+
+        Returns:
+            Processing result with success status
+        """
+        logger.info(f"Processing: {job}")
+
+        try:
+            # Create the services for this worker
+            pipeline_factory = PipelineFactory(config=job.config)
+            enrollment_service = pipeline_factory.create_enrollment_service()
+            imposter_creation_service = pipeline_factory.create_imposter_creation_service()
+            video_processing_service = pipeline_factory.create_video_processing_service()
+
+            # Get enrollment data
+            enrollment_data = enrollment_service.enroll(job.context)
+
+            # Match genuine user videos with imposters and compose the imposter videos
+            imposter_videos = imposter_creation_service.create_imposter_videos(
+                job.all_videos,
+                job.context.participant,
+                job.all_participants
+            )
+
+            # Authenticate every frame of every composed video
+            video_results = video_processing_service.process_videos(
+                imposter_videos,
+                enrollment_data,
+                job.config.processing.skip_frames
+            )
+
+            # Save results
+            write_results(video_results, job.context, job.run_dir)
+
+            logger.info(f"Successfully processed {job}")
+            return ProcessingResult(
+                context=job.context,
+                video_results=video_results,
+                success=True
+            )
+
+        except Exception as e:
+            logger.error(f"Failed to process {job}: {e}", exc_info=True)
+            return ProcessingResult(
+                context=job.context,
+                video_results=None,
+                success=False,
+                error_message=str(e)
+            )
 
     def log_start(self, config: ApplicationConfig):
         """Log application start with configuration details."""
