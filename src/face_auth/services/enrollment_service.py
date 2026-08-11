@@ -179,14 +179,8 @@ class EnrollmentService:
         return selected_videos
 
     def _enrollment_exists(self, enrollment_folder: Path) -> bool:
-        """Check if enrollment folder exists and contains images."""
-        if not enrollment_folder.exists():
-            return False
-
-        try:
-            return any(enrollment_folder.glob("*.jpg"))
-        except Exception:
-            return False
+        """Check if the enrollment folder contains any images."""
+        return any(enrollment_folder.glob("*.jpg"))
 
     def enroll_from_videos(
         self,
@@ -247,7 +241,7 @@ class EnrollmentService:
         Raises:
             FileNotFoundError: If the folder is missing or contains no images
         """
-        if not enrollment_folder.exists() or not any(enrollment_folder.glob("*.jpg")):
+        if not any(enrollment_folder.glob("*.jpg")):
             raise FileNotFoundError(
                 f"No images found in the enrollment folder: {enrollment_folder}. "
                 f"Please ensure the folder exists and contains images."
