@@ -11,9 +11,9 @@ from face_auth.core.enrollment.models import (
     HeadPose,
     SelectedEnrollmentFrame,
 )
-from face_auth.core.enrollment.helper.video_frame_extractor import VideoFrameExtractor
 from face_auth.config.logging_config import get_logger
 from face_auth.processing.models import EnrollmentVideo
+from face_auth.processing.video_utils import read_frames
 
 logger = get_logger(__name__)
 
@@ -23,13 +23,13 @@ class PoseEnrollmentBackend(EnrollmentBackend):
 
     def __init__(
         self,
-        frame_extractor: VideoFrameExtractor,
+        frame_sampling_interval: int,
         pose_estimator: HeadPoseEstimator,
         yaw_threshold: float,
         pitch_threshold: float,
     ):
         """Initialize backend dependencies."""
-        self.frame_extractor = frame_extractor
+        self.frame_sampling_interval = frame_sampling_interval
         self.pose_estimator = pose_estimator
         self.yaw_threshold = yaw_threshold
         self.pitch_threshold = pitch_threshold
@@ -78,7 +78,7 @@ class PoseEnrollmentBackend(EnrollmentBackend):
         candidates = []
 
         for video in enrollment_videos:
-            frames = self.frame_extractor.extract_frames(video.path)
+            frames = list(read_frames(video.path, sample_every=self.frame_sampling_interval))
             logger.info(
                 f"Estimating head pose for {len(frames)} extracted frames "
                 f"from {video.path.name}"

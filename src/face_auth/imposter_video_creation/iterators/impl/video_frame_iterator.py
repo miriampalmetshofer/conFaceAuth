@@ -3,8 +3,7 @@ from typing import Iterator
 import numpy as np
 from face_auth.config.logging_config import get_logger
 from face_auth.imposter_video_creation.iterators.frame_iterator import FrameIterator
-from face_auth.processing.video_utils import get_video_rotation_from_metadata, rotate_frame
-import cv2
+from face_auth.processing.video_utils import read_frames
 
 logger = get_logger(__name__)
 
@@ -30,7 +29,6 @@ class VideoFrameIterator(FrameIterator):
         self.start_second = start_second
         self.duration_seconds = duration_seconds
         self.fps = fps
-        self.rotation_angle = get_video_rotation_from_metadata(video_path)
 
         # Calculate frame boundaries using config FPS
         self.start_frame = int(start_second * self.fps)
@@ -43,28 +41,13 @@ class VideoFrameIterator(FrameIterator):
         )
 
     def __iter__(self) -> Iterator[np.ndarray]:
-        """Yield frames from the video."""
-        cap = cv2.VideoCapture(str(self._video_path))
-
-        # Seek to start frame
-        if self.start_frame > 0:
-            cap.set(cv2.CAP_PROP_POS_FRAMES, self.start_frame)
-
-        current_frame = self.start_frame
-
-        while current_frame < self.end_frame:
-            ret, frame = cap.read()
-            if not ret:
-                break
-
-            # Apply rotation if needed
-            if self.rotation_angle != 0:
-                frame = rotate_frame(frame, self.rotation_angle)
-
-            yield frame
-            current_frame += 1
-
-        cap.release()
+        """Yield the RGB image of each frame in the configured time window."""
+        for frame in read_frames(
+            self._video_path,
+            start_second=self.start_second,
+            duration_seconds=self.duration_seconds,
+        ):
+            yield frame.image
 
     def __len__(self) -> int:
         """Return total number of frames this iterator will yield."""

@@ -1,7 +1,5 @@
 """Fixed-order enrollment backend."""
 from collections import Counter
-import cv2
-from pathlib import Path
 
 import numpy as np
 
@@ -10,11 +8,11 @@ from face_auth.core.enrollment.models import (
     HeadDirection,
     SelectedEnrollmentFrame,
 )
-from face_auth.core.enrollment.helper.video_frame_extractor import VideoFrameExtractor
 from face_auth.config.models import HeadRotation
 from face_auth.core.models import Frame
 from face_auth.config.logging_config import get_logger
 from face_auth.processing.models import EnrollmentVideo
+from face_auth.processing.video_utils import read_frames
 
 logger = get_logger(__name__)
 
@@ -46,11 +44,9 @@ class FixedOrderEnrollmentBackend(EnrollmentBackend):
 
     def __init__(
         self,
-        frame_extractor: VideoFrameExtractor,
         window_seconds: float,
     ):
         """Initialize backend dependencies."""
-        self.frame_extractor = frame_extractor
         self.window_seconds = window_seconds
 
     def select_frames(
@@ -62,8 +58,8 @@ class FixedOrderEnrollmentBackend(EnrollmentBackend):
         all_selections = []
 
         for video in enrollment_videos:
-            frames = self.frame_extractor.extract_frames(video.path)
-            video_duration_ms = self._get_video_duration_ms(video.path)
+            frames = list(read_frames(video.path))
+            video_duration_ms = frames[-1].timestamp_ms
 
             logger.info(
                 f"Selecting frames from {video.path.name} ({video.head_rotation.value})"
@@ -160,21 +156,6 @@ class FixedOrderEnrollmentBackend(EnrollmentBackend):
             return []
         indices = np.linspace(0, len(frames) - 1, count)
         return [frames[round(idx)] for idx in indices]
-
-    def _get_video_duration_ms(self, video_path: Path) -> float:
-        """Extract video duration from a video file."""
-        video = cv2.VideoCapture(str(video_path))
-        if not video.isOpened():
-            raise IOError(f"Could not open video {video_path}")
-
-        try:
-            fps = video.get(cv2.CAP_PROP_FPS)
-            frame_count = int(video.get(cv2.CAP_PROP_FRAME_COUNT))
-            if fps <= 0:
-                raise ValueError(f"Could not determine FPS for video {video_path}")
-            return (frame_count / fps) * 1000
-        finally:
-            video.release()
 
     def _log_summary(
         self,

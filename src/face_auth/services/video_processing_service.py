@@ -3,8 +3,6 @@
 from pathlib import Path
 from typing import List
 
-import cv2
-
 from face_auth.config.models import AuthenticationConfig
 from face_auth.core.authenticator.backend.authenticator_backend import AuthenticatorBackend
 from face_auth.core.authenticator.backend.authenticator_factory import create_authenticator
@@ -148,10 +146,9 @@ class VideoProcessingService:
         for frame in iterator:
             try:
                 if frame_index == 1 or frame_index % skip_frames == 0:
-                    frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
                     auth_result = frame_authenticator.update_authentication_with_new_evidence(
                         Frame(
-                            image=frame_rgb,
+                            image=frame,
                             timestamp_ms=self._get_timestamp_ms(frame_index),
                         ),
                     )

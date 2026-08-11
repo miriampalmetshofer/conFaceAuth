@@ -67,22 +67,22 @@ def write_results(
 
 
 def save_debug_frame(
-    frame: np.ndarray,
+    frame_rgb: np.ndarray,
     frame_count: int,
     video_name: str,
     output_folder: Path,
 ) -> None:
-    """Save a frame where no face was detected for debugging.
+    """Save an RGB frame where no face was detected for debugging.
 
     Args:
-        frame: Frame image to save
+        frame_rgb: RGB frame image to save
         frame_count: Frame number in video
         video_name: Name of source video
         output_folder: Directory to save the debug frame in
     """
     output_folder.mkdir(parents=True, exist_ok=True)
     filepath = output_folder / f"{video_name}_frame_{frame_count}.jpg"
-    cv2.imwrite(str(filepath), frame)
+    cv2.imwrite(str(filepath), cv2.cvtColor(frame_rgb, cv2.COLOR_RGB2BGR))
     logger.debug(f"Saved no-face debug frame: {filepath}")
 
 

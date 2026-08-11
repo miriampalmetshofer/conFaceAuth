@@ -1,9 +1,9 @@
-import cv2
 import numpy as np
 from pathlib import Path
 
 from face_auth.config.logging_config import get_logger
 from face_auth.core.embedder.backend.embedder_backend import EmbedderBackend
+from face_auth.processing.video_utils import load_image_rgb
 
 logger = get_logger(__name__)
 
@@ -46,12 +46,11 @@ class EnrollmentLoader:
 
     def _get_enrollment_embedding(self, image_path: Path) -> np.ndarray | None:
         """Process a single enrollment image and return its embedding."""
-        image_bgr = cv2.imread(str(image_path))
-        if image_bgr is None:
+        image_rgb = load_image_rgb(image_path)
+        if image_rgb is None:
             logger.warning(f"Could not read image {image_path}. Skipping")
             return None
 
-        image_rgb = cv2.cvtColor(image_bgr, cv2.COLOR_BGR2RGB)
         embedding_result = self.embedder.embed(image_rgb)
 
         if not embedding_result.face_detected:
