@@ -19,6 +19,7 @@ from face_auth.core.authenticator.backend.authenticator_factory import create_au
 from face_auth.core.authenticator.backend.impl.temporal_decay.models import TemporalDecayConfig
 from face_auth.core.embedder.models import InsightFaceEmbedderConfig
 from face_auth.config.models import AuthenticationConfig
+from face_auth.processing.video_utils import read_frames
 
 
 logging.basicConfig(
@@ -85,36 +86,11 @@ class LiveFaceAuth:
         frame_interval = self.config["enrollment"].get("frame_sampling_interval", 30)
         embeddings = []
 
-        cap = cv2.VideoCapture(enrollment_video)
-        if not cap.isOpened():
-            raise IOError(f"Could not open enrollment video: {enrollment_video}")
-
-        frame_count = 0
-        processed_count = 0
-
-        while True:
-            ret, frame = cap.read()
-            if not ret:
-                break
-
-            frame_count += 1
-
-            # Sample frames at intervals
-            if frame_count % frame_interval != 0:
-                continue
-
-            # Convert to RGB
-            frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-
-            # Get embedding
-            embedding_result = self.embedder.embed(frame_rgb)
-
+        for frame in read_frames(Path(enrollment_video), sample_every=frame_interval):
+            embedding_result = self.embedder.embed(frame.image)
             if embedding_result.face_detected:
                 embeddings.append(embedding_result.embedding)
-                processed_count += 1
-                logger.info(f"Enrollment frame {processed_count}: face detected")
-
-        cap.release()
+                logger.info(f"Enrollment frame {len(embeddings)}: face detected")
 
         if len(embeddings) == 0:
             raise ValueError(
@@ -122,7 +98,7 @@ class LiveFaceAuth:
                 f"Please ensure the enrollment video contains clear face frames."
             )
 
-        logger.info(f"Enrollment complete: {len(embeddings)} embeddings extracted from {frame_count} frames")
+        logger.info(f"Enrollment complete: {len(embeddings)} embeddings extracted")
         self.enrollment_embeddings = embeddings
 
         # Initialize authenticator with enrollment embeddings

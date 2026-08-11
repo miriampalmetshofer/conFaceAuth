@@ -92,7 +92,7 @@ class Pipeline:
             video_processing_service = pipeline_factory.create_video_processing_service()
 
             # Get enrollment data
-            enrollment_data = enrollment_service.enroll(job.context)
+            enrollment_data = enrollment_service.enroll_participant(job.context, job.config.paths)
 
             # Match genuine user videos with imposters and compose the imposter videos
             imposter_videos = imposter_creation_service.create_imposter_videos(

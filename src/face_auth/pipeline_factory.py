@@ -40,7 +40,6 @@ class PipelineFactory:
         """Create enrollment service with all dependencies."""
         return EnrollmentService(
             config=self.config.enrollment,
-            paths_config=self.config.paths,
             embedder=self._create_embedder()
         )
 

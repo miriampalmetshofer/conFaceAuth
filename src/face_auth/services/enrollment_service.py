@@ -25,28 +25,30 @@ class EnrollmentService:
     def __init__(
         self,
         config: EnrollmentConfig,
-        paths_config: PathsConfig,
         embedder: EmbedderBackend
     ):
         """Initialize enrollment service.
 
         Args:
             config: Enrollment configuration
-            paths_config: Paths configuration
             embedder: Embedding generator instance
         """
         self.config = config
-        self.paths = paths_config
         self.embedder = embedder
 
-    def enroll(
+    def enroll_participant(
         self,
-        context: ProcessingContext
+        context: ProcessingContext,
+        paths: PathsConfig,
     ) -> EnrollmentData:
-        """Ensure enrollment exists, create if needed.
+        """Resolve a participant's enrollment folder from the study paths and enroll them.
+
+        Discovers the participant's videos by the study path convention, applies the
+        re-enrollment cache policy, then delegates to the path-explicit core.
 
         Args:
             context: Processing context with participant and device
+            paths: Paths configuration locating the study's enrollment videos
 
         Returns:
             EnrollmentData with folder path and embeddings
@@ -54,14 +56,14 @@ class EnrollmentService:
         Raises:
             ValueError: If enrollment cannot be created or loaded
         """
-        discovered_videos = self._discover_enrollment_videos(context)
+        discovered_videos = self._discover_enrollment_videos(context, paths)
 
         selected_videos = self._filter_enrollment_videos(
             discovered_videos,
             self.config.enrollment_video_preference
         )
 
-        enrollment_folder = self._get_enrollment_folder(context, selected_videos)
+        enrollment_folder = self._get_enrollment_folder(context, selected_videos, paths)
 
         if self.config.force_reenrollment and enrollment_folder.exists():
             logger.info(f"Deleting existing enrollment folder: {enrollment_folder}")
@@ -69,16 +71,21 @@ class EnrollmentService:
 
         if self._enrollment_exists(enrollment_folder):
             logger.info(f"Loading existing enrollment for {context.participant.name} ({context.device})")
-            return self._load_enrollment(enrollment_folder)
+            return self.load_enrollment(enrollment_folder)
         else:
             logger.info(f"=== ENROLLING: {context.participant.name} ({context.device}) ===")
-            return self._create_enrollment(selected_videos, enrollment_folder)
+            return self.enroll_from_videos(selected_videos, enrollment_folder)
 
-    def _discover_enrollment_videos(self, context: ProcessingContext) -> List[EnrollmentVideo]:
+    def _discover_enrollment_videos(
+        self,
+        context: ProcessingContext,
+        paths: PathsConfig,
+    ) -> List[EnrollmentVideo]:
         """Discover enrollment videos for participant.
 
         Args:
             context: Processing context with participant and device
+            paths: Paths configuration locating the study's enrollment videos
 
         Returns:
             List of enrollment videos found
@@ -86,7 +93,7 @@ class EnrollmentService:
         Raises:
             ValueError: If no enrollment videos are found
         """
-        participant_folder = self.paths.enrollment_base_path / context.device.value / context.participant.name
+        participant_folder = paths.enrollment_base_path / context.device.value / context.participant.name
         enrollment_videos = EnrollmentVideoParser().parse_folder(participant_folder)
 
         if not enrollment_videos:
@@ -101,17 +108,23 @@ class EnrollmentService:
 
         return enrollment_videos
 
-    def _get_enrollment_folder(self, context: ProcessingContext, enrollment_videos: List[EnrollmentVideo]) -> Path:
+    def _get_enrollment_folder(
+        self,
+        context: ProcessingContext,
+        enrollment_videos: List[EnrollmentVideo],
+        paths: PathsConfig,
+    ) -> Path:
         """Get enrollment folder path from videos.
 
         Args:
             context: Processing context with participant and device
             enrollment_videos: Selected enrollment videos
+            paths: Paths configuration locating the study's enrollment videos
 
         Returns:
             Path to enrollment folder
         """
-        participant_folder = self.paths.enrollment_base_path / context.device.value / context.participant.name
+        participant_folder = paths.enrollment_base_path / context.device.value / context.participant.name
 
         # Extract unique scenarios and rotations from selected videos
         scenarios = sorted(set(v.scenario.value for v in enrollment_videos))
@@ -174,16 +187,20 @@ class EnrollmentService:
         except Exception:
             return False
 
-    def _create_enrollment(
+    def enroll_from_videos(
         self,
         enrollment_videos: List[EnrollmentVideo],
         enrollment_folder: Path
     ) -> EnrollmentData:
-        """Create new enrollment from given videos.
+        """Build a new enrollment from the given videos into a folder.
+
+        Selects enrollment frames, saves them to the folder, and returns the
+        resulting embeddings. Takes explicit videos and folder, so it does not
+        depend on the study path convention.
 
         Args:
-            enrollment_videos: Selected enrollment videos to process
-            enrollment_folder: Path to enrollment folder
+            enrollment_videos: Enrollment videos to process
+            enrollment_folder: Folder to write the enrollment images into
 
         Returns:
             EnrollmentData with created enrollment
@@ -203,9 +220,9 @@ class EnrollmentService:
         )
         self._save_frames(selections, enrollment_folder)
 
-        return self._load_enrollment(enrollment_folder)
+        return self.load_enrollment(enrollment_folder)
 
-    def _load_enrollment(self, folder: Path) -> EnrollmentData:
+    def load_enrollment(self, folder: Path) -> EnrollmentData:
         """Load existing enrollment from folder.
 
         Args:
