@@ -5,15 +5,16 @@ from pathlib import Path
 import shutil
 from typing import List
 
+import numpy as np
+
 from face_auth.config.models import EnrollmentConfig, PathsConfig, ProcessingContext, EnrollmentVideoPreference
 from face_auth.core.embedder.backend.embedder_backend import EmbedderBackend
 from face_auth.processing.video_parser.impl.enrollment_video_parser import EnrollmentVideoParser
 from face_auth.processing.models import EnrollmentVideo
 from face_auth.core.enrollment.backend.enrollment_factory import create_enrollment_backend
-from face_auth.core.enrollment.enrollment_loader import load_enrollment_embeddings
 from face_auth.core.enrollment.models import SelectedEnrollmentFrame
 from face_auth.services.models import EnrollmentData
-from face_auth.processing.video_utils import save_image_rgb
+from face_auth.processing.video_utils import save_image_rgb, load_image_rgb
 from face_auth.config.logging_config import get_logger
 
 logger = get_logger(__name__)
@@ -235,10 +236,48 @@ class EnrollmentService:
             ValueError: If loading fails
         """
         try:
-            embeddings = load_enrollment_embeddings(folder, self.embedder)
+            embeddings = self._load_embeddings(folder)
             return EnrollmentData(folder=folder, embeddings=embeddings)
         except Exception as e:
             raise ValueError(f"Failed to load enrollment: {e}")
+
+    def _load_embeddings(self, enrollment_folder: Path) -> List[np.ndarray]:
+        """Load enrollment images from a folder and compute their embeddings.
+
+        Raises:
+            FileNotFoundError: If the folder is missing or contains no images
+        """
+        if not enrollment_folder.exists() or not any(enrollment_folder.glob("*.jpg")):
+            raise FileNotFoundError(
+                f"No images found in the enrollment folder: {enrollment_folder}. "
+                f"Please ensure the folder exists and contains images."
+            )
+
+        image_files = sorted(enrollment_folder.glob("*.jpg"))
+        logger.info(f"Found {len(image_files)} images in the enrollment folder")
+
+        embeddings = []
+        for image_path in image_files:
+            embedding = self._embed_image(image_path)
+            if embedding is not None:
+                embeddings.append(embedding)
+
+        logger.info(f"Successfully computed {len(embeddings)} enrollment embeddings")
+        return embeddings
+
+    def _embed_image(self, image_path: Path) -> np.ndarray | None:
+        """Load a single enrollment image and return its embedding, or None if unusable."""
+        image_rgb = load_image_rgb(image_path)
+        if image_rgb is None:
+            logger.warning(f"Could not read image {image_path}. Skipping")
+            return None
+
+        embedding_result = self.embedder.embed(image_rgb)
+        if not embedding_result.face_detected:
+            logger.warning(f"No face detected in enrollment image {image_path}. Skipping")
+            return None
+
+        return embedding_result.embedding
 
     def _save_frames(
         self,
