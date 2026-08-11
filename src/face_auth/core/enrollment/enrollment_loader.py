@@ -8,53 +8,58 @@ from face_auth.processing.video_utils import load_image_rgb
 logger = get_logger(__name__)
 
 
-class EnrollmentLoader:
-    """Loads enrollment images from disc and computes their embeddings."""
+def load_enrollment_embeddings(
+    enrollment_folder: Path,
+    embedder: EmbedderBackend,
+) -> list[np.ndarray]:
+    """Load enrollment images from disk and compute their embeddings.
 
-    def __init__(self, embedder: EmbedderBackend):
-        """Initialize embedding loader.
+    Args:
+        enrollment_folder: Folder containing enrollment images
+        embedder: Backend for generating embeddings
 
-        Args:
-            embedder: Backend for generating embeddings
-        """
-        self.embedder = embedder
+    Returns:
+        Embeddings for every image that yielded a detected face
 
-    def load_embeddings(self, enrollment_folder: Path) -> list[np.ndarray]:
-        """Load enrollment images and compute their embeddings."""
-        self._validate_enrollment_folder(enrollment_folder)
+    Raises:
+        FileNotFoundError: If the folder is missing or contains no images
+    """
+    _validate_enrollment_folder(enrollment_folder)
 
-        image_files = sorted(enrollment_folder.glob("*.jpg"))
-        logger.info(f"Found {len(image_files)} images in the enrollment folder")
+    image_files = sorted(enrollment_folder.glob("*.jpg"))
+    logger.info(f"Found {len(image_files)} images in the enrollment folder")
 
-        embeddings = []
-        for image_path in image_files:
-            embedding = self._get_enrollment_embedding(image_path)
-            if embedding is not None:
-                embeddings.append(embedding)
+    embeddings = []
+    for image_path in image_files:
+        embedding = _embed_enrollment_image(image_path, embedder)
+        if embedding is not None:
+            embeddings.append(embedding)
 
-        logger.info(f"Successfully computed {len(embeddings)} enrollment embeddings")
+    logger.info(f"Successfully computed {len(embeddings)} enrollment embeddings")
 
-        return embeddings
+    return embeddings
 
-    def _validate_enrollment_folder(self, enrollment_folder: Path) -> None:
-        """Validate that enrollment folder exists and is not empty."""
-        if not enrollment_folder.exists() or not any(enrollment_folder.glob("*.jpg")):
-            raise FileNotFoundError(
-                f"No images found in the enrollment folder: {enrollment_folder}. "
-                f"Please ensure the folder exists and contains images."
-            )
 
-    def _get_enrollment_embedding(self, image_path: Path) -> np.ndarray | None:
-        """Process a single enrollment image and return its embedding."""
-        image_rgb = load_image_rgb(image_path)
-        if image_rgb is None:
-            logger.warning(f"Could not read image {image_path}. Skipping")
-            return None
+def _validate_enrollment_folder(enrollment_folder: Path) -> None:
+    """Validate that the enrollment folder exists and is not empty."""
+    if not enrollment_folder.exists() or not any(enrollment_folder.glob("*.jpg")):
+        raise FileNotFoundError(
+            f"No images found in the enrollment folder: {enrollment_folder}. "
+            f"Please ensure the folder exists and contains images."
+        )
 
-        embedding_result = self.embedder.embed(image_rgb)
 
-        if not embedding_result.face_detected:
-            logger.warning(f"No face detected in enrollment image {image_path}. Skipping")
-            return None
+def _embed_enrollment_image(image_path: Path, embedder: EmbedderBackend) -> np.ndarray | None:
+    """Load a single enrollment image and return its embedding, or None if unusable."""
+    image_rgb = load_image_rgb(image_path)
+    if image_rgb is None:
+        logger.warning(f"Could not read image {image_path}. Skipping")
+        return None
 
-        return embedding_result.embedding
+    embedding_result = embedder.embed(image_rgb)
+
+    if not embedding_result.face_detected:
+        logger.warning(f"No face detected in enrollment image {image_path}. Skipping")
+        return None
+
+    return embedding_result.embedding

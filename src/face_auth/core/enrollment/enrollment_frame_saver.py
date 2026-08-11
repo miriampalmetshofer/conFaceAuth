@@ -2,10 +2,9 @@
 from collections import Counter
 from pathlib import Path
 
-import cv2
-
 from face_auth.core.enrollment.models import SelectedEnrollmentFrame
 from face_auth.config.logging_config import get_logger
+from face_auth.processing.video_utils import save_image_rgb
 
 logger = get_logger(__name__)
 
@@ -34,7 +33,6 @@ class EnrollmentFrameSaver:
                 f"{counters[direction] - 1:03d}.jpg"
             )
             output_path = output_folder / filename
-            image_bgr = cv2.cvtColor(selection.image_rgb, cv2.COLOR_RGB2BGR)
-            cv2.imwrite(str(output_path), image_bgr)
+            save_image_rgb(selection.image_rgb, output_path)
 
         logger.info(f"Saved {len(selections)} enrollment frames to {output_folder}")

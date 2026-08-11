@@ -6,12 +6,12 @@ from datetime import datetime
 from pathlib import Path
 from typing import List
 
-import cv2
 import numpy as np
 import pandas as pd
 
 from face_auth.config.logging_config import get_logger
 from face_auth.config.models import ApplicationConfig, ProcessingContext
+from face_auth.processing.video_utils import save_image_rgb
 from face_auth.services.models import VideoResult
 
 logger = get_logger(__name__)
@@ -82,7 +82,7 @@ def save_debug_frame(
     """
     output_folder.mkdir(parents=True, exist_ok=True)
     filepath = output_folder / f"{video_name}_frame_{frame_count}.jpg"
-    cv2.imwrite(str(filepath), cv2.cvtColor(frame_rgb, cv2.COLOR_RGB2BGR))
+    save_image_rgb(frame_rgb, filepath)
     logger.debug(f"Saved no-face debug frame: {filepath}")
 
 

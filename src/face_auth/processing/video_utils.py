@@ -85,6 +85,16 @@ def load_image_rgb(image_path: Path) -> Optional[np.ndarray]:
     return cv2.cvtColor(image_bgr, cv2.COLOR_BGR2RGB)
 
 
+def save_image_rgb(image_rgb: np.ndarray, image_path: Path) -> None:
+    """Save an RGB image array to disk.
+
+    Args:
+        image_rgb: RGB image to save
+        image_path: Destination path for the written image
+    """
+    cv2.imwrite(str(image_path), cv2.cvtColor(image_rgb, cv2.COLOR_RGB2BGR))
+
+
 def get_video_rotation_from_metadata(video_path: Path) -> int:
     """
     Get the rotation angle from video metadata using ffprobe.

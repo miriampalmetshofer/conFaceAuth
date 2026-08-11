@@ -11,7 +11,7 @@ from face_auth.processing.models import EnrollmentVideo
 from face_auth.core.enrollment.backend.enrollment_factory import create_enrollment_backend
 from face_auth.core.enrollment.enrollment_video_processor import EnrollmentVideoProcessor
 from face_auth.core.enrollment.enrollment_frame_saver import EnrollmentFrameSaver
-from face_auth.core.enrollment.enrollment_loader import EnrollmentLoader
+from face_auth.core.enrollment.enrollment_loader import load_enrollment_embeddings
 from face_auth.services.models import EnrollmentData
 from face_auth.config.logging_config import get_logger
 
@@ -218,8 +218,7 @@ class EnrollmentService:
             ValueError: If loading fails
         """
         try:
-            loader = EnrollmentLoader(self.embedder)
-            embeddings = loader.load_embeddings(folder)
+            embeddings = load_enrollment_embeddings(folder, self.embedder)
             return EnrollmentData(folder=folder, embeddings=embeddings)
         except Exception as e:
             raise ValueError(f"Failed to load enrollment: {e}")
