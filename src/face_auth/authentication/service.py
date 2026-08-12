@@ -7,11 +7,9 @@ from face_auth.authentication.config import AuthenticationConfig
 from face_auth.core.authenticator.backend.authenticator_backend import AuthenticatorBackend
 from face_auth.core.authenticator.backend.authenticator_factory import create_authenticator
 from face_auth.core.embedder.backend.embedder_backend import EmbedderBackend
-from face_auth.imposter_creation.iterators.frame_iterator import FrameIterator
 from face_auth.io_utils import save_debug_frame
 from face_auth.authentication.frame_authenticator import FrameAuthenticator
-from face_auth.core.models import Frame
-from face_auth.domain import ComposedVideo, FrameAuthenticationResult
+from face_auth.domain import AuthenticatedFrame, ComposedVideo, IndexedFrame
 from face_auth.domain import EnrollmentData, VideoResult
 from face_auth.logging_config import get_logger
 
@@ -39,14 +37,12 @@ class VideoProcessingService:
         self,
         videos: List[ComposedVideo],
         enrollment_data: EnrollmentData,
-        skip_frames: int
     ) -> List[VideoResult]:
         """Process all composed videos and return their authentication results.
 
         Args:
             videos: Composed videos to process
             enrollment_data: Enrollment data with embeddings
-            skip_frames: Process every Nth frame
 
         Returns:
             Authentication results for each successfully processed video
@@ -59,10 +55,9 @@ class VideoProcessingService:
         video_results = []
         for idx, video in enumerate(videos, 1):
             try:
-                video_result = self.process_video(
+                video_result = self._process_video(
                     video=video,
                     enrollment_data=enrollment_data,
-                    skip_frames=skip_frames
                 )
                 video_results.append(video_result)
                 logger.debug(f"[{idx}/{len(videos)}] Completed: {video.name}")
@@ -81,110 +76,84 @@ class VideoProcessingService:
         self,
         video: ComposedVideo,
         enrollment_data: EnrollmentData,
-        skip_frames: int
     ) -> VideoResult:
-        """Process composed video and return authentication results.
+        """Authenticate the composed video once per configured beat.
+
+        The video is treated as one continuous stream of timestamped frames; we
+        authenticate every ``authentication_hz``-th second of it, which lands on
+        every Nth frame for the video's frame rate.
 
         Args:
             video: Composed video with iterators
             enrollment_data: Enrollment data with embeddings
-            skip_frames: Process every Nth frame
 
         Returns:
             VideoResult with frame-by-frame authentication results
         """
-        authenticator = self._create_authenticator(enrollment_data)
         frame_authenticator = FrameAuthenticator(
             embedder=self.embedder,
-            authenticator=authenticator,
+            authenticator=self._create_authenticator(enrollment_data),
         )
-        debug_dir = Path("debug/no_face_frames")
-
-        all_frame_results = []
-        frame_index = 1
-        video_name = video.name
-
-        logger.info(f"Processing composed video {video_name}")
-
-        for segment_index, iterator in enumerate(video.iterators, start=1):
-            logger.debug(
-                f"{video_name}: segment {segment_index}/{len(video.iterators)} "
-                f"({iterator.source_name})"
-            )
-
-            results, frame_index = self._process_iterator(
-                iterator=iterator,
-                frame_authenticator=frame_authenticator,
-                debug_dir=debug_dir,
-                skip_frames=skip_frames,
-                start_frame_index=frame_index,
-            )
-            all_frame_results.extend(results)
+        beat = self._frame_stride(video.fps)
 
         logger.info(
-            f"Completed composed video {video_name} "
-            f"({len(all_frame_results)} sampled frames)"
-        )
-        return VideoResult(
-            video=video,
-            frame_results=all_frame_results
+            f"Processing composed video {video.name} at "
+            f"{self.config.authentication_hz} Hz "
+            f"(every {beat} frame(s) at {video.fps} fps)"
         )
 
-    def _process_iterator(
+        frame_results = [
+            self._authenticate_frame(frame, frame_authenticator)
+            for frame in video.frames()
+            if self._is_on_beat(frame.index, beat)
+        ]
+
+        logger.info(
+            f"Completed composed video {video.name} "
+            f"({len(frame_results)} sampled frames)"
+        )
+        return VideoResult(video=video, frame_results=frame_results)
+
+    def _frame_stride(self, fps: float) -> int:
+        """Frames between authentications for the configured rate.
+
+        Converts the authentication rate in Hertz into a whole number of frames at
+        the video's frame rate, clamped to at least 1 so every step advances.
+        """
+        return max(1, round(fps / self.config.authentication_hz))
+
+    def _is_on_beat(self, frame_index: int, beat: int) -> bool:
+        """Whether this frame falls on an authentication beat.
+
+        The first frame always counts so the stream starts authenticating
+        immediately, then every ``beat``-th frame after that.
+        """
+        return frame_index == 1 or frame_index % beat == 0
+
+    def _authenticate_frame(
         self,
-        iterator: FrameIterator,
+        frame: IndexedFrame,
         frame_authenticator: FrameAuthenticator,
-        debug_dir: Path,
-        skip_frames: int,
-        start_frame_index: int,
-    ) -> tuple[List[FrameAuthenticationResult], int]:
-        """Process sampled frames from one iterator and return the next frame index."""
-        frame_index = start_frame_index
-        results = []
-        source_name = iterator.source_name
+    ) -> AuthenticatedFrame:
+        """Authenticate one frame of the composed video and record its result."""
+        auth_result = frame_authenticator.update_authentication_with_new_evidence(frame)
 
-        for frame in iterator:
-            try:
-                if frame_index == 1 or frame_index % skip_frames == 0:
-                    auth_result = frame_authenticator.update_authentication_with_new_evidence(
-                        Frame(
-                            image=frame,
-                            timestamp_ms=self._get_timestamp_ms(frame_index),
-                        ),
-                    )
+        if not auth_result.face_detected:
+            save_debug_frame(
+                frame.image, frame.index, frame.source_name, Path("debug/no_face_frames")
+            )
 
-                    if not auth_result.face_detected:
-                        save_debug_frame(frame, frame_index, source_name, debug_dir)
+        similarity_str = (
+            f"{auth_result.similarity:.4f}"
+            if auth_result.similarity is not None
+            else "N/A"
+        )
+        logger.debug(
+            f"Frame {frame.index}: Is Authenticated={auth_result.is_authenticated}, "
+            f"Similarity={similarity_str}, Trust Score={auth_result.trust:.4f}"
+        )
 
-                    similarity_str = (
-                        f"{auth_result.similarity:.4f}"
-                        if auth_result.similarity is not None
-                        else "N/A"
-                    )
-                    logger.debug(
-                        f"Frame {frame_index}: Is Authenticated={auth_result.is_authenticated}, "
-                        f"Similarity={similarity_str}, Trust Score={auth_result.trust:.4f}"
-                    )
-
-                    results.append(
-                        FrameAuthenticationResult(
-                            auth_result=auth_result,
-                            frame_index=frame_index,
-                            source_type=source_name,
-                        )
-                    )
-
-            except Exception:
-                logger.error(f"Error processing frame {frame_index}", exc_info=True)
-                raise
-
-            frame_index += 1
-
-        return results, frame_index
-
-    def _get_timestamp_ms(self, frame_index: int) -> float:
-        """Convert a composed-video frame index into a timestamp."""
-        return (frame_index / self.config.fps) * 1000
+        return AuthenticatedFrame(frame=frame, result=auth_result)
 
     def _create_authenticator(self, enrollment_data: EnrollmentData) -> AuthenticatorBackend:
         """Create authenticator backend instance."""

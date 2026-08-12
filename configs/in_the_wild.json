@@ -32,8 +32,7 @@
       "k_decay": 60000,
       "initial_confidence": 1
     },
-    "fps": 30,
-    "skip_frames": 30
+    "authentication_hz": 1.0
   },
   "enrollment": {
     "enrollment_video_preference": {
@@ -53,7 +52,6 @@
     "frames_per_direction": 5
   },
   "imposter_creation": {
-    "fps": 30,
     "genuine_user_seconds": 300,
     "black_screen_seconds": 3,
     "impostor_seconds": 300,

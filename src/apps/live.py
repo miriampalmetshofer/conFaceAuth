@@ -102,10 +102,12 @@ class LiveFaceAuth:
         self.enrollment_embeddings = embeddings
 
         # Initialize authenticator with enrollment embeddings
+        # The live loop authenticates every camera frame with wall-clock timestamps,
+        # so the rate equals the camera frame rate. create_authenticator only reads
+        # the backend, but the config requires an explicit rate.
         authentication_config = AuthenticationConfig(
             backend=TemporalDecayConfig(type="temporal_decay", **self.config["temporal_decay"]),
-            fps=self.config["fps"],
-            skip_frames=1,
+            authentication_hz=self.config["fps"],
         )
 
         authenticator_backend = create_authenticator(

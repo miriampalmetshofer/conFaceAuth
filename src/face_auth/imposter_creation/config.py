@@ -19,7 +19,6 @@ MatchingStrategyConfig = Annotated[
 class ImposterConfig(BaseModel):
     """Imposter video creation configuration."""
 
-    fps: int = Field(..., gt=0)
     genuine_user_seconds: Optional[float] = Field(None, gt=0)
     black_screen_seconds: float = Field(..., ge=0)
     impostor_seconds: Optional[float] = Field(None, gt=0)

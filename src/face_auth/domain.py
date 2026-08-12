@@ -10,12 +10,13 @@ from dataclasses import dataclass
 from datetime import date
 from enum import Enum
 from pathlib import Path
-from typing import List
+from typing import Iterator, List
 
 import numpy as np
 from pydantic import BaseModel, Field, ConfigDict
 
 from face_auth.core.authenticator.models import AuthenticationResult
+from face_auth.core.models import Frame
 from face_auth.imposter_creation.iterators.frame_iterator import FrameIterator
 
 VIDEO_EXTENSIONS = ("mp4", "MP4")
@@ -77,34 +78,53 @@ class ImposterSamplePair:
     imposter_video: Video
 
 
+@dataclass(frozen=True, kw_only=True)
+class IndexedFrame(Frame):
+    """A core Frame carrying its position on a composed video's continuous timeline."""
+    index: int
+
+
 @dataclass
 class ComposedVideo:
     """Virtual video composed from multiple frame iterators, with no physical file.
 
     A composed video is an in-memory sequence of frame iterators rather than a file
-    on disk, so it carries only an identifying name and its iterators.
+    on disk, so it carries an identifying name, its iterators, and the frame rate
+    all its segments share. The frame rate lets consumers convert between frame
+    indices and real time.
     """
     name: str
     iterators: List['FrameIterator']
+    fps: float
+
+    def frames(self) -> 'Iterator[IndexedFrame]':
+        """Yield every frame as one continuous, timestamped stream.
+
+        The segments are walked back to back and share a single 1-based frame
+        index and timeline, so the stitched video behaves like one recording
+        rather than three separate clips.
+        """
+        index = 1
+        for iterator in self.iterators:
+            for image in iterator:
+                yield IndexedFrame(
+                    image=image,
+                    timestamp_ms=(index / self.fps) * 1000,
+                    source_name=iterator.source_name,
+                    index=index,
+                )
+                index += 1
 
 
 @dataclass
-class FrameAuthenticationResult:
-    """Frame-level authentication result with processing metadata."""
-    auth_result: AuthenticationResult
-    frame_index: int
-    source_type: str
+class AuthenticatedFrame:
+    """One frame of a composed video paired with its authentication verdict.
 
-    def to_dict(self) -> dict:
-        """Convert to dictionary format for CSV output."""
-        return {
-            'frame': self.frame_index,
-            'is_authenticated': self.auth_result.is_authenticated,
-            'similarity': self.auth_result.similarity,
-            'trust_score': self.auth_result.trust,
-            'face_detected': self.auth_result.face_detected,
-            'source_type': self.source_type
-        }
+    The frame's index and source come from the frame itself, so nothing is
+    duplicated alongside the result.
+    """
+    frame: IndexedFrame
+    result: AuthenticationResult
 
 
 @dataclass
@@ -120,4 +140,4 @@ class VideoResult:
     """Container for video processing results."""
 
     video: ComposedVideo
-    frame_results: List[FrameAuthenticationResult]
+    frame_results: List[AuthenticatedFrame]

@@ -10,25 +10,20 @@ logger = get_logger(__name__)
 
 def validate_video(
     video_path: Path,
-    expected_fps: float,
     required_duration: float,
     duration_buffer_seconds: float = 1.0,
-    fps_tolerance: float = 0.5,
 ) -> None:
-    """Validate a video meets FPS and duration requirements.
+    """Validate a video is long enough for its role in the composed video.
 
     Args:
         video_path: Path to video file
-        expected_fps: Expected frames per second for the video
         required_duration: Required minimum duration in seconds
         duration_buffer_seconds: Tolerance buffer for duration
-        fps_tolerance: Tolerance for FPS matching (handles 29.97 vs 30)
 
     Raises:
         ValueError: If the video doesn't meet requirements
     """
-    fps, duration = get_video_metadata(video_path)
-    validate_fps(video_path, fps, expected_fps, fps_tolerance)
+    _, duration = get_video_metadata(video_path)
     validate_duration(video_path, duration, required_duration, duration_buffer_seconds)
 
 
@@ -47,18 +42,19 @@ def get_video_metadata(video_path: Path) -> tuple[float, float]:
     return fps, duration
 
 
-def validate_fps(video_path: Path, actual_fps: float, expected_fps: float, fps_tolerance: float) -> None:
-    """Validate video FPS matches expected FPS (with tolerance).
+def get_video_fps(video_path: Path) -> float:
+    """Read the true frame rate of a video file.
 
     Raises:
-        ValueError: If FPS doesn't match within tolerance
+        ValueError: If the frame rate cannot be determined
     """
-    if abs(actual_fps - expected_fps) > fps_tolerance:
-        raise ValueError(
-            f"Video {video_path.name} has FPS={actual_fps:.2f}, "
-            f"but expected FPS={expected_fps} (tolerance: ±{fps_tolerance}). "
-            f"All videos must have matching FPS for frame-based analysis."
-        )
+    cap = cv2.VideoCapture(str(video_path))
+    fps = cap.get(cv2.CAP_PROP_FPS)
+    cap.release()
+
+    if fps <= 0:
+        raise ValueError(f"Could not determine FPS for video {video_path}")
+    return fps
 
 
 def validate_duration(video_path: Path, actual_duration: float,

@@ -107,7 +107,6 @@ class Pipeline:
             video_results = video_processing_service.process_videos(
                 imposter_videos,
                 enrollment_data,
-                job.config.authentication.skip_frames
             )
 
             # Save results

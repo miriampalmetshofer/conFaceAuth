@@ -17,7 +17,10 @@ class AuthenticationConfig(BaseModel):
     """Authentication parameters configuration."""
 
     backend: AuthenticationBackendConfig
-    fps: int = Field(..., gt=0, description="Frames per second for video processing")
-    skip_frames: int = Field(..., gt=0, description="Process every Nth frame")
+    authentication_hz: float = Field(
+        ...,
+        gt=0,
+        description="How many times per second a frame is authenticated (1.0 = once per second)",
+    )
 
     model_config = ConfigDict(frozen=True)

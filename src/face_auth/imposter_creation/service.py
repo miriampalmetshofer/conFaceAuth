@@ -12,7 +12,7 @@ from face_auth.imposter_creation.iterators.impl.black_frame_iterator import Blac
 from face_auth.imposter_creation.iterators.impl.video_frame_iterator import VideoFrameIterator
 from face_auth.imposter_creation.matching.video_matching_strategy import VideoMatchingStrategy
 from face_auth.domain import ImposterSamplePair, ComposedVideo, Video
-from face_auth.imposter_creation.validation import validate_video
+from face_auth.imposter_creation.validation import validate_video, get_video_fps
 
 logger = get_logger(__name__)
 
@@ -51,16 +51,16 @@ class ImposterVideoCreationService:
             List of composed videos (no physical files)
 
         Raises:
-            ValueError: If any video does not meet FPS or duration requirements
+            ValueError: If any video is too short for its role
         """
         pairs = self.matching_strategy.match(all_videos, genuine_user, allowed_participants)
 
         logger.info(f"Creating imposter videos from {len(pairs)} pair(s)")
 
-        logger.info("Validating video requirements (FPS, duration)...")
+        logger.info("Validating video durations...")
         for pair in pairs:
-            validate_video(pair.genuine_video.path, self.config.fps, self.config.genuine_user_seconds)
-            validate_video(pair.imposter_video.path, self.config.fps, self.config.impostor_seconds)
+            validate_video(pair.genuine_video.path, self.config.genuine_user_seconds)
+            validate_video(pair.imposter_video.path, self.config.impostor_seconds)
 
         imposter_videos = []
         for i, pair in enumerate(pairs, 1):
@@ -68,17 +68,21 @@ class ImposterVideoCreationService:
                 f"Creating imposter video {i}/{len(pairs)}: "
                 f"{pair.genuine_video.path.name} + {pair.imposter_video.path.name}"
             )
-            iterators = self._create_iterators(pair)
+            # The composed video is anchored to the genuine video's frame rate, which
+            # also sets the black-segment length so it plays at the same speed.
+            fps = get_video_fps(pair.genuine_video.path)
+            iterators = self._create_iterators(pair, fps)
 
             imposter_videos.append(ComposedVideo(
                 name=self._build_name(pair),
-                iterators=iterators
+                iterators=iterators,
+                fps=fps
             ))
 
         return imposter_videos
 
 
-    def _create_iterators(self, pair):
+    def _create_iterators(self, pair: ImposterSamplePair, fps: float) -> List[FrameIterator]:
         """Create frame iterators for a composed video. Currently this is fixed to genuine + black frames + imposter."""
         width, height = self._get_video_dimensions(pair.genuine_video.path)
 
@@ -86,17 +90,15 @@ class ImposterVideoCreationService:
             VideoFrameIterator(
                 video_path=pair.genuine_video.path,
                 duration_seconds=self.config.genuine_user_seconds,
-                fps=self.config.fps
             ),
             BlackFrameGenerator(
                 width=width,
                 height=height,
-                num_frames=int(self.config.black_screen_seconds * self.config.fps)
+                num_frames=int(self.config.black_screen_seconds * fps)
             ),
             VideoFrameIterator(
                 video_path=pair.imposter_video.path,
                 duration_seconds=self.config.impostor_seconds,
-                fps=self.config.fps
             )
         ]
         total_frames = sum(len(it) for it in iterators)

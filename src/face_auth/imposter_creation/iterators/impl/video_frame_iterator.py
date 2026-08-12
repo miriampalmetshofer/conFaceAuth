@@ -3,6 +3,7 @@ from typing import Iterator
 import numpy as np
 from face_auth.logging_config import get_logger
 from face_auth.imposter_creation.iterators.frame_iterator import FrameIterator
+from face_auth.imposter_creation.validation import get_video_fps
 from face_auth.core.video_utils import read_frames
 
 logger = get_logger(__name__)
@@ -14,23 +15,24 @@ class VideoFrameIterator(FrameIterator):
         self,
         video_path: Path,
         duration_seconds: float,
-        fps: float,
         start_second: float = 0
     ):
         """Initialize video frame iterator.
 
+        The frame rate is read from the video file itself, so the slicing works
+        for whatever rate the source was recorded at.
+
         Args:
             video_path: Path to video file
             duration_seconds: Duration to read in seconds
-            fps: Frames per second (from config, already validated)
             start_second: Start time in seconds (default: 0, beginning of video)
         """
         self._video_path = video_path
         self.start_second = start_second
         self.duration_seconds = duration_seconds
-        self.fps = fps
+        self.fps = get_video_fps(video_path)
 
-        # Calculate frame boundaries using config FPS
+        # Calculate frame boundaries using the video's true FPS
         self.start_frame = int(start_second * self.fps)
         self.end_frame = self.start_frame + int(duration_seconds * self.fps)
 

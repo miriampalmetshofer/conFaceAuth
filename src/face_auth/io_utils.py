@@ -11,7 +11,7 @@ import pandas as pd
 
 from face_auth.logging_config import get_logger
 from face_auth.config import ApplicationConfig
-from face_auth.domain import ProcessingContext
+from face_auth.domain import AuthenticatedFrame, ProcessingContext
 from face_auth.core.video_utils import save_image_rgb
 from face_auth.domain import VideoResult
 
@@ -43,6 +43,20 @@ def create_run_directory(config: ApplicationConfig) -> Path:
     return run_dir
 
 
+def _frame_result_row(authenticated: AuthenticatedFrame) -> dict:
+    """Flatten an authenticated frame into a CSV row."""
+    frame = authenticated.frame
+    result = authenticated.result
+    return {
+        'frame': frame.index,
+        'is_authenticated': result.is_authenticated,
+        'similarity': result.similarity,
+        'trust_score': result.trust,
+        'face_detected': result.face_detected,
+        'source_type': frame.source_name,
+    }
+
+
 def write_results(
     video_results: List[VideoResult],
     context: ProcessingContext,
@@ -59,7 +73,7 @@ def write_results(
     video_dir.mkdir(parents=True, exist_ok=True)
 
     for video_result in video_results:
-        rows = [frame_result.to_dict() for frame_result in video_result.frame_results]
+        rows = [_frame_result_row(authenticated) for authenticated in video_result.frame_results]
         csv_path = video_dir / f"{video_result.video.name}.csv"
         pd.DataFrame(rows).to_csv(csv_path, index=False)
         logger.info(f"Wrote {len(rows)} frame result(s) to {csv_path}")
