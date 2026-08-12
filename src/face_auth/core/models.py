@@ -1,4 +1,4 @@
-"""Shared core models."""
+"""Shared core models: study-independent, reusable building blocks."""
 from dataclasses import dataclass
 from typing import Optional
 

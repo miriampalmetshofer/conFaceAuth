@@ -3,8 +3,8 @@ import re
 from datetime import datetime
 from pathlib import Path
 
-from face_auth.config.models import Participant
-from face_auth.processing.models import EnrollmentVideo, HeadRotation, Scenario
+from face_auth.processing.models import Participant, HeadRotation, Scenario
+from face_auth.core.enrollment.models import EnrollmentVideo
 from face_auth.processing.video_parser.parser import VideoParser
 
 

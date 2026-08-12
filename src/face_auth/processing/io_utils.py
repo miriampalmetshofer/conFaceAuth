@@ -10,7 +10,8 @@ import numpy as np
 import pandas as pd
 
 from face_auth.config.logging_config import get_logger
-from face_auth.config.models import ApplicationConfig, ProcessingContext
+from face_auth.config.models import ApplicationConfig
+from face_auth.processing.models import ProcessingContext
 from face_auth.processing.video_utils import save_image_rgb
 from face_auth.services.models import VideoResult
 

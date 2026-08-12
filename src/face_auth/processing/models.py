@@ -1,23 +1,62 @@
-"""Data models for video processing."""
+"""Data models for video processing, including the study-domain vocabulary.
+
+These types are study-specific (recording scenarios, head rotations, pools,
+devices, participants) rather than reusable core machinery, so they live here in
+the processing/study layer rather than in core/.
+"""
 from dataclasses import dataclass
 from datetime import date
 from enum import Enum
 from pathlib import Path
-from typing import TYPE_CHECKING, List, Optional
+from typing import List
 
-from face_auth.config.models import Scenario, HeadRotation, ProcessingContext, ApplicationConfig, Participant
+from pydantic import BaseModel, Field, ConfigDict
+
 from face_auth.core.authenticator.models import AuthenticationResult
 from face_auth.imposter_video_creation.iterators.frame_iterator import FrameIterator
-
-if TYPE_CHECKING:
-    from face_auth.services.models import VideoResult
 
 VIDEO_EXTENSIONS = ("mp4", "MP4")
 
 
-class Color(Enum):
-    RED = (0, 0, 255)
-    GREEN = (0, 255, 0)
+class Pool(Enum):
+    """Available pool types."""
+    CONTROLLED_STUDY = "controlled_study"
+    IN_THE_WILD = "in_the_wild"
+
+
+class Scenario(Enum):
+    """Video recording scenarios."""
+    EASY = "easy"
+    ANGLE = "angle"
+    LIGHTING = "lighting"
+
+
+class HeadRotation(Enum):
+    """Head rotation directions for video scenarios."""
+    CLOCKWISE = "cw"
+    COUNTERCLOCKWISE = "ccw"
+
+
+class Device(Enum):
+    """Device types for video recording."""
+    MOBILE = "mobile"
+    DESKTOP = "desktop"
+
+
+class Participant(BaseModel):
+    """A study participant."""
+    name: str = Field(..., min_length=1)
+
+    model_config = ConfigDict(frozen=True)
+
+
+class ProcessingContext(BaseModel):
+    """Context for processing a participant on a specific device."""
+    participant: Participant
+    device: Device
+    pool: Pool
+
+    model_config = ConfigDict(frozen=True)
 
 
 @dataclass
@@ -26,19 +65,6 @@ class Video:
     path: Path
     recording_date: date
     participant: Participant
-
-
-@dataclass
-class ControlledStudyVideo(Video):
-    """Represents a video file with additional scenario."""
-    scenario: Scenario
-
-
-@dataclass
-class EnrollmentVideo(Video):
-    """Represents an enrollment video with head rotation information (e.g., 'cw', 'cww') and scenario."""
-    scenario: Scenario
-    head_rotation: HeadRotation
 
 
 @dataclass
@@ -76,26 +102,3 @@ class FrameAuthenticationResult:
             'face_detected': self.auth_result.face_detected,
             'source_type': self.source_type
         }
-
-
-@dataclass
-class ProcessingResult:
-    """Result of processing a single participant on a device."""
-    context: ProcessingContext
-    video_results: Optional[List["VideoResult"]]
-    success: bool
-    error_message: Optional[str] = None
-
-
-@dataclass
-class ProcessingJob:
-    """Encapsulates one unit of work: processing a participant on a device."""
-    context: ProcessingContext
-    all_videos: List[Video]
-    config: ApplicationConfig
-    all_participants: List[Participant]
-    run_dir: Path
-
-    def __str__(self) -> str:
-        """String representation for logging."""
-        return f"{self.context.participant.name} on {self.context.device.value}"

@@ -3,12 +3,13 @@
 from pathlib import Path
 from typing import List
 
-from face_auth.config.models import ApplicationConfig, ProcessingContext
+from face_auth.config.models import ApplicationConfig
+from face_auth.processing.models import ProcessingContext
 from face_auth.config.logging_config import get_logger
 from face_auth.pipeline_factory import PipelineFactory
 from face_auth.processing.batch_processor import BatchProcessor
 from face_auth.processing.io_utils import create_run_directory, write_results
-from face_auth.processing.models import ProcessingJob, ProcessingResult
+from face_auth.processing.batch_processor import ProcessingJob, ProcessingResult
 
 logger = get_logger(__name__)
 
@@ -101,7 +102,7 @@ class Pipeline:
                 job.all_participants
             )
 
-            # Authenticate every frame of every composed video
+            # Authenticate the frames of every composed video
             video_results = video_processing_service.process_videos(
                 imposter_videos,
                 enrollment_data,

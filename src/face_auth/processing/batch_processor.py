@@ -1,12 +1,39 @@
 """Batch processor for parallel execution of processing jobs."""
 
 import multiprocessing
-from typing import List, Callable
+from dataclasses import dataclass
+from pathlib import Path
+from typing import List, Callable, Optional
 
 from face_auth.config.logging_config import get_logger, setup_logging
-from face_auth.processing.models import ProcessingJob, ProcessingResult
+from face_auth.config.models import ApplicationConfig
+from face_auth.processing.models import ProcessingContext, Participant
+from face_auth.processing.models import Video
+from face_auth.services.models import VideoResult
 
 logger = get_logger(__name__)
+
+@dataclass
+class ProcessingResult:
+    """Result of processing a single participant on a device."""
+    context: ProcessingContext
+    video_results: Optional[List[VideoResult]]
+    success: bool
+    error_message: Optional[str] = None
+
+
+@dataclass
+class ProcessingJob:
+    """Encapsulates one unit of work: processing a participant on a device."""
+    context: ProcessingContext
+    all_videos: List[Video]
+    config: ApplicationConfig
+    all_participants: List[Participant]
+    run_dir: Path
+
+    def __str__(self) -> str:
+        """String representation for logging."""
+        return f"{self.context.participant.name} on {self.context.device.value}"
 
 
 def _init_worker(log_level: int):

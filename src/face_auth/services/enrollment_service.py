@@ -7,10 +7,11 @@ from typing import List
 
 import numpy as np
 
-from face_auth.config.models import EnrollmentConfig, PathsConfig, ProcessingContext, EnrollmentVideoPreference
+from face_auth.config.models import EnrollmentConfig, PathsConfig, EnrollmentVideoPreference
+from face_auth.processing.models import ProcessingContext
 from face_auth.core.embedder.backend.embedder_backend import EmbedderBackend
 from face_auth.processing.video_parser.impl.enrollment_video_parser import EnrollmentVideoParser
-from face_auth.processing.models import EnrollmentVideo
+from face_auth.core.enrollment.models import EnrollmentVideo
 from face_auth.core.enrollment.backend.enrollment_factory import create_enrollment_backend
 from face_auth.core.enrollment.models import SelectedEnrollmentFrame
 from face_auth.services.models import EnrollmentData

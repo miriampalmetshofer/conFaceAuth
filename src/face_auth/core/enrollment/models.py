@@ -6,6 +6,14 @@ from typing import Any, Literal
 from pydantic import BaseModel, Field, ConfigDict
 
 from face_auth.core.models import Frame
+from face_auth.processing.models import Video, Scenario, HeadRotation
+
+
+@dataclass
+class EnrollmentVideo(Video):
+    """Enrollment video carrying its recording scenario and guided head rotation."""
+    scenario: Scenario
+    head_rotation: HeadRotation
 
 
 class PoseEnrollmentConfig(BaseModel):

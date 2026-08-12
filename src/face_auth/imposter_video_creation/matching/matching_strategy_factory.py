@@ -1,12 +1,12 @@
 """Factory for creating video matching strategy."""
-from face_auth.config.models import MatchingStrategyChoice
+from face_auth.config.models import MatchingStrategyConfig
 from face_auth.imposter_video_creation.matching.impl.all import AllVideosMatchingStrategy
 from face_auth.imposter_video_creation.matching.impl.random_match import RandomSamplingMatchingStrategy
 from face_auth.imposter_video_creation.matching.impl.scenario import ScenarioMatchingStrategy
 from face_auth.imposter_video_creation.matching.video_matching_strategy import VideoMatchingStrategy
 
 
-def create_matching_strategy(strategy_config: MatchingStrategyChoice) -> VideoMatchingStrategy:
+def create_matching_strategy(strategy_config: MatchingStrategyConfig) -> VideoMatchingStrategy:
     """Create a video matching strategy from config.
 
     Args:

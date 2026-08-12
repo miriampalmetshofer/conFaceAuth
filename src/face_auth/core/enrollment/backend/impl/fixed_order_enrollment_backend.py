@@ -8,10 +8,10 @@ from face_auth.core.enrollment.models import (
     HeadDirection,
     SelectedEnrollmentFrame,
 )
-from face_auth.config.models import HeadRotation
+from face_auth.processing.models import HeadRotation
 from face_auth.core.models import Frame
 from face_auth.config.logging_config import get_logger
-from face_auth.processing.models import EnrollmentVideo
+from face_auth.core.enrollment.models import EnrollmentVideo
 from face_auth.processing.video_utils import read_frames
 
 logger = get_logger(__name__)
