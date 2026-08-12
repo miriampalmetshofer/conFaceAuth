@@ -7,6 +7,7 @@ import logging
 
 from face_auth.core.embedder.backend.embedder_backend import EmbedderBackend
 from face_auth.core.embedder.models import EmbeddingResult
+from face_auth.core.detection.models import BoundingBox
 
 
 class InsightFaceBackend(EmbedderBackend):
@@ -80,7 +81,15 @@ class InsightFaceBackend(EmbedderBackend):
 
         normalized_embedding = self._l2_normalize_embeddings(embedding)
 
-        return EmbeddingResult.success(normalized_embedding)
+        return EmbeddingResult.success(
+            normalized_embedding,
+            self._to_bounding_box(face.bbox),
+        )
+
+    def _to_bounding_box(self, bbox) -> BoundingBox:
+        """Convert an InsightFace (x1, y1, x2, y2) box into a BoundingBox."""
+        x1, y1, x2, y2 = bbox.astype(int)
+        return BoundingBox(x=int(x1), y=int(y1), width=int(x2 - x1), height=int(y2 - y1))
 
     def _select_largest_face(self, faces):
         return max(faces, key=self._calculate_bbox_area)

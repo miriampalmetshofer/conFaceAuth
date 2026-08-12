@@ -1,26 +1,22 @@
 {
-  "enrollment_video": "../data/enrollments/desktop/miriam/miriam_enrollment_easy_ccw_2026-01-25_19-28-07.mp4",
-  "camera_index": 1,
-  "fps": 30,
+  "enrollment_video": "data/enrollments/desktop/miriam/miriam_enrollment_easy_ccw_2026-01-25_19-28-07.mp4",
+  "enrollment_frames": 50,
+  "camera_index": 0,
   "embedder": {
-    "model": "insightface",
-    "config": {
-      "model_name": "buffalo_sc",
-      "det_size": [
-        640,
-        640
-      ],
-      "min_detection_confidence": 0.5
-    }
+    "type": "insightface",
+    "model_name": "buffalo_sc",
+    "det_size": [
+      640,
+      640
+    ],
+    "min_detection_confidence": 0.5
   },
-  "temporal_decay": {
+  "authenticator": {
+    "type": "temporal_decay",
     "threshold": 0.5,
     "similarity_percentile": 0.9,
     "k_weight": 40000,
     "k_decay": 30000,
     "initial_confidence": 1.0
-  },
-  "enrollment": {
-    "frame_sampling_interval": 30
   }
 }

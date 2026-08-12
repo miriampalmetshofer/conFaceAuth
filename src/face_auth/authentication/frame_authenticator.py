@@ -41,7 +41,7 @@ class FrameAuthenticator:
                 similarity=self.authenticator.last_similarity,
                 trust=self.authenticator.score,
                 face_detected=True,
-                bounding_box=None,
+                bounding_box=embedding_result.bounding_box,
             )
 
         else:

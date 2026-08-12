@@ -1,392 +1,249 @@
 #!/usr/bin/env python3
-"""Live face authentication demo using webcam."""
+"""Live face authentication demo using a webcam.
 
+Thin driver over the shared face-auth components. It loads a typed config, enrolls
+by sampling frames evenly across an enrollment video,
+and authenticates every camera frame through the same FrameAuthenticator the batch
+pipeline uses. The face box drawn on screen comes from the authentication result, so
+the demo never runs face detection a second time.
+"""
+
+import argparse
+import json
+import time
 from pathlib import Path
 
-from face_auth.core.models import Frame
-from face_auth.authentication.frame_authenticator import FrameAuthenticator
-
-project_root = Path(__file__).parent.parent
-
-import json
 import cv2
-import logging
-import argparse
-import time
+from pydantic import BaseModel, Field, ConfigDict
 
-from face_auth.core.embedder.backend.embedder_factory import create_embedder
+from face_auth.config import EmbedderModelConfig
 from face_auth.core.authenticator.backend.authenticator_factory import create_authenticator
 from face_auth.core.authenticator.backend.impl.temporal_decay.models import TemporalDecayConfig
-from face_auth.core.embedder.models import InsightFaceEmbedderConfig
-from face_auth.authentication.config import AuthenticationConfig
-from face_auth.core.video_utils import read_frames
+from face_auth.core.authenticator.models import AuthenticationResult
+from face_auth.core.embedder.backend.embedder_factory import create_embedder
+from face_auth.core.models import Frame
+from face_auth.authentication.frame_authenticator import FrameAuthenticator
+from face_auth.enrollment.service import EnrollmentService
+from face_auth.logging_config import setup_logging, get_logger
+
+logger = get_logger(__name__)
 
 
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
-logger = logging.getLogger(__name__)
+class LiveConfig(BaseModel):
+    """Live demo configuration parsed from JSON.
+
+    Reuses the shared embedder and temporal-decay schemas so the demo runs the same
+    models as the batch study, and adds only the fields specific to a webcam.
+    """
+
+    enrollment_video: Path = Field(..., description="Video the enrolled user is sampled from")
+    enrollment_frames: int = Field(..., gt=0, description="Frames sampled evenly across the video")
+    camera_index: int = Field(..., ge=0, description="Index of the webcam OpenCV opens")
+    embedder: EmbedderModelConfig
+    authenticator: TemporalDecayConfig
+
+    model_config = ConfigDict(frozen=True)
+
+
+def load_live_config(config_path: str) -> LiveConfig:
+    """Load and validate the live demo configuration from a JSON file.
+
+    Relative paths in the config are resolved against the current working
+    directory, so run the demo from the repository root.
+    """
+    config_file = Path(config_path)
+    if not config_file.exists():
+        raise FileNotFoundError(f"Config file not found: {config_file}")
+
+    with open(config_file, "r") as f:
+        return LiveConfig.model_validate(json.load(f))
 
 
 class LiveFaceAuth:
-    """Live face authentication using webcam."""
+    """Runs webcam capture and renders the authentication overlay."""
 
-    def __init__(self, config_path: str = "configs/live_config.json"):
-        """Initialize live face authentication.
-
-        Args:
-            config_path: Path to configuration file (relative to project root)
-        """
-        # Resolve config path relative to project root
-        if not Path(config_path).is_absolute():
-            config_path = project_root / config_path
-
-        logger.info("Loading configuration...")
-        self.config = self._load_config(str(config_path))
-
-        logger.info("Initializing InsightFace embedder...")
+    def __init__(self, config: LiveConfig):
+        self.config = config
         self.embedder = create_embedder(
-            config=InsightFaceEmbedderConfig(type="insightface", **self.config["embedder"]["config"]),
+            config=config.embedder,
             cache_enabled=False,
             cache_dir=None,
         )
-
-        # Initialize InsightFace app directly for bbox extraction
-        from insightface.app import FaceAnalysis
-        embedder_config = self.config["embedder"]["config"]
-        self.face_app = FaceAnalysis(
-            name=embedder_config["model_name"],
-            providers=['CPUExecutionProvider']
-        )
-        det_size = tuple(embedder_config["det_size"])
-        self.face_app.prepare(ctx_id=-1, det_size=det_size)
-
-        self.enrollment_embeddings = None
-        self.authenticator = None
         self.frame_authenticator = None
-        self.authenticator_start_time = None
+        self.start_time = None
 
-    def _load_config(self, config_path: str) -> dict:
-        """Load configuration from JSON file."""
-        with open(config_path, 'r') as f:
-            return json.load(f)
-
-    def process_enrollment_video(self):
-        """Process enrollment video to extract embeddings."""
-        enrollment_video = self.config["enrollment_video"]
-        logger.info(f"Processing enrollment video: {enrollment_video}")
-
-        if not Path(enrollment_video).exists():
-            raise FileNotFoundError(
-                f"Enrollment video not found: {enrollment_video}\n"
-                f"Please update the 'enrollment_video' path in live_config.json"
-            )
-
-        frame_interval = self.config["enrollment"].get("frame_sampling_interval", 30)
-        embeddings = []
-
-        for frame in read_frames(Path(enrollment_video), sample_every=frame_interval):
-            embedding_result = self.embedder.embed(frame.image)
-            if embedding_result.face_detected:
-                embeddings.append(embedding_result.embedding)
-                logger.info(f"Enrollment frame {len(embeddings)}: face detected")
-
-        if len(embeddings) == 0:
-            raise ValueError(
-                f"No faces detected in enrollment video!\n"
-                f"Please ensure the enrollment video contains clear face frames."
-            )
-
-        logger.info(f"Enrollment complete: {len(embeddings)} embeddings extracted")
-        self.enrollment_embeddings = embeddings
-
-        # Initialize authenticator with enrollment embeddings
-        # The live loop authenticates every camera frame with wall-clock timestamps,
-        # so the rate equals the camera frame rate. create_authenticator only reads
-        # the backend, but the config requires an explicit rate.
-        authentication_config = AuthenticationConfig(
-            backend=TemporalDecayConfig(type="temporal_decay", **self.config["temporal_decay"]),
-            authentication_hz=self.config["fps"],
+    def enroll(self):
+        """Enroll the user and build the per-frame authenticator."""
+        logger.info("Enrolling from configured enrollment video...")
+        enrollment_embeddings = EnrollmentService.enroll_from_video_uniform(
+            embedder=self.embedder,
+            video_path=self.config.enrollment_video,
+            num_frames=self.config.enrollment_frames,
         )
-
-        authenticator_backend = create_authenticator(
-            config=authentication_config,
-            enrollment_embeddings=self.enrollment_embeddings,
+        # create_authenticator reads only the backend config; the live loop
+        # authenticates every camera frame, so there is no sampling rate to supply.
+        authenticator = create_authenticator(
+            backend=self.config.authenticator,
+            enrollment_embeddings=enrollment_embeddings,
         )
-
-        self.authenticator = authenticator_backend
         self.frame_authenticator = FrameAuthenticator(
             embedder=self.embedder,
-            authenticator=authenticator_backend,
+            authenticator=authenticator,
         )
-        self.authenticator_start_time = None
-        logger.info("Authenticator initialized")
 
-    def run_live_authentication(self):
-        """Run live authentication using webcam."""
-        if self.frame_authenticator is None:
-            raise RuntimeError("Must process enrollment video first!")
-
-        camera_index = self.config.get("camera_index")
-        logger.info(f"Attempting to open camera {camera_index}...")
-
-        cap = cv2.VideoCapture(camera_index)
-        if not cap.isOpened():
-            error_msg = (
-                f"Could not open camera {camera_index}!\n"
-                f"Update 'camera_index' in live_config.json to use a different camera."
-            )
-            raise IOError(error_msg)
-
-        # Set camera resolution (optional)
-        cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
-        cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
-
-        threshold = self.config["temporal_decay"]["threshold"]
+    def run(self):
+        """Run live authentication until the user quits."""
+        cap = self._open_camera()
+        threshold = self.config.authenticator.threshold
 
         logger.info("Starting live authentication. Press 'q' to quit.")
-
         try:
             while True:
-                ret, frame = cap.read()
+                ret, frame_bgr = cap.read()
                 if not ret:
                     logger.error("Failed to read frame from camera")
                     break
 
-                # Flip frame horizontally for mirror effect
-                frame = cv2.flip(frame, 1)
+                # Mirror the frame so it reads like a mirror to the user.
+                frame_bgr = cv2.flip(frame_bgr, 1)
+                frame_rgb = cv2.cvtColor(frame_bgr, cv2.COLOR_BGR2RGB)
 
-                # Convert once for authentication and InsightFace bbox extraction
-                frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-                auth_result = self._authenticate_frame(frame_rgb)
-                faces = self.face_app.get(frame_rgb)
+                auth_result = self._authenticate(frame_rgb)
+                display_frame = self._draw_overlays(frame_bgr, auth_result, threshold)
 
-                # Draw overlays
-                display_frame = self._draw_overlays(
-                    frame,
-                    auth_result,
-                    faces,
-                    threshold
-                )
-
-                # Show frame
-                cv2.imshow('Live Face Authentication', display_frame)
-
-                # Check for quit key
-                if cv2.waitKey(1) & 0xFF == ord('q'):
+                cv2.imshow("Live Face Authentication", display_frame)
+                if cv2.waitKey(1) & 0xFF == ord("q"):
                     logger.info("Quitting...")
                     break
-
         finally:
             cap.release()
             cv2.destroyAllWindows()
 
-    def _select_largest_face(self, faces):
-        return max(faces, key=self._calculate_bbox_area)
-
-    def _calculate_bbox_area(self, face):
-        bbox = face.bbox
-        width = bbox[2] - bbox[0]
-        height = bbox[3] - bbox[1]
-        return width * height
-
-    def _authenticate_frame(self, frame_rgb):
-        """Authenticate one live camera frame."""
-        if self.frame_authenticator is None:
-            raise RuntimeError("Must process enrollment video first!")
-
-        timestamp_ms = self._get_timestamp_ms()
+    def _authenticate(self, frame_rgb) -> AuthenticationResult:
+        """Authenticate one camera frame stamped with elapsed wall-clock time."""
+        if self.start_time is None:
+            self.start_time = time.time()
+        timestamp_ms = (time.time() - self.start_time) * 1000
         return self.frame_authenticator.update_authentication_with_new_evidence(
-            frame=Frame(
-                image=frame_rgb,
-                timestamp_ms=timestamp_ms,
-            ),
+            Frame(image=frame_rgb, timestamp_ms=timestamp_ms)
         )
 
-    def _get_timestamp_ms(self):
-        """Return elapsed wall-clock time since live authentication started."""
-        if self.authenticator_start_time is None:
-            self.authenticator_start_time = time.time()
+    def _open_camera(self) -> cv2.VideoCapture:
+        """Open the configured webcam at the requested resolution."""
+        logger.info(f"Opening camera {self.config.camera_index}...")
+        cap = cv2.VideoCapture(self.config.camera_index)
+        if not cap.isOpened():
+            raise IOError(
+                f"Could not open camera {self.config.camera_index}. "
+                f"Update 'camera_index' in the live config to use a different camera."
+            )
+        return cap
 
-        return (time.time() - self.authenticator_start_time) * 1000
-
-    def _draw_overlays(self, frame, auth_result, faces, threshold):
-        """Draw authentication status and bounding boxes on frame."""
-        display_frame = frame.copy()
+    def _draw_overlays(
+        self,
+        frame_bgr,
+        auth_result: AuthenticationResult,
+        threshold: float,
+    ):
+        """Draw authentication status, the trust bar, and the face box on the frame."""
+        display_frame = frame_bgr.copy()
         h, w = display_frame.shape[:2]
 
-        # Determine colors based on authentication status
         is_unlocked = auth_result.is_authenticated
         status_color = (0, 255, 0) if is_unlocked else (0, 0, 255)  # Green/Red
 
-        # Draw bounding box if face detected
-        if faces and len(faces) > 0:
-            face = self._select_largest_face(faces)
-            bbox = face.bbox.astype(int)
-            x1, y1, x2, y2 = bbox[0], bbox[1], bbox[2], bbox[3]
+        self._draw_face_box(display_frame, auth_result.bounding_box, status_color)
+        self._draw_status_panel(display_frame, auth_result, threshold, status_color)
+        self._draw_trust_bar(display_frame, auth_result.trust, threshold, status_color, h, w)
 
-            # Draw rectangle
-            cv2.rectangle(display_frame, (x1, y1), (x2, y2), status_color, 2)
-
-            # Draw face detection confidence
-            det_score = face.det_score
-            cv2.putText(
-                display_frame,
-                f"Det: {det_score:.2f}",
-                (x1, y1 - 10),
-                cv2.FONT_HERSHEY_SIMPLEX,
-                0.5,
-                status_color,
-                2
-            )
-
-        # Draw status panel (top-left)
-        panel_height = 120
-        panel_width = 300
-        overlay = display_frame.copy()
-        cv2.rectangle(overlay, (0, 0), (panel_width, panel_height), (0, 0, 0), -1)
-        cv2.addWeighted(overlay, 0.5, display_frame, 0.5, 0, display_frame)
-
-        # Status text
-        status_text = "UNLOCKED" if is_unlocked else "LOCKED"
         cv2.putText(
-            display_frame,
-            status_text,
-            (10, 30),
-            cv2.FONT_HERSHEY_SIMPLEX,
-            1.0,
-            status_color,
-            2
+            display_frame, "Press 'q' to quit", (w - 200, 30),
+            cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 1
         )
+        return display_frame
 
-        # Trust score
-        trust_score = auth_result.trust
+    def _draw_face_box(self, frame, bounding_box, color):
+        """Draw the detected face rectangle, if a face was found."""
+        if bounding_box is None:
+            return
+        x1, y1 = bounding_box.x, bounding_box.y
+        x2, y2 = x1 + bounding_box.width, y1 + bounding_box.height
+        cv2.rectangle(frame, (x1, y1), (x2, y2), color, 2)
+
+    def _draw_status_panel(self, frame, auth_result, threshold, status_color):
+        """Draw the top-left panel with lock status, trust, threshold, similarity."""
+        panel = frame.copy()
+        cv2.rectangle(panel, (0, 0), (300, 120), (0, 0, 0), -1)
+        cv2.addWeighted(panel, 0.5, frame, 0.5, 0, frame)
+
+        status_text = "UNLOCKED" if auth_result.is_authenticated else "LOCKED"
         cv2.putText(
-            display_frame,
-            f"Trust: {trust_score:.4f}",
-            (10, 60),
-            cv2.FONT_HERSHEY_SIMPLEX,
-            0.6,
-            (255, 255, 255),
-            2
+            frame, status_text, (10, 30),
+            cv2.FONT_HERSHEY_SIMPLEX, 1.0, status_color, 2
         )
-
-        # Threshold
         cv2.putText(
-            display_frame,
-            f"Threshold: {threshold:.4f}",
-            (10, 85),
-            cv2.FONT_HERSHEY_SIMPLEX,
-            0.6,
-            (255, 255, 255),
-            2
+            frame, f"Trust: {auth_result.trust:.4f}", (10, 60),
+            cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 2
         )
-
-        # Similarity (if available)
+        cv2.putText(
+            frame, f"Threshold: {threshold:.4f}", (10, 85),
+            cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 2
+        )
         if auth_result.similarity is not None:
             cv2.putText(
-                display_frame,
-                f"Similarity: {auth_result.similarity:.4f}",
-                (10, 110),
-                cv2.FONT_HERSHEY_SIMPLEX,
-                0.6,
-                (255, 255, 255),
-                2
+                frame, f"Similarity: {auth_result.similarity:.4f}", (10, 110),
+                cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 2
             )
 
-        # Draw trust bar (bottom)
+    def _draw_trust_bar(self, frame, trust_score, threshold, status_color, h, w):
+        """Draw the bottom trust bar with the threshold marker."""
         bar_height = 30
+        bar_x = 10
         bar_y = h - bar_height - 10
         bar_width = w - 20
-        bar_x = 10
 
-        # Background bar
         cv2.rectangle(
-            display_frame,
-            (bar_x, bar_y),
-            (bar_x + bar_width, bar_y + bar_height),
-            (50, 50, 50),
-            -1
+            frame, (bar_x, bar_y), (bar_x + bar_width, bar_y + bar_height),
+            (50, 50, 50), -1
         )
-
-        # Trust level bar
-        trust_normalized = max(0, min(1, trust_score))  # Clamp to [0, 1]
+        trust_normalized = max(0, min(1, trust_score))
         trust_bar_width = int(bar_width * trust_normalized)
         cv2.rectangle(
-            display_frame,
-            (bar_x, bar_y),
-            (bar_x + trust_bar_width, bar_y + bar_height),
-            status_color,
-            -1
+            frame, (bar_x, bar_y), (bar_x + trust_bar_width, bar_y + bar_height),
+            status_color, -1
         )
-
-        # Threshold line
         threshold_x = bar_x + int(bar_width * threshold)
         cv2.line(
-            display_frame,
-            (threshold_x, bar_y),
-            (threshold_x, bar_y + bar_height),
-            (255, 255, 0),  # Yellow
-            3
-        )
-
-        # Bar labels
-        cv2.putText(
-            display_frame,
-            "0.0",
-            (bar_x, bar_y - 5),
-            cv2.FONT_HERSHEY_SIMPLEX,
-            0.4,
-            (255, 255, 255),
-            1
+            frame, (threshold_x, bar_y), (threshold_x, bar_y + bar_height),
+            (255, 255, 0), 3
         )
         cv2.putText(
-            display_frame,
-            "1.0",
-            (bar_x + bar_width - 20, bar_y - 5),
-            cv2.FONT_HERSHEY_SIMPLEX,
-            0.4,
-            (255, 255, 255),
-            1
+            frame, "0.0", (bar_x, bar_y - 5),
+            cv2.FONT_HERSHEY_SIMPLEX, 0.4, (255, 255, 255), 1
         )
-
-        # Instructions
         cv2.putText(
-            display_frame,
-            "Press 'q' to quit",
-            (w - 200, 30),
-            cv2.FONT_HERSHEY_SIMPLEX,
-            0.6,
-            (255, 255, 255),
-            1
+            frame, "1.0", (bar_x + bar_width - 20, bar_y - 5),
+            cv2.FONT_HERSHEY_SIMPLEX, 0.4, (255, 255, 255), 1
         )
-
-        return display_frame
 
 
 def main():
-    """Main entry point."""
+    """Entry point for the live authentication demo."""
     parser = argparse.ArgumentParser(description="Live face authentication demo")
-
     parser.add_argument(
         "--config",
         default="configs/live_config.json",
-        help="Path to configuration file (default: live_config.json)"
+        help="Path to the live configuration file",
     )
-
     args = parser.parse_args()
 
+    setup_logging()
+
     try:
-        # Initialize
-        live_auth = LiveFaceAuth(args.config)
-
-        # Process enrollment
-        live_auth.process_enrollment_video()
-
-        # Run live authentication
-        live_auth.run_live_authentication()
-
+        config = load_live_config(args.config)
+        live_auth = LiveFaceAuth(config)
+        live_auth.enroll()
+        live_auth.run()
     except KeyboardInterrupt:
         logger.info("Interrupted by user")
     except Exception as e:

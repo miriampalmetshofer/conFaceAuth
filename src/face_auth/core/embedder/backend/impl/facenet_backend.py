@@ -47,7 +47,7 @@ class FaceNetBackend(EmbedderBackend):
         face_resized = cv2.resize(detection_result.face_image, self._target_size)
 
         embeddings = self._model.embeddings([face_resized])
-        return EmbeddingResult.success(embeddings[0])
+        return EmbeddingResult.success(embeddings[0], detection_result.bounding_box)
 
     def get_config(self) -> Dict[str, Any]:
         """Return a JSON-serializable description of this embedder configuration."""

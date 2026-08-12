@@ -16,7 +16,7 @@ from face_auth.core.enrollment.models import EnrollmentVideo
 from face_auth.core.enrollment.backend.enrollment_factory import create_enrollment_backend
 from face_auth.core.enrollment.models import SelectedEnrollmentFrame
 from face_auth.domain import EnrollmentData
-from face_auth.core.video_utils import save_image_rgb, load_image_rgb
+from face_auth.core.video_utils import save_image_rgb, load_image_rgb, read_frames_evenly
 from face_auth.logging_config import get_logger
 
 logger = get_logger(__name__)
@@ -218,6 +218,56 @@ class EnrollmentService:
         self._save_frames(selections, enrollment_folder)
 
         return self.load_enrollment(enrollment_folder)
+
+    @staticmethod
+    def enroll_from_video_uniform(
+        embedder: EmbedderBackend,
+        video_path: Path,
+        num_frames: int,
+    ) -> List[np.ndarray]:
+        """Enroll from a single video by sampling frames evenly across its length.
+
+        Samples ``num_frames`` frames spread over the whole video, embeds each one,
+        and returns the embeddings of those with a detectable face. Unlike the
+        study enrollment, this does not select frames by head direction, write an
+        enrollment folder, or apply the re-enrollment cache; it is meant for ad-hoc
+        enrollment from an arbitrary clip, such as the live demo. It needs only an
+        embedder, so it is a static method independent of the study configuration.
+
+        Args:
+            embedder: Embedding generator instance
+            video_path: Path to the enrollment video
+            num_frames: Number of frames to sample across the video
+
+        Returns:
+            Embeddings for the sampled frames that contained a face
+
+        Raises:
+            FileNotFoundError: If the video does not exist
+            ValueError: If no face is detected in any sampled frame
+        """
+        if not video_path.exists():
+            raise FileNotFoundError(f"Enrollment video not found: {video_path}")
+
+        logger.info(
+            f"Enrolling from {video_path.name} by sampling {num_frames} frame(s) "
+            f"evenly across the video"
+        )
+
+        embeddings = []
+        for frame in read_frames_evenly(video_path, num_frames=num_frames):
+            embedding_result = embedder.embed(frame.image)
+            if embedding_result.face_detected:
+                embeddings.append(embedding_result.embedding)
+
+        if not embeddings:
+            raise ValueError(
+                f"No faces detected in any of the {num_frames} sampled frames of "
+                f"{video_path}. Ensure the video contains clear frontal face frames."
+            )
+
+        logger.info(f"Enrollment complete: {len(embeddings)} embedding(s) extracted")
+        return embeddings
 
     def load_enrollment(self, folder: Path) -> EnrollmentData:
         """Load existing enrollment from folder.

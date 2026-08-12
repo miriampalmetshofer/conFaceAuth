@@ -5,6 +5,8 @@ from typing import Literal, Optional, Tuple
 import numpy as np
 from pydantic import BaseModel, Field, ConfigDict
 
+from face_auth.core.detection.models import BoundingBox
+
 
 class FaceNetEmbedderConfig(BaseModel):
     """Configuration for the FaceNet embedder backend."""
@@ -32,16 +34,20 @@ class EmbeddingResult:
     A no-face result means the embedding provider did not produce an embedding,
     either because its internal detector found no face or because its delegated
     detector found no face.
+
+    ``bounding_box`` locates the face the embedding was computed from, so callers
+    that want to visualize the detection do not need to run detection a second time.
     """
     embedding: Optional[np.ndarray]
     face_detected: bool
+    bounding_box: Optional[BoundingBox] = None
 
     @classmethod
     def no_face(cls) -> 'EmbeddingResult':
         """Create result for when no face was detected."""
-        return cls(embedding=None, face_detected=False)
+        return cls(embedding=None, face_detected=False, bounding_box=None)
 
     @classmethod
-    def success(cls, embedding: np.ndarray) -> 'EmbeddingResult':
+    def success(cls, embedding: np.ndarray, bounding_box: BoundingBox) -> 'EmbeddingResult':
         """Create result for successful embedding generation."""
-        return cls(embedding=embedding, face_detected=True)
+        return cls(embedding=embedding, face_detected=True, bounding_box=bounding_box)

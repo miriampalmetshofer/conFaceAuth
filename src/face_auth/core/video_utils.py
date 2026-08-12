@@ -70,6 +70,79 @@ def read_frames(
         cap.release()
 
 
+def read_frames_evenly(
+    video_path: Path,
+    *,
+    num_frames: int,
+) -> Iterator[Frame]:
+    """Read a fixed number of frames spread evenly across the whole video.
+
+    Picks ``num_frames`` frame indices spaced evenly from the first to the last
+    frame and yields those frames as timestamped RGB Frames with rotation applied.
+    Unlike a fixed stride, the count of yielded frames does not depend on the
+    video's length, so callers get the same number of samples from any clip.
+
+    Args:
+        video_path: Path to the video file
+        num_frames: How many frames to sample across the video
+
+    Yields:
+        Frame instances carrying the RGB image, its timestamp, and the source name
+
+    Raises:
+        IOError: If the video cannot be opened
+        ValueError: If ``num_frames`` is not positive, or the video FPS or frame
+            count cannot be determined
+    """
+    if num_frames <= 0:
+        raise ValueError(f"num_frames must be positive, got {num_frames}")
+
+    rotation_angle = get_video_rotation_from_metadata(video_path)
+    cap = cv2.VideoCapture(str(video_path))
+    if not cap.isOpened():
+        raise IOError(f"Could not open video {video_path}")
+
+    try:
+        fps = cap.get(cv2.CAP_PROP_FPS)
+        if fps <= 0:
+            raise ValueError(f"Could not determine FPS for video {video_path}")
+
+        total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+        if total_frames <= 0:
+            raise ValueError(f"Could not determine frame count for video {video_path}")
+
+        for frame_index in _evenly_spaced_indices(total_frames, num_frames):
+            cap.set(cv2.CAP_PROP_POS_FRAMES, frame_index)
+            ret, frame_bgr = cap.read()
+            if not ret:
+                continue
+
+            frame_bgr = rotate_frame(frame_bgr, rotation_angle)
+            yield Frame(
+                image=cv2.cvtColor(frame_bgr, cv2.COLOR_BGR2RGB),
+                timestamp_ms=(frame_index / fps) * 1000,
+                source_name=video_path.stem,
+            )
+    finally:
+        cap.release()
+
+
+def _evenly_spaced_indices(total_frames: int, num_frames: int) -> list[int]:
+    """Return up to ``num_frames`` distinct frame indices spread across the video.
+
+    Samples from the first to the last frame inclusive. When the video has fewer
+    frames than requested, every frame is returned once.
+    """
+    if num_frames >= total_frames:
+        return list(range(total_frames))
+
+    if num_frames == 1:
+        return [0]
+
+    step = (total_frames - 1) / (num_frames - 1)
+    return sorted({round(i * step) for i in range(num_frames)})
+
+
 def load_image_rgb(image_path: Path) -> Optional[np.ndarray]:
     """Load an image file from disk as an RGB array.
 

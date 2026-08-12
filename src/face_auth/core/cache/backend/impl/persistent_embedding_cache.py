@@ -114,8 +114,12 @@ class PersistentEmbeddingCache(EmbeddingCache):
 
                 for row_index, frame_fingerprint in enumerate(frame_fingerprints):
                     if face_detected[row_index]:
+                        # The cache stores only the embedding, not the face location.
+                        # Batch processing never draws overlays, and the live path runs
+                        # uncached, so a cached hit legitimately has no bounding box.
                         records[str(frame_fingerprint)] = EmbeddingResult.success(
-                            embeddings[row_index].copy()
+                            embeddings[row_index].copy(),
+                            bounding_box=None,
                         )
                     else:
                         records[str(frame_fingerprint)] = EmbeddingResult.no_face()
