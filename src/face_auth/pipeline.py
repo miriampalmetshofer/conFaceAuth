@@ -3,13 +3,13 @@
 from pathlib import Path
 from typing import List
 
-from face_auth.config.models import ApplicationConfig
-from face_auth.processing.models import ProcessingContext
-from face_auth.config.logging_config import get_logger
+from face_auth.config import ApplicationConfig
+from face_auth.domain import ProcessingContext
+from face_auth.logging_config import get_logger
 from face_auth.pipeline_factory import PipelineFactory
-from face_auth.processing.batch_processor import BatchProcessor
-from face_auth.processing.io_utils import create_run_directory, write_results
-from face_auth.processing.batch_processor import ProcessingJob, ProcessingResult
+from face_auth.batch import BatchProcessor
+from face_auth.io_utils import create_run_directory, write_results
+from face_auth.batch import ProcessingJob, ProcessingResult
 
 logger = get_logger(__name__)
 
@@ -26,10 +26,9 @@ class Pipeline:
         self.config = config
         self.pipeline_factory = PipelineFactory(config=self.config)
         self.batch_processor = BatchProcessor(
-            num_workers=config.processing.num_workers,
+            num_workers=config.run.num_workers,
             log_level=config.logging.log_level
         )
-        self.parser = self.pipeline_factory.create_parser()
 
     def run(self):
         """Run the batch face authentication pipeline."""
@@ -54,7 +53,9 @@ class Pipeline:
         jobs = []
         for device in self.config.devices:
             logger.info(f"Discovering videos on {device.value}...")
-            all_videos = self.parser.parse_folder(self.config.paths.base_path / device.value)
+
+            parser = self.pipeline_factory.create_parser()
+            all_videos = parser.parse_folder(self.config.paths.base_path / device.value)
 
             for participant in self.config.participants:
                 context = ProcessingContext(
@@ -106,7 +107,7 @@ class Pipeline:
             video_results = video_processing_service.process_videos(
                 imposter_videos,
                 enrollment_data,
-                job.config.processing.skip_frames
+                job.config.authentication.skip_frames
             )
 
             # Save results

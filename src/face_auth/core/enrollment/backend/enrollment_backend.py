@@ -2,7 +2,7 @@
 from abc import ABC, abstractmethod
 
 from face_auth.core.enrollment.models import SelectedEnrollmentFrame
-from face_auth.processing.models import Video
+from face_auth.domain import Video
 
 
 class EnrollmentBackend(ABC):

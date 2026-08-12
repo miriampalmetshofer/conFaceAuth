@@ -11,9 +11,9 @@ from face_auth.core.enrollment.models import (
     HeadPose,
     SelectedEnrollmentFrame,
 )
-from face_auth.config.logging_config import get_logger
-from face_auth.processing.models import Video
-from face_auth.processing.video_utils import read_frames
+from face_auth.logging_config import get_logger
+from face_auth.domain import Video
+from face_auth.core.video_utils import read_frames
 
 logger = get_logger(__name__)
 

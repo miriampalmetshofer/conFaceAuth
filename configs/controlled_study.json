@@ -21,11 +21,7 @@
       "min_detection_confidence": 0.6
     }
   },
-  "processing": {
-    "skip_frames": 30,
-    "matching_strategy": {
-      "type": "scenario"
-    },
+  "run": {
     "num_workers": 4
   },
   "authentication": {
@@ -37,7 +33,8 @@
       "k_decay": 60000,
       "initial_confidence": 1
     },
-    "fps": 30
+    "fps": 30,
+    "skip_frames": 30
   },
   "enrollment": {
     "enrollment_video_preference": {
@@ -60,7 +57,10 @@
     "fps": 30,
     "genuine_user_seconds": 180,
     "black_screen_seconds": 3,
-    "impostor_seconds": 180
+    "impostor_seconds": 180,
+    "matching_strategy": {
+      "type": "scenario"
+    }
   },
   "logging": {
     "level": "INFO",

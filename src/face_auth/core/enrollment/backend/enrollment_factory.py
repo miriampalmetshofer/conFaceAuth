@@ -3,7 +3,7 @@ from face_auth.core.enrollment.backend.enrollment_backend import EnrollmentBacke
 from face_auth.core.enrollment.backend.impl.fixed_order_enrollment_backend import FixedOrderEnrollmentBackend
 from face_auth.core.enrollment.backend.impl.pose_enrollment_backend import PoseEnrollmentBackend
 from face_auth.core.enrollment.helper.head_pose_estimator import HeadPoseEstimator
-from face_auth.config.models import EnrollmentConfig
+from face_auth.enrollment.config import EnrollmentConfig
 
 
 def create_enrollment_backend(config: EnrollmentConfig) -> EnrollmentBackend:

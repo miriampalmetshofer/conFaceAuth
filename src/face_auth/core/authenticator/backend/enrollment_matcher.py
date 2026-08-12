@@ -1,7 +1,7 @@
 """Component for matching query embeddings against enrollment set."""
 import numpy as np
 
-from face_auth.config.logging_config import get_logger
+from face_auth.logging_config import get_logger
 
 logger = get_logger(__name__)
 

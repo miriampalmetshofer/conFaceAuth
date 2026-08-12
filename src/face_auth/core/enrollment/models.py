@@ -6,7 +6,7 @@ from typing import Any, Literal
 from pydantic import BaseModel, Field, ConfigDict
 
 from face_auth.core.models import Frame
-from face_auth.processing.models import Video, Scenario, HeadRotation
+from face_auth.domain import Video, Scenario, HeadRotation
 
 
 @dataclass

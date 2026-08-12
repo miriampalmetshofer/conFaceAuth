@@ -9,7 +9,7 @@ from typing import Any, Dict
 
 import numpy as np
 
-from face_auth.config.logging_config import get_logger
+from face_auth.logging_config import get_logger
 from face_auth.core.cache.backend.cache_backend import EmbeddingCache
 from face_auth.core.embedder.backend.embedder_backend import EmbedderBackend
 from face_auth.core.embedder.models import EmbeddingResult

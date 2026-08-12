@@ -10,7 +10,7 @@ from face_auth.core.embedder.backend.embedder_backend import EmbedderBackend
 from face_auth.core.embedder.backend.impl.facenet_backend import FaceNetBackend
 from face_auth.core.embedder.backend.impl.insightface_backend import InsightFaceBackend
 from face_auth.core.embedder.cached_embedder import CachedEmbedder
-from face_auth.config.models import EmbedderModelConfig
+from face_auth.config import EmbedderModelConfig
 
 
 def create_embedder(

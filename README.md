@@ -161,7 +161,7 @@ Before running, you must configure `live_config.json` in the project root. Here'
 #### Running Live Authentication
 
 ```bash
-python src/live.py
+python src/apps/live.py
 ```
 
 Press 'q' to quit the live authentication window.
@@ -269,7 +269,7 @@ Example configuration structure:
 
 1. **Interactive mode** (will prompt you to choose a config):
 ```bash
-python src/main.py
+python src/apps/main.py
 ```
 
 

@@ -20,13 +20,7 @@
       "min_detection_confidence": 0.6
     }
   },
-  "processing": {
-    "skip_frames": 30,
-    "matching_strategy": {
-      "type": "random_sampling",
-      "imposters_per_genuine": 18,
-      "random_seed": 42
-    },
+  "run": {
     "num_workers": 4
   },
   "authentication": {
@@ -38,7 +32,8 @@
       "k_decay": 60000,
       "initial_confidence": 1
     },
-    "fps": 30
+    "fps": 30,
+    "skip_frames": 30
   },
   "enrollment": {
     "enrollment_video_preference": {
@@ -61,7 +56,12 @@
     "fps": 30,
     "genuine_user_seconds": 300,
     "black_screen_seconds": 3,
-    "impostor_seconds": 300
+    "impostor_seconds": 300,
+    "matching_strategy": {
+      "type": "random_sampling",
+      "imposters_per_genuine": 18,
+      "random_seed": 42
+    }
   },
   "logging": {
     "level": "INFO",

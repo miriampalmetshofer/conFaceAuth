@@ -2,7 +2,7 @@
 import numpy as np
 
 from face_auth.core.authenticator.backend.authenticator_backend import AuthenticatorBackend
-from face_auth.config.models import AuthenticationConfig
+from face_auth.authentication.config import AuthenticationConfig
 
 
 def create_authenticator(

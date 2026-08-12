@@ -7,7 +7,7 @@ from face_auth.core.authenticator.backend.impl.trust_based.models import TrustBa
 from face_auth.core.authenticator.temporal_logic.backend.impl.trust_based.trust_scorer import TrustScorer
 from face_auth.core.authenticator.backend.impl.trust_based.temporal_window import TemporalWindow
 from face_auth.core.authenticator.backend.enrollment_matcher import EnrollmentMatcher
-from face_auth.config.logging_config import get_logger
+from face_auth.logging_config import get_logger
 
 logger = get_logger(__name__)
 
