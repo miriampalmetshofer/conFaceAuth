@@ -2,7 +2,7 @@
 from pathlib import Path
 from typing import Optional
 
-from face_auth.core.cache.backend.impl.persistent_embedding_cache import (
+from face_auth.core.embedder.cache.backend.impl.persistent_embedding_cache import (
     PersistentEmbeddingCache,
 )
 from face_auth.core.detection.backend.detector_factory import create_detector

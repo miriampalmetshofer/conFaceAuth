@@ -66,7 +66,6 @@ class VideoMatchingStrategy(ABC):
 
         logger.info(f"Found {len(genuine_videos)} genuine video(s) for {genuine_name}")
         logger.info(f"Found {len(imposter_videos)} potential imposter video(s)")
-        logger.info(f"Filtered to participants: {', '.join(sorted(allowed_names))}")
 
         return genuine_videos, imposter_videos
 

@@ -55,12 +55,11 @@ class ImposterVideoCreationService:
         """
         pairs = self.matching_strategy.match(all_videos, genuine_user, allowed_participants)
 
-        logger.info(f"Creating imposter videos from {len(pairs)} pair(s)")
-
-        logger.info("Validating video durations...")
         for pair in pairs:
             validate_video(pair.genuine_video.path, self.config.genuine_user_seconds)
             validate_video(pair.imposter_video.path, self.config.impostor_seconds)
+
+        logger.info(f"Creating imposter videos from {len(pairs)} pair(s)")
 
         imposter_videos = []
         for i, pair in enumerate(pairs, 1):

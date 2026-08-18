@@ -3,7 +3,7 @@ from typing import Any, Dict
 
 import numpy as np
 
-from face_auth.core.cache.backend.cache_backend import EmbeddingCache
+from face_auth.core.embedder.cache.backend.cache_backend import EmbeddingCache
 from face_auth.core.embedder.backend.embedder_backend import EmbedderBackend
 from face_auth.core.embedder.models import EmbeddingResult
 
