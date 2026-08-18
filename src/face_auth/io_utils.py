@@ -78,7 +78,7 @@ class VideoResultWriter:
         frame = authenticated.frame
         result = authenticated.result
         return {
-            'frame': frame.index,
+            'timestamp_ms': frame.timestamp_ms,
             'is_authenticated': result.is_authenticated,
             'similarity': result.similarity,
             'trust_score': result.trust,
