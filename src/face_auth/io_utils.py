@@ -4,7 +4,6 @@ import json
 import secrets
 from datetime import datetime
 from pathlib import Path
-from typing import List
 
 import numpy as np
 import pandas as pd
@@ -43,42 +42,49 @@ def create_run_directory(config: ApplicationConfig) -> Path:
     return run_dir
 
 
-def _frame_result_row(authenticated: AuthenticatedFrame) -> dict:
-    """Flatten an authenticated frame into a CSV row."""
-    frame = authenticated.frame
-    result = authenticated.result
-    return {
-        'frame': frame.index,
-        'is_authenticated': result.is_authenticated,
-        'similarity': result.similarity,
-        'trust_score': result.trust,
-        'face_detected': result.face_detected,
-        'source_type': frame.source_name,
-    }
+class VideoResultWriter:
+    """Writes one CSV per video into a single job's results directory.
 
-
-def write_results(
-    video_results: List[VideoResult],
-    context: ProcessingContext,
-    run_dir: Path,
-) -> None:
-    """Write one CSV per processed video under <run_dir>/<participant>/<device>/.
-
-    Args:
-        video_results: Per-video authentication results to write
-        context: Processing context identifying participant and device
-        run_dir: Directory for the current run's results
+    A job is one participant on one device, so the writer is scoped to that
+    job's ``<run_dir>/<participant>/<device>/`` directory and created once per
+    job. Each finished video is written on its own through :meth:`write`, so
+    results land on disk as soon as a video completes rather than being batched
+    at the end of the job.
     """
-    video_dir = run_dir / context.participant.name / context.device.value
-    video_dir.mkdir(parents=True, exist_ok=True)
 
-    for video_result in video_results:
-        rows = [_frame_result_row(authenticated) for authenticated in video_result.frame_results]
-        csv_path = video_dir / f"{video_result.video.name}.csv"
+    def __init__(self, context: ProcessingContext, run_dir: Path):
+        """Prepare the output directory for one participant/device job.
+
+        Args:
+            context: Processing context identifying participant and device
+            run_dir: Directory for the current run's results
+        """
+        self._video_dir = run_dir / context.participant.name / context.device.value
+        self._video_dir.mkdir(parents=True, exist_ok=True)
+
+    def write(self, video_result: VideoResult) -> None:
+        """Write a single video's frame results to its own CSV.
+
+        Args:
+            video_result: The finished video's authentication results
+        """
+        rows = [self._frame_result_row(frame) for frame in video_result.frame_results]
+        csv_path = self._video_dir / f"{video_result.video.name}.csv"
         pd.DataFrame(rows).to_csv(csv_path, index=False)
         logger.info(f"Wrote {len(rows)} frame result(s) to {csv_path}")
 
-    logger.debug(f"Wrote {len(video_results)} video result file(s) to {video_dir}")
+    def _frame_result_row(self, authenticated: AuthenticatedFrame) -> dict:
+        """Flatten an authenticated frame into a CSV row."""
+        frame = authenticated.frame
+        result = authenticated.result
+        return {
+            'frame': frame.index,
+            'is_authenticated': result.is_authenticated,
+            'similarity': result.similarity,
+            'trust_score': result.trust,
+            'face_detected': result.face_detected,
+            'source_type': frame.source_name,
+        }
 
 
 def save_debug_frame(

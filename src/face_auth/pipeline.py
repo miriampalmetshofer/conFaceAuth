@@ -6,10 +6,15 @@ from typing import List
 from face_auth.config import ApplicationConfig
 from face_auth.domain import ProcessingContext
 from face_auth.logging_config import get_logger
-from face_auth.pipeline_factory import PipelineFactory
 from face_auth.batch import BatchProcessor
-from face_auth.io_utils import create_run_directory, write_results
+from face_auth.io_utils import create_run_directory, VideoResultWriter
 from face_auth.batch import ProcessingJob, ProcessingResult
+from face_auth.core.embedder.backend.embedder_factory import create_embedder
+from face_auth.imposter_creation.matching.matching_strategy_factory import create_matching_strategy
+from face_auth.video_parser.parser_factory import create_parser
+from face_auth.enrollment.service import EnrollmentService
+from face_auth.authentication.service import VideoProcessingService
+from face_auth.imposter_creation.service import ImposterVideoCreationService
 
 logger = get_logger(__name__)
 
@@ -24,7 +29,6 @@ class Pipeline:
             config: Application configuration
         """
         self.config = config
-        self.pipeline_factory = PipelineFactory(config=self.config)
         self.batch_processor = BatchProcessor(
             num_workers=config.run.num_workers,
             log_level=config.logging.log_level
@@ -54,7 +58,7 @@ class Pipeline:
         for device in self.config.devices:
             logger.info(f"Discovering videos on {device.value}...")
 
-            parser = self.pipeline_factory.create_parser()
+            parser = create_parser(self.config.pool)
             all_videos = parser.parse_folder(self.config.paths.base_path / device.value)
 
             for participant in self.config.participants:
@@ -87,11 +91,26 @@ class Pipeline:
         logger.info(f"Processing: {job}")
 
         try:
-            # Create the services for this worker
-            pipeline_factory = PipelineFactory(config=job.config)
-            enrollment_service = pipeline_factory.create_enrollment_service()
-            imposter_creation_service = pipeline_factory.create_imposter_creation_service()
-            video_processing_service = pipeline_factory.create_video_processing_service()
+            # Create the services for this worker. Enrollment and authentication
+            # share one embedder so the model loads once and both hit the same
+            # embedding cache.
+            embedder = create_embedder(
+                config=job.config.models.embedder,
+                cache_enabled=True,
+                cache_dir=job.config.paths.base_path / "embedding_cache",
+            )
+            enrollment_service = EnrollmentService(
+                config=job.config.enrollment,
+                embedder=embedder,
+            )
+            imposter_creation_service = ImposterVideoCreationService(
+                stitch_config=job.config.imposter_creation,
+                matching_strategy=create_matching_strategy(job.config.imposter_creation.matching_strategy),
+            )
+            video_processing_service = VideoProcessingService(
+                config=job.config.authentication,
+                embedder=embedder,
+            )
 
             # Get enrollment data
             enrollment_data = enrollment_service.enroll_participant(job.context, job.config.paths)
@@ -104,13 +123,12 @@ class Pipeline:
             )
 
             # Authenticate the frames of every composed video
+            writer = VideoResultWriter(job.context, job.run_dir)
             video_results = video_processing_service.process_videos(
                 imposter_videos,
                 enrollment_data,
+                writer,
             )
-
-            # Save results
-            write_results(video_results, job.context, job.run_dir)
 
             logger.info(f"Successfully processed {job}")
             return ProcessingResult(

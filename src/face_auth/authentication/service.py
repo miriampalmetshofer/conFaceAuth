@@ -7,7 +7,7 @@ from face_auth.authentication.config import AuthenticationConfig
 from face_auth.core.authenticator.backend.authenticator_backend import AuthenticatorBackend
 from face_auth.core.authenticator.backend.authenticator_factory import create_authenticator
 from face_auth.core.embedder.backend.embedder_backend import EmbedderBackend
-from face_auth.io_utils import save_debug_frame
+from face_auth.io_utils import save_debug_frame, VideoResultWriter
 from face_auth.authentication.frame_authenticator import FrameAuthenticator
 from face_auth.domain import AuthenticatedFrame, ComposedVideo, IndexedFrame
 from face_auth.domain import EnrollmentData, VideoResult
@@ -37,12 +37,18 @@ class VideoProcessingService:
         self,
         videos: List[ComposedVideo],
         enrollment_data: EnrollmentData,
+        writer: VideoResultWriter,
     ) -> List[VideoResult]:
-        """Process all composed videos and return their authentication results.
+        """Process all composed videos, persisting each one as it completes.
+
+        Every video's result is handed to ``writer`` as soon as it finishes, so
+        results are durable on disk before the next video starts rather than
+        being written in a single batch at the end of the job.
 
         Args:
             videos: Composed videos to process
             enrollment_data: Enrollment data with embeddings
+            writer: Sink that persists each finished video's result
 
         Returns:
             Authentication results for each successfully processed video
@@ -59,6 +65,7 @@ class VideoProcessingService:
                     video=video,
                     enrollment_data=enrollment_data,
                 )
+                writer.write(video_result)
                 video_results.append(video_result)
                 logger.debug(f"[{idx}/{len(videos)}] Completed: {video.name}")
             except Exception as e:
