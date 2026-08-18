@@ -77,11 +77,14 @@ class VideoProcessingService:
         video: ComposedVideo,
         enrollment_data: EnrollmentData,
     ) -> VideoResult:
-        """Authenticate the composed video once per configured beat.
+        """Authenticate the composed video once per configured interval.
 
         The video is treated as one continuous stream of timestamped frames; we
-        authenticate every ``authentication_hz``-th second of it, which lands on
-        every Nth frame for the video's frame rate.
+        authenticate the first frame at or after each authentication instant,
+        spaced ``1 / authentication_hz`` seconds apart along the real timeline.
+        Sampling by timestamp rather than frame index keeps the cadence at the
+        configured rate regardless of the video's frame rate, including variable
+        frame rates where a fixed frame stride would drift.
 
         Args:
             video: Composed video with iterators
@@ -94,18 +97,16 @@ class VideoProcessingService:
             embedder=self.embedder,
             authenticator=self._create_authenticator(enrollment_data),
         )
-        beat = self._frame_stride(video.fps)
 
         logger.info(
             f"Processing composed video {video.name} at "
             f"{self.config.authentication_hz} Hz "
-            f"(every {beat} frame(s) at {video.fps} fps)"
+            f"(every {self._authentication_interval_ms():.1f} ms)"
         )
 
         frame_results = [
             self._authenticate_frame(frame, frame_authenticator)
-            for frame in video.frames()
-            if self._is_on_beat(frame.index, beat)
+            for frame in self._frames_on_beat(video)
         ]
 
         logger.info(
@@ -114,21 +115,25 @@ class VideoProcessingService:
         )
         return VideoResult(video=video, frame_results=frame_results)
 
-    def _frame_stride(self, fps: float) -> int:
-        """Frames between authentications for the configured rate.
+    def _authentication_interval_ms(self) -> float:
+        """Real time between authentications for the configured rate, in ms."""
+        return 1000.0 / self.config.authentication_hz
 
-        Converts the authentication rate in Hertz into a whole number of frames at
-        the video's frame rate, clamped to at least 1 so every step advances.
+    def _frames_on_beat(self, video: ComposedVideo) -> 'Iterator[IndexedFrame]':
+        """Yield the first frame at or after each authentication instant.
+
+        The first frame of the stream always authenticates, then the next
+        authentication instant advances by one interval each time a frame is
+        sampled. Instants are chained off the sampled frame's own timestamp so
+        gaps in the stream never accumulate a backlog of missed beats.
         """
-        return max(1, round(fps / self.config.authentication_hz))
+        interval_ms = self._authentication_interval_ms()
+        next_auth_ms = None
 
-    def _is_on_beat(self, frame_index: int, beat: int) -> bool:
-        """Whether this frame falls on an authentication beat.
-
-        The first frame always counts so the stream starts authenticating
-        immediately, then every ``beat``-th frame after that.
-        """
-        return frame_index == 1 or frame_index % beat == 0
+        for frame in video.frames():
+            if next_auth_ms is None or frame.timestamp_ms >= next_auth_ms:
+                yield frame
+                next_auth_ms = frame.timestamp_ms + interval_ms
 
     def _authenticate_frame(
         self,
