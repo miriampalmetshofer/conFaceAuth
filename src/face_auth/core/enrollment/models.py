@@ -63,19 +63,11 @@ class EnrollmentCandidate:
     detected_direction: HeadDirection
 
 
-class SelectionReason(Enum):
-    """Reason why a candidate was assigned to an enrollment direction."""
-    DIRECT_MATCH = "direct"
-    CLOSEST_POSE_FILL = "closest_pose_fill"
-    FIXED_ORDER = "fixed_order"
-
-
 @dataclass(frozen=True)
 class SelectedEnrollmentFrame:
     """Frame selected for the final enrollment set."""
     frame: Frame
     assigned_direction: HeadDirection
-    reason: SelectionReason
 
     @property
     def image_rgb(self) -> Any:

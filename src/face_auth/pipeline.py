@@ -138,7 +138,7 @@ class Pipeline:
         logger.info(f"Enrollment Path: {config.paths.enrollment_base_path}")
         logger.info(f"Devices: {', '.join([d.value for d in config.devices])}")
         logger.info(f"Participants: {len(config.participants)}")
-        logger.info(f"Embedder: {config.models.embedder.model}")
+        logger.info(f"Embedder: {config.models.embedder.type}")
         logger.info(f"{'=' * 60}")
 
     def log_summary(self, results: List[ProcessingResult], results_path: Path):
