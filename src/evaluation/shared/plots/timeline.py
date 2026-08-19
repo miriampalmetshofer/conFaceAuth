@@ -35,7 +35,7 @@ def _show_hide_buttons(num_traces: int) -> list[dict]:
 
 
 def _add_session_traces(fig: go.Figure, sessions: list[Session]) -> None:
-    """Add one trust-over-time trace per session."""
+    """Add one trust-over-time trace per session, each an auto-assigned distinct color."""
     for session in sessions:
         samples = list(_session_samples(session))
         customdata = [
@@ -51,7 +51,7 @@ def _add_session_traces(fig: go.Figure, sessions: list[Session]) -> None:
             y=[s.trust_score for s in samples],
             mode='lines',
             name=session.csv_path.stem,
-            line=dict(color='rgba(70, 70, 70, 0.18)', width=1),
+            line=dict(width=2),
             customdata=customdata,
             hovertemplate=(
                 '<b>%{fullData.name}</b><br>'
