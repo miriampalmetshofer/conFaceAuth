@@ -7,7 +7,7 @@ from typing import List
 
 import numpy as np
 
-from face_auth.config import PathsConfig
+from face_auth.configs.models import PathsConfig
 from face_auth.enrollment.config import EnrollmentConfig, EnrollmentVideoPreference
 from face_auth.domain import ProcessingContext
 from face_auth.core.embedder.backend.embedder_backend import EmbedderBackend

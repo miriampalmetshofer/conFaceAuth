@@ -9,7 +9,7 @@ import numpy as np
 import pandas as pd
 
 from face_auth.logging_config import get_logger
-from face_auth.config import ApplicationConfig
+from face_auth.configs.models import ApplicationConfig
 from face_auth.domain import AuthenticatedFrame, ProcessingContext
 from face_auth.core.video_utils import save_image_rgb
 from face_auth.domain import VideoResult
@@ -73,10 +73,9 @@ class VideoResultWriter:
         pd.DataFrame(rows).to_csv(csv_path, index=False)
         logger.info(f"Wrote {len(rows)} frame result(s) to {csv_path}")
 
-    def _frame_result_row(self, authenticated: AuthenticatedFrame) -> dict:
+    def _frame_result_row(self, frame: AuthenticatedFrame) -> dict:
         """Flatten an authenticated frame into a CSV row."""
-        frame = authenticated.frame
-        result = authenticated.result
+        result = frame.result
         return {
             'timestamp_ms': frame.timestamp_ms,
             'is_authenticated': result.is_authenticated,

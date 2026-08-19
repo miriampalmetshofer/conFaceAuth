@@ -1,5 +1,6 @@
 """Face authentication system entry point."""
 import sys
+from importlib.resources import files
 
 from face_auth.logging_config import setup_logging, get_logger
 from face_auth.pipeline import Pipeline
@@ -18,15 +19,15 @@ def parse_cli_arguments() -> str:
     choice = input("\nChoice (1 or 2): ").strip()
 
     configs = {
-        "1": "configs/controlled_study.json",
-        "2": "configs/in_the_wild.json"
+        "1": "controlled_study.json",
+        "2": "in_the_wild.json"
     }
 
     if choice not in configs:
         print(f"Invalid choice: {choice}")
         sys.exit(1)
 
-    return configs[choice]
+    return str(files("face_auth.configs") / configs[choice])
 
 
 def main():

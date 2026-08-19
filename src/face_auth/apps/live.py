@@ -11,12 +11,13 @@ the demo never runs face detection a second time.
 import argparse
 import json
 import time
+from importlib.resources import files
 from pathlib import Path
 
 import cv2
 from pydantic import BaseModel, Field, ConfigDict
 
-from face_auth.config import EmbedderModelConfig
+from face_auth.configs.models import EmbedderModelConfig
 from face_auth.core.authenticator.backend.authenticator_factory import create_authenticator
 from face_auth.core.authenticator.backend.impl.temporal_decay.models import TemporalDecayConfig
 from face_auth.core.authenticator.models import AuthenticationResult
@@ -232,7 +233,7 @@ def main():
     parser = argparse.ArgumentParser(description="Live face authentication demo")
     parser.add_argument(
         "--config",
-        default="configs/live_config.json",
+        default=str(files("face_auth.configs") / "live_config.json"),
         help="Path to the live configuration file",
     )
     args = parser.parse_args()

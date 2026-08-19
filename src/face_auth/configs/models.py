@@ -14,6 +14,7 @@ import logging
 from pydantic import BaseModel, Field, field_validator, ConfigDict
 
 from face_auth.domain import Pool, Device, Participant
+from face_auth.paths import resolve_under_root
 from face_auth.core.embedder.models import FaceNetEmbedderConfig, InsightFaceEmbedderConfig
 from face_auth.authentication.config import AuthenticationConfig
 from face_auth.enrollment.config import EnrollmentConfig
@@ -33,7 +34,12 @@ EmbedderModelConfig = Annotated[
 
 
 class PathsConfig(BaseModel):
-    """File paths configuration."""
+    """File paths configuration.
+
+    Data locations are given relative to the project root and resolved against it,
+    so they work regardless of the directory the application is launched from. An
+    absolute path in the config is used as-is.
+    """
 
     base_path: Path
     enrollment_base_path: Path
@@ -41,10 +47,16 @@ class PathsConfig(BaseModel):
 
     model_config = ConfigDict(frozen=True)
 
+    @field_validator('base_path', 'enrollment_base_path')
+    @classmethod
+    def anchor_to_project_root(cls, value: Path) -> Path:
+        """Resolve data paths against the project root."""
+        return resolve_under_root(value)
+
     @property
     def results_path(self) -> Path:
-        """Formatted results directory path."""
-        return Path(self.results_dir.format(base_path=self.base_path))
+        """Formatted results directory path, anchored to the project root."""
+        return resolve_under_root(Path(self.results_dir.format(base_path=self.base_path)))
 
 
 class FaceRecognitionModelConfig(BaseModel):

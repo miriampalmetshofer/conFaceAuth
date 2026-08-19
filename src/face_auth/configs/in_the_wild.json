@@ -57,7 +57,7 @@
     "impostor_seconds": 300,
     "matching_strategy": {
       "type": "random_sampling",
-      "imposters_per_genuine": 18,
+      "imposters_per_genuine": 1,
       "random_seed": 42
     }
   },

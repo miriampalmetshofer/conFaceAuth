@@ -165,7 +165,11 @@ class VideoProcessingService:
             f"Similarity={similarity_str}, Trust Score={auth_result.trust:.4f}"
         )
 
-        return AuthenticatedFrame(frame=frame, result=auth_result)
+        return AuthenticatedFrame(
+            timestamp_ms=frame.timestamp_ms,
+            source_name=frame.source_name,
+            result=auth_result,
+        )
 
     def _create_authenticator(self, enrollment_data: EnrollmentData) -> AuthenticatorBackend:
         """Create authenticator backend instance."""

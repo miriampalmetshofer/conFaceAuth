@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import List, Callable, Optional
 
 from face_auth.logging_config import get_logger, setup_logging
-from face_auth.config import ApplicationConfig
+from face_auth.configs.models import ApplicationConfig
 from face_auth.domain import ProcessingContext, Participant
 from face_auth.domain import Video
 from face_auth.domain import VideoResult

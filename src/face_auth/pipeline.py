@@ -3,7 +3,7 @@
 from pathlib import Path
 from typing import List
 
-from face_auth.config import ApplicationConfig
+from face_auth.configs.models import ApplicationConfig
 from face_auth.domain import ProcessingContext
 from face_auth.logging_config import get_logger
 from face_auth.batch import BatchProcessor

@@ -118,12 +118,10 @@ class ComposedVideo:
 
 @dataclass
 class AuthenticatedFrame:
-    """One frame of a composed video paired with its authentication verdict.
+    """A sampled frame's authentication verdict and its place in the stream."""
 
-    The frame's index and source come from the frame itself, so nothing is
-    duplicated alongside the result.
-    """
-    frame: IndexedFrame
+    timestamp_ms: float
+    source_name: str
     result: AuthenticationResult
 
 
