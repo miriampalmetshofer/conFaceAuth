@@ -1,122 +1,102 @@
-# Evaluation Module
+# Evaluation
 
-This module provides scripts for evaluating face authentication system performance from the authentication pipeline results.
+Turns a completed batch run into numbers and figures. It reads a
+`run_<timestamp>_<suffix>/` directory produced by the pipeline (see the
+[top-level README](../../README.md)), computes authentication metrics, and
+renders interactive timelines and summary plots.
 
-## Overview
+## What it measures
 
-The evaluation scripts analyze the `results.csv` file produced by the batch processing pipeline (main.py) and generate:
-- **Performance metrics** - FAR (False Accept Rate), FRR (False Reject Rate), mean genuine trust score, imposter/genuine lockout times
-- **Interactive HTML timelines** - Trust score visualizations over time
-- **Summary visualizations** - PNG images with key metrics tables
-- **LaTeX tables** - Publication-ready metric tables
-- **Statistical analysis** - Significance tests (controlled study only)
+Every composed video is one *session*: a genuine segment, a black gap, then an
+imposter segment. The metrics are computed over these sessions.
 
-## Architecture
+| Metric | Meaning |
+|---|---|
+| **FRR** — False Reject Rate | Fraction of genuine sessions where the real user was wrongly locked out |
+| **FAR** — False Accept Rate | Fraction of imposter sessions where the imposter was never locked out |
+| **Mean genuine trust** | Average trust score during genuine segments |
+| **ULT** — imposter lockout time | How long (seconds) until an imposter drops below the threshold |
+| **GKT** — genuine lockout time | How long a genuine user survives before a (wrong) lockout, when one happens |
 
-The evaluation module uses a **functional composition** approach with shared core modules and study-specific configurations:
+Times are reported as mean and P90.
+
+## Layout
 
 ```
 evaluation/
-├── shared/
-│   ├── data_loader.py      # Loads results.csv and parses frame data
-│   ├── metrics.py          # Calculates FAR, FRR, lockout times, etc.
-│   ├── visualization.py    # Creates Plotly timelines and summary figures
-│   └── reporting.py        # Prints metrics and generates LaTeX tables
+├── shared/                     # Study-agnostic core
+│   ├── data_loader.py          # run dir → typed Run / Session / Segment model
+│   ├── models.py               # the evaluation domain types
+│   ├── metrics.py              # FRR, FAR, trust, lockout times (+ by device/scenario)
+│   ├── grouping.py             # group sessions by an ordered key list
+│   ├── reporting.py            # console tables
+│   ├── font_config.py          # matplotlib fonts for thesis figures
+│   └── plots/                  # timeline.py, summary.py, segments.py, save.py
+│
 ├── controlled_study/
-│   ├── evaluate.py         # Evaluation orchestration script
-│   ├── significance_tests.py  # Statistical significance testing
-│   └── output/             # Generated outputs (HTML, PNG, CSV)
-└── in_the_wild/
-    ├── evaluate.py         # Evaluation orchestration script
-    ├── helper/
-    │   └── annotation_validator.py  # Validates annotation JSON files
-    └── output/             # Generated outputs (HTML, PNG, CSV)
+│   ├── evaluate.py             # orchestrates the controlled-study evaluation
+│   └── helper/significance_tests.py   # Friedman + Wilcoxon across scenarios/devices
+│
+├── in_the_wild/
+│   ├── evaluate.py             # orchestrates the in-the-wild evaluation
+│   └── helper/
+│       ├── annotation_validator.py    # validate participant self-labels
+│       └── analyze_annotation_trends.py
+│
+├── compare.py                  # diff two runs side by side
+└── thesis_image_scripts/       # standalone scripts for specific thesis figures
 ```
 
-### Study-Specific Differences
+The two `evaluate.py` scripts are thin orchestrators. All real work lives in
+`shared/` and is imported by both, so the studies differ only in how they slice
+the sessions (controlled study also breaks down by scenario and runs significance
+tests; in-the-wild instead validates annotations).
 
-#### Controlled Study
-- **Device types**: Mobile and Desktop
-- **Scenarios**: Easy, Lighting, Angle
-- **Analysis**: Metrics broken down by device and scenario, with significance tests
+## Running it
 
-#### In-the-Wild Study
-- **Device types**: Mobile only
-- **Scenarios**: Not scenario-based (natural environmental conditions)
-- **Additional**: Annotation validation for participant-provided labels
+Each script picks its input from a `RUN_DIR` constant near the top — **edit it to
+point at the run you want**, then run the script from anywhere:
 
-## Configuration
-
-### Required Paths
-
-Both evaluation scripts require configuring the following paths in the respective `evaluate.py` file:
-
-#### Controlled Study (`src/evaluation/controlled_study/evaluate.py`)
-```python
-RESULTS_FOLDER = "data/controlled_study/_results_archive/V06"  # Update to your results folder
-RESULTS_PATH = PROJECT_ROOT / RESULTS_FOLDER / "results.csv"
-CONFIG_PATH = PROJECT_ROOT / RESULTS_FOLDER / "config.json"
-OUTPUT_PATH = PROJECT_ROOT / "src/evaluation/controlled_study/output"
-```
-
-**Required input files:**
-- `data/controlled_study/[your_results_folder]/results.csv` - Frame-by-frame authentication results from pipeline
-- `data/controlled_study/[your_results_folder]/config.json` - Authentication configuration used during evaluation
-
-**Note:** Update `RESULTS_FOLDER` in the script to point to your specific results folder.
-
-#### In-the-Wild Study (`src/evaluation/in_the_wild/evaluate.py`)
-```python
-RESULTS_FOLDER = "data/in_the_wild/_results_archive/V10"  # Update to your results folder
-RESULTS_PATH = PROJECT_ROOT / RESULTS_FOLDER / "results.csv"
-CONFIG_PATH = PROJECT_ROOT / RESULTS_FOLDER / "config.json"
-ANNOTATIONS_PATH = PROJECT_ROOT / "data/in_the_wild"
-OUTPUT_PATH = PROJECT_ROOT / "src/evaluation/in_the_wild/output"
-```
-
-**Required input files:**
-- `data/in_the_wild/[your_results_folder]/results.csv` - Frame-by-frame authentication results
-- `data/in_the_wild/[your_results_folder]/config.json` - Authentication configuration
-- `data/in_the_wild/*.json` - Optional annotation files for validation
-
-**Note:** Update `RESULTS_FOLDER` in the script to point to your specific results folder.
-
-## Usage
-
-### Running Evaluations
-
-#### Controlled Study
 ```bash
 python src/evaluation/controlled_study/evaluate.py
-```
-
-**Generates:**
-- `trust_timeline_all_videos.html` - Interactive timeline showing all videos
-- `trust_timeline_by_device.html` - Separate timelines for mobile/desktop
-- `trust_timeline_by_scenario.html` - Separate timelines for each scenario
-- `trust_timeline_scenarios_aggregated.html` - Aggregated scenario comparison
-- `summary.png` - Overall metrics summary visualization
-- `metrics_tables.png` - Combined metrics tables
-- `table_scenarios_aggregated.png` - Scenario metrics table
-- Console output with detailed metrics and LaTeX tables
-
-#### In-the-Wild Study
-```bash
 python src/evaluation/in_the_wild/evaluate.py
+python src/evaluation/compare.py            # edit VARIANT1_RUN / VARIANT2_RUN
 ```
 
-**Generates:**
-- `trust_timeline_all_videos.html` - Interactive timeline showing all videos
-- `trust_timeline_by_device.html` - Device-specific timelines
-- `summary.png` - Overall metrics summary
-- `table_results.png` - Results table
-- Console output with annotation validation results, metrics, and LaTeX tables
+### Controlled study
 
-**Note:** Additional analysis scripts exist in `in_the_wild/` (e.g., `analyze_annotation_trends.py`) that may generate other outputs.
+Breaks metrics down by device, by scenario, and by scenario × device, then runs
+significance tests (see [`controlled_study/STATISTICS.md`](controlled_study/STATISTICS.md)).
+Generates:
 
-## Output Files
+- `trust_timeline_all_videos.html` — all sessions on one interactive timeline
+- `trust_timeline_by_device.html` — mobile vs. desktop
+- `trust_timeline_by_scenario.html` — one timeline per scenario
+- `trust_timeline_scenarios_aggregated.html` — scenarios overlaid
+- `summary.png` — trust distribution, error rates, state breakdown
 
-All outputs are saved to the respective `output/` directories within each study folder. The HTML timelines are interactive Plotly visualizations that allow zooming, panning, and hovering to see detailed frame-level information.
+### In-the-wild study
 
+Mobile only, no scenarios. First validates the per-participant annotation JSON
+files under `data/in_the_wild/mobile/{name}/annotations/` (schema in
+`in_the_wild/annotation_schema.json`) and warns on invalid files. Generates:
 
+- `trust_timeline_all_videos.html`
+- `trust_timeline_by_device.html`
+- `summary.png`
 
+## Input expected
+
+A run directory written by the pipeline:
+
+```
+data/{study}/results/run_{timestamp}_{suffix}/
+├── config.json                 # threshold, hz, segment lengths — read by the evaluator
+└── {participant}/{device}/
+    └── {genuine}_vs_{imposter}.csv     # one session, one row per sampled frame
+```
+
+`data_loader.load_run()` reads `config.json` plus every CSV, splits each CSV into
+genuine / black / imposter segments by the `source_type` column, and resolves the
+genuine and imposter identities from the video stems. Everything downstream works
+on the resulting typed `Run` object.

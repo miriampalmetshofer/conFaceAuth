@@ -1,48 +1,36 @@
-"""Evaluation orchestration for in-the-wild study."""
-from pathlib import Path
-
-from evaluation.shared.data_loader import load_evaluation_data
+"""Evaluation orchestration for the in-the-wild study."""
+from evaluation.shared.data_loader import load_run
 from evaluation.shared.metrics import calculate_metrics, calculate_metrics_by_device
 from evaluation.shared.reporting import (
     print_section,
     print_metrics_by_device,
     print_dataset_summary,
-    print_latex_table_study,
-    print_latex_study_variables,
 )
-from evaluation.shared.visualization import (
+from evaluation.shared.plots.timeline import (
     create_trust_timeline_all_videos,
     create_trust_timeline_by_device,
-    create_summary_visualization,
-    create_study_metrics_table,
-    save_html,
-    save_png,
 )
+from evaluation.shared.plots.summary import create_summary_visualization
+from evaluation.shared.plots.save import save_html, save_png
 from evaluation.in_the_wild.helper.annotation_validator import (
     validate_annotations,
-    print_validation_results
+    print_validation_results,
 )
+from face_auth.paths import PROJECT_ROOT
 
 
-DEVICES = ['mobile']
-
-PROJECT_ROOT = Path(__file__).parent.parent.parent.parent
-RESULTS_FOLDER = "data/in_the_wild/_results_archive/V13"
-
-RESULTS_PATH = PROJECT_ROOT / RESULTS_FOLDER / "results.csv"
-CONFIG_PATH = PROJECT_ROOT / RESULTS_FOLDER / "config.json"
+RUN_DIR = PROJECT_ROOT / "data/in_the_wild/results/run_2026-08-19_09-48-01_e2e3"
 
 ANNOTATIONS_PATH = PROJECT_ROOT / "data/in_the_wild"
 OUTPUT_PATH = PROJECT_ROOT / "src/evaluation/in_the_wild/output"
 
 
 def main():
-    """Run in-the-wild study evaluation."""
+    """Run the in-the-wild study evaluation."""
     print_section("IN-THE-WILD STUDY EVALUATION")
-    print(f"Results: {RESULTS_PATH}")
+    print(f"Run: {RUN_DIR}")
     print(f"Output: {OUTPUT_PATH}")
 
-    # Validate annotations
     print_section("VALIDATING ANNOTATIONS")
     validation_result = validate_annotations(ANNOTATIONS_PATH)
     print_validation_results(validation_result)
@@ -51,35 +39,33 @@ def main():
         print("\n⚠️  Warning: Some annotation files are invalid. Please fix them before proceeding.")
         print("Continuing with evaluation using valid annotations only.\n")
 
-    data = load_evaluation_data(RESULTS_PATH, parse_scenario=False)
-    print(f"\nLoaded {len(data.frames)} frames from {len(data.videos)} videos")
+    run = load_run(RUN_DIR)
+    print(f"\nLoaded {len(run.sessions)} sessions from {RUN_DIR.name}")
 
-    overall_metrics = calculate_metrics(data.frames, data.fps)
-    device_metrics = calculate_metrics_by_device(data.frames, DEVICES, data.fps)
+    sessions = run.sessions
+    config = run.config
 
-    print_dataset_summary(data.frames, len(data.videos))
+    overall_metrics = calculate_metrics(sessions)
+    device_metrics = calculate_metrics_by_device(sessions, config.devices)
+
+    print_dataset_summary(sessions)
     print_metrics_by_device(device_metrics)
-    study_label = rf"In-the-wild $\tau = {data.threshold:g}$"
-    print_latex_table_study(overall_metrics, study_label)
-    print_latex_study_variables(data, CONFIG_PATH, "in_the_wild")
 
     output_files = []
 
-    fig_all = create_trust_timeline_all_videos(data, "In-the-Wild Study", CONFIG_PATH, overall_metrics)
+    fig_all = create_trust_timeline_all_videos(sessions, config, "In-the-Wild Study", overall_metrics)
     output_files.append(save_html(fig_all, OUTPUT_PATH, 'trust_timeline_all_videos.html'))
 
-    figs_devices = create_trust_timeline_by_device(data, DEVICES, "In-the-Wild Study", CONFIG_PATH)
+    figs_devices = create_trust_timeline_by_device(sessions, config, config.devices, "In-the-Wild Study")
     output_files.append(save_html(figs_devices, OUTPUT_PATH, 'trust_timeline_by_device.html'))
 
     fig_summary = create_summary_visualization(
-        data,
+        sessions,
+        config,
         device_metrics,
-        'In-the-Wild Study: Authentication Performance Summary'
+        'In-the-Wild Study: Authentication Performance Summary',
     )
     output_files.append(save_png(fig_summary, OUTPUT_PATH, 'summary.png'))
-
-    fig_study_table = create_study_metrics_table(overall_metrics, study_label)
-    output_files.append(save_png(fig_study_table, OUTPUT_PATH, 'table_results.png'))
 
     print_section("EVALUATION COMPLETE")
     print(f"All outputs saved to: {OUTPUT_PATH}")

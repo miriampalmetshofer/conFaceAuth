@@ -1,18 +1,127 @@
-"""Domain models for evaluation."""
+"""Domain models for evaluation.
+
+The models mirror how results are written to disk. One run directory contains a
+``config.json`` and, per participant and device, one CSV per composed video. Each
+composed video is a single authentication session stitched from a genuine-user
+segment, a short black-frame segment, and an imposter segment. The hierarchy is
+
+    Run
+     └── Session               (one composed-video CSV)
+          └── Segment          (genuine / black / imposter run of rows)
+               └── FrameResult (one CSV row)
+
+Time is carried as ``timestamp_ms`` throughout; there is no frame index or fps.
+"""
+from __future__ import annotations
+
 from dataclasses import dataclass
 from enum import Enum
-from typing import Optional, ClassVar
+from pathlib import Path
+from typing import Optional
+
+from face_auth.domain import Device, Pool, Scenario
 
 
-class SegmentType(Enum):
+class SegmentRole(Enum):
+    """Role of a segment within a composed authentication session."""
     GENUINE = "genuine"
-    IMPOSTER = "imposter"
     BLACK = "black"
+    IMPOSTER = "imposter"
+
+
+# The literal source_type written for the black transition segment.
+BLACK_SOURCE_TYPE = "black_frames"
+
+
+@dataclass(frozen=True)
+class FrameResult:
+    """One CSV row — a single sampled frame's authentication verdict.
+
+    Fields mirror the CSV columns exactly, with no derived values.
+    """
+    timestamp_ms: float
+    is_authenticated: bool
+    similarity: float
+    trust_score: float
+    face_detected: bool
+    source_type: str
+
+
+@dataclass(frozen=True)
+class Identity:
+    """The person behind a segment, parsed from its source video stem.
+
+    ``scenario`` is populated for the controlled study and is ``None`` for the
+    in-the-wild study, whose recordings carry no scenario.
+    """
+    name: str
+    source_stem: str
+    scenario: Optional[Scenario]
+
+
+@dataclass(frozen=True)
+class Segment:
+    """A contiguous run of samples sharing one source_type, with one role
+    (genuine, black, or imposter)."""
+    role: SegmentRole
+    source_type: str
+    samples: list[FrameResult]
+
+    @property
+    def start_ms(self) -> float:
+        """Timestamp of the segment's first sample."""
+        return self.samples[0].timestamp_ms
+
+    @property
+    def end_ms(self) -> float:
+        """Timestamp of the segment's last sample."""
+        return self.samples[-1].timestamp_ms
+
+
+@dataclass(frozen=True)
+class Session:
+    """One composed-video CSV — a single authentication run.
+
+    A session pairs a genuine user against one imposter with a black transition in
+    between. The genuine and imposter identities are resolved once at load time.
+    """
+    csv_path: Path
+    participant: str
+    device: Device
+    genuine: Segment
+    black: Optional[Segment]
+    imposter: Segment
+    genuine_identity: Identity
+    imposter_identity: Identity
+
+
+@dataclass(frozen=True)
+class RunConfig:
+    """The slice of ``config.json`` the evaluation needs.
+
+    ``raw`` holds the full config dict for fields not promoted to typed attributes here.
+    """
+    pool: Pool
+    devices: list[Device]
+    threshold: float
+    authentication_hz: float
+    genuine_user_seconds: float
+    impostor_seconds: float
+    black_screen_seconds: float
+    raw: dict
+
+
+@dataclass(frozen=True)
+class Run:
+    """One ``run_<timestamp>_<suffix>`` results directory."""
+    run_dir: Path
+    config: RunConfig
+    sessions: list[Session]
 
 
 @dataclass
 class TimeStat:
-    """Time statistic bundling mean, P90, and optional max."""
+    """Time statistic bundling mean, P90, and optional max, in seconds."""
     mean: Optional[float]
     p90: Optional[float]
     max: Optional[float]
@@ -28,28 +137,10 @@ class SessionCounts:
 
 
 @dataclass
-class MetricDefinition:
-    """Metadata for a single metric field."""
-    field_name: str
-    display_label: str
-    short_label: str
-    format_spec: str = ".2f"
-    include_in_tables: bool = True
-    include_in_plots: bool = True
-    plot_color: Optional[str] = None
-    plot_order: int = 0
-
-
-@dataclass
 class AuthenticationMetrics:
-    """Core authentication performance metrics.
+    """Core authentication performance metrics for one group of sessions.
 
-    Reported metrics (appear in tables / plots / paper):
-        false_reject_rate, false_accept_rate, mean_genuine_trust,
-        imposter_lockout_time, genuine_lockout_time
-
-    Supporting data (not directly reported, used for display fractions):
-        session_counts
+    ``session_counts`` is supporting data used only to show FRR/FAR as fractions.
     """
     false_reject_rate: float
     false_accept_rate: float
@@ -58,175 +149,24 @@ class AuthenticationMetrics:
     genuine_lockout_time: TimeStat
     session_counts: SessionCounts
 
-    METRIC_DEFINITIONS: ClassVar[list[MetricDefinition]] = [
-        MetricDefinition(
-            "false_reject_rate",
-            "FRR (%)",
-            "FRR",
-            format_spec=".1f",
-            plot_color='#e74c3c',
-            plot_order=0,
-            include_in_tables=True,
-            include_in_plots=True
-    ),
-        MetricDefinition(
-            "false_accept_rate",
-            "FAR (%)",
-            "FAR",
-            format_spec=".1f",
-            plot_color='#f39c12',
-            plot_order=1,
-            include_in_tables=True,
-            include_in_plots=True
-        ),
-        MetricDefinition(
-            "mean_genuine_trust",
-            "Mean Genuine Trust",
-            "GT",
-            format_spec=".2f",
-            include_in_tables=True,
-            include_in_plots=True,
-            plot_color='#27ae60',
-            plot_order=2
-        ),
-        MetricDefinition(
-            "genuine_lockout_time.mean",
-            "GKT (s)",
-            "GKT",
-            format_spec=".0f",
-            include_in_tables=True,
-            include_in_plots=False
-        ),
-        MetricDefinition(
-            "imposter_lockout_time.mean",
-            "ULT (s)",
-            "ULT",
-            format_spec=".0f",
-            include_in_tables=True,
-            include_in_plots=False
-        ),
-        MetricDefinition(
-            "imposter_lockout_time.p90",
-            "ULT P90 (s)",
-            "ULT P90",
-            format_spec=".0f",
-            include_in_tables=True,
-            include_in_plots=False
-        ),
-    ]
-
-    def _resolve_field(self, field_path: str) -> Optional[float]:
-        """Resolve a dot-path field name (e.g. 'imposter_lockout_time.mean')."""
-        obj = self
-        for attr in field_path.split('.'):
-            obj = getattr(obj, attr, None)
-            if obj is None:
-                return None
-        return obj
-
-    def to_table_values(self) -> list[str]:
-        """Return formatted metric values for table display only."""
-        values = []
-        for defn in self.METRIC_DEFINITIONS:
-            if not defn.include_in_tables:
-                continue
-            value = self._resolve_field(defn.field_name)
-            if value is None:
-                values.append("N/A")
-            else:
-                values.append(f"{value:{defn.format_spec}}")
-        return values
-
-    @classmethod
-    def get_table_column_labels(cls) -> list[str]:
-        """Return display labels for table columns."""
-        return [defn.display_label for defn in cls.METRIC_DEFINITIONS if defn.include_in_tables]
-
-    @classmethod
-    def get_plot_metrics(cls) -> list[MetricDefinition]:
-        """Return metrics to include in plots, sorted by plot_order."""
-        return sorted(
-            [m for m in cls.METRIC_DEFINITIONS if m.include_in_plots],
-            key=lambda m: m.plot_order
-        )
-
-    def get_plot_values(self) -> list[float]:
-        """Return values for plotted metrics in correct order."""
-        return [self._resolve_field(m.field_name) for m in self.get_plot_metrics()]
-
-    def print_console(self, indent: str) -> None:
-        """Print reported metrics to console. Respects include_in_tables flag."""
-        for defn in self.METRIC_DEFINITIONS:
-            if not defn.include_in_tables:
-                continue
-            value = self._resolve_field(defn.field_name)
-            if value is None:
-                print(f"{indent}{defn.display_label:<30} N/A")
-                continue
-            suffix = ""
-            if defn.field_name == "false_reject_rate" and self.session_counts.genuine_lockouts:
-                suffix = f"  ({self.session_counts.genuine_lockouts}/{self.session_counts.genuine_sessions})"
-            elif defn.field_name == "false_accept_rate":
-                not_locked = self.session_counts.imposter_sessions - self.session_counts.imposter_lockouts
-                if not_locked:
-                    suffix = f"  ({not_locked}/{self.session_counts.imposter_sessions})"
-            elif defn.field_name == "genuine_lockout_time.mean" and self.genuine_lockout_time.p90 is not None:
-                suffix = f"  ({self.genuine_lockout_time.p90:.0f})"
-            print(f"{indent}{defn.display_label:<30} {value:{defn.format_spec}}{suffix}")
-
-
-@dataclass
-class VideoMetadata:
-    """Metadata extracted from video path."""
-    video_path: str
-    genuine_user: str
-    imposter_user: str
-    scenario: Optional[str] = None
-
-
-@dataclass
-class FrameData:
-    """Single frame data point."""
-    frame: int
-    is_authenticated: bool
-    similarity: float
-    trust_score: float
-    face_detected: bool
-    source_type: str
-    participant: str
-    device: str
-    video_path: str
-    segment_type: SegmentType
-    scenario: Optional[str] = None
-
-
-@dataclass
-class EvaluationData:
-    """Complete evaluation dataset."""
-    frames: list[FrameData]
-    threshold: float
-    videos: list[VideoMetadata]
-    skip_frames: int
-    fps: int
-
 
 @dataclass
 class DeviceMetrics:
     """Metrics aggregated by device."""
-    device: str
+    device: Device
     metrics: AuthenticationMetrics
 
 
 @dataclass
 class ScenarioMetrics:
-    """Metrics aggregated by scenario."""
-    scenario: str
+    """Metrics aggregated by the genuine user's recording scenario."""
+    scenario: Scenario
     metrics: AuthenticationMetrics
 
 
 @dataclass
 class ScenarioDeviceMetrics:
     """Metrics aggregated by scenario and device combination."""
-    scenario: str
-    device: str
+    scenario: Scenario
+    device: Device
     metrics: AuthenticationMetrics

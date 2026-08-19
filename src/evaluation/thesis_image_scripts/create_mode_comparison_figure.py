@@ -15,6 +15,7 @@ from evaluation.shared.visualization import (
     save_html,
     save_plotly_png,
 )
+from face_auth.paths import PROJECT_ROOT
 
 
 @dataclass(frozen=True)
@@ -31,7 +32,6 @@ class RunResult:
     metrics: AuthenticationMetrics
 
 
-PROJECT_ROOT = Path(__file__).parent.parent.parent.parent
 THESIS_ROOT = PROJECT_ROOT.parent / "master-thesis"
 
 RUNS = [

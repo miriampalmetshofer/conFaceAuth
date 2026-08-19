@@ -1,6 +1,5 @@
 """Create an in-the-wild trust timeline for selected participants."""
 import argparse
-from pathlib import Path
 
 from evaluation.shared.data_loader import load_evaluation_data
 from evaluation.shared.metrics import calculate_metrics
@@ -10,9 +9,9 @@ from evaluation.shared.visualization import (
     save_html,
     save_plotly_png,
 )
+from face_auth.paths import PROJECT_ROOT
 
 
-PROJECT_ROOT = Path(__file__).parent.parent.parent.parent
 DEFAULT_RESULTS_FOLDER = "data/in_the_wild/_results_archive/V04"
 DEFAULT_OUTPUT_PATH = PROJECT_ROOT / "src/evaluation/in_the_wild/output"
 DEFAULT_PARTICIPANTS = ["miriam"]

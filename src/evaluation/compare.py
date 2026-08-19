@@ -1,100 +1,124 @@
-"""Compare two evaluation results."""
-from pathlib import Path
-import pandas as pd
-import re
+"""Compare two evaluation runs side by side.
 
-from evaluation.shared.data_loader import load_evaluation_data
-from evaluation.shared.metrics import calculate_metrics_by_device, calculate_metrics_by_scenario
-from evaluation.shared.comparison import print_device_comparison, print_scenario_comparison
+Point ``VARIANT1_RUN`` and ``VARIANT2_RUN`` at two run directories and run this
+module. Each row shows one metric's value in both runs, their difference, and a
+✓/✗/= indicator for whether the change is an improvement.
+"""
+from dataclasses import dataclass
+from typing import Callable, Optional
+
+from evaluation.shared.data_loader import load_run
+from evaluation.shared.metrics import calculate_metrics_by_device
+from evaluation.shared.models import AuthenticationMetrics, DeviceMetrics
 from evaluation.shared.reporting import print_section
+from face_auth.paths import PROJECT_ROOT
 
-STUDY = 'controlled_study'
 
-# Configure the two variants to compare
-VARIANT1_PATH = Path("data/" + STUDY + "/_results_archive/V03")
-VARIANT2_PATH = Path("data/" + STUDY + "/_results_archive/V04")
+VARIANT1_RUN = PROJECT_ROOT / "data/in_the_wild/results/run_2026-08-19_09-45-47_b802"
+VARIANT2_RUN = PROJECT_ROOT / "data/in_the_wild/results/run_2026-08-19_09-48-01_e2e3"
 
-VARIANT1_NAME = "V03"
-VARIANT2_NAME = "V04"
+VARIANT1_NAME = "b802"
+VARIANT2_NAME = "e2e3"
+
+
+@dataclass(frozen=True)
+class MetricSpec:
+    """One comparable metric: how to label it, read it, format it, and judge it."""
+    label: str
+    value_of: Callable[[AuthenticationMetrics], Optional[float]]
+    decimals: int
+    lower_is_better: bool
+
+
+METRIC_SPECS: list[MetricSpec] = [
+    MetricSpec("FRR (%)", lambda m: m.false_reject_rate, 1, lower_is_better=True),
+    MetricSpec("FAR (%)", lambda m: m.false_accept_rate, 1, lower_is_better=True),
+    MetricSpec("Mean Genuine Trust", lambda m: m.mean_genuine_trust, 2, lower_is_better=False),
+    MetricSpec("GKT mean (s)", lambda m: m.genuine_lockout_time.mean, 0, lower_is_better=False),
+    MetricSpec("ULT mean (s)", lambda m: m.imposter_lockout_time.mean, 0, lower_is_better=True),
+    MetricSpec("ULT P90 (s)", lambda m: m.imposter_lockout_time.p90, 0, lower_is_better=True),
+]
+
+
+def _fmt(value: Optional[float], decimals: int) -> str:
+    return "N/A" if value is None else f"{value:.{decimals}f}"
+
+
+def _fmt_diff(v1: Optional[float], v2: Optional[float], decimals: int) -> str:
+    if v1 is None or v2 is None:
+        return "N/A"
+    return f"{v2 - v1:+.{decimals}f}"
+
+
+def _indicator(v1: Optional[float], v2: Optional[float], decimals: int, lower_is_better: bool) -> str:
+    """Return ✓ (improved), ✗ (regressed), = (unchanged), or blank (incomparable),
+    based on the difference rounded to ``decimals`` places."""
+    if v1 is None or v2 is None:
+        return ""
+    diff = round(v2 - v1, decimals)
+    if diff == 0:
+        return "="
+    improved = (diff < 0) == lower_is_better
+    return "✓" if improved else "✗"
+
+
+def _print_metric_rows(
+    metrics1: AuthenticationMetrics,
+    metrics2: AuthenticationMetrics,
+    group_label: str,
+) -> None:
+    """Print one comparison row per metric for a single device group."""
+    for spec in METRIC_SPECS:
+        v1 = spec.value_of(metrics1)
+        v2 = spec.value_of(metrics2)
+        print(
+            f"{spec.label:<20} {group_label:<10} "
+            f"{_fmt(v1, spec.decimals):<12} {_fmt(v2, spec.decimals):<12} "
+            f"{_fmt_diff(v1, v2, spec.decimals):<10} {_indicator(v1, v2, spec.decimals, spec.lower_is_better)}"
+        )
+    print()
+
+
+def print_device_comparison(
+    device_metrics1: list[DeviceMetrics],
+    device_metrics2: list[DeviceMetrics],
+    variant1_name: str,
+    variant2_name: str,
+) -> None:
+    """Print a per-device comparison of two variants over their shared devices."""
+    print(f"\n{'Metric':<20} {'Device':<10} {variant1_name:<12} {variant2_name:<12} {'Diff':<10}")
+    print("-" * 72)
+
+    by_device2 = {dm.device: dm.metrics for dm in device_metrics2}
+    for dm1 in device_metrics1:
+        metrics2 = by_device2.get(dm1.device)
+        if metrics2 is None:
+            continue
+        _print_metric_rows(dm1.metrics, metrics2, dm1.device.value.upper())
 
 
 def main():
-    """Compare two evaluation results."""
-    PROJECT_ROOT = Path(__file__).parent.parent.parent
-
-    variant1_results = PROJECT_ROOT / VARIANT1_PATH / "results.csv"
-    variant2_results = PROJECT_ROOT / VARIANT2_PATH / "results.csv"
-
+    """Compare two evaluation runs."""
     print_section(f"COMPARISON: {VARIANT1_NAME} vs {VARIANT2_NAME}")
-    print(f"Variant 1: {variant1_results}")
-    print(f"Variant 2: {variant2_results}")
+    print(f"Variant 1: {VARIANT1_RUN}")
+    print(f"Variant 2: {VARIANT2_RUN}")
 
-    # Detect if data has scenarios
-    has_scenarios = _detect_has_scenarios(variant1_results)
-    print(f"\nData type: {'Controlled Study (with scenarios)' if has_scenarios else 'In-the-Wild (no scenarios)'}")
+    run1 = load_run(VARIANT1_RUN)
+    run2 = load_run(VARIANT2_RUN)
+    print(f"\nVariant 1: {len(run1.sessions)} sessions")
+    print(f"Variant 2: {len(run2.sessions)} sessions")
 
-    print("\nLoading data...")
-    data1 = load_evaluation_data(variant1_results, parse_scenario=has_scenarios)
-    data2 = load_evaluation_data(variant2_results, parse_scenario=has_scenarios)
-
-    print(f"Variant 1: {len(data1.frames)} frames from {len(data1.videos)} videos")
-    print(f"Variant 2: {len(data2.frames)} frames from {len(data2.videos)} videos")
-
-    has_scenarios = _has_scenarios(data1) and _has_scenarios(data2)
-    devices = _get_unique_devices(data1)
-
-    print("\nCalculating metrics...")
-    device_metrics1 = calculate_metrics_by_device(data1.frames, devices, data1.fps)
-    device_metrics2 = calculate_metrics_by_device(data2.frames, devices, data2.fps)
+    device_metrics1 = calculate_metrics_by_device(run1.sessions, run1.config.devices)
+    device_metrics2 = calculate_metrics_by_device(run2.sessions, run2.config.devices)
 
     print_section("DEVICE METRICS COMPARISON")
-    print_device_comparison(device_metrics1, device_metrics2, VARIANT1_NAME, VARIANT2_NAME, devices)
-
-    if has_scenarios: # only for controlled study data
-        scenarios = _get_unique_scenarios(data1)
-        scenario_metrics1 = calculate_metrics_by_scenario(data1.frames, scenarios, data1.fps)
-        scenario_metrics2 = calculate_metrics_by_scenario(data2.frames, scenarios, data2.fps)
-
-        print_section("SCENARIO METRICS COMPARISON")
-        print_scenario_comparison(scenario_metrics1, scenario_metrics2, VARIANT1_NAME, VARIANT2_NAME, scenarios)
+    print_device_comparison(device_metrics1, device_metrics2, VARIANT1_NAME, VARIANT2_NAME)
 
     print_section("COMPARISON COMPLETE")
     print("\nLegend:")
     print("  ✓ = Improvement")
     print("  ✗ = Degradation")
     print("  = = No change")
-
-
-def _has_scenarios(data) -> bool:
-    """Check if data contains scenario information."""
-    return any(video.scenario is not None for video in data.videos)
-
-
-def _get_unique_devices(data) -> list[str]:
-    """Extract unique device names from data."""
-    return sorted(set(frame.device for frame in data.frames))
-
-
-def _get_unique_scenarios(data) -> list[str]:
-    """Extract unique scenario names from data."""
-    scenarios = set()
-    for video in data.videos:
-        if video.scenario:
-            scenarios.add(video.scenario)
-    return sorted(scenarios)
-
-def _detect_has_scenarios(csv_path: Path) -> bool:
-    """Detect if results contain scenario information by checking video paths."""
-
-    df = pd.read_csv(csv_path, nrows=100)
-    video_paths = df['video_path'].unique()
-
-    # Check if any video path has scenario format (username_scenario_date_vs_...)
-    scenario_pattern = r'([^/]+)_([^_]+)_\d{4}-\d{2}-\d{2}_\d{2}-\d{2}-\d{2}_vs_([^_]+)_'
-    for vp in video_paths:
-        if re.search(scenario_pattern, vp):
-            return True
-    return False
 
 
 if __name__ == '__main__':

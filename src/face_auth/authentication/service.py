@@ -1,6 +1,5 @@
 """Video processing service for authentication pipeline."""
 
-from pathlib import Path
 from typing import List
 
 from face_auth.authentication.config import AuthenticationConfig
@@ -12,6 +11,7 @@ from face_auth.authentication.frame_authenticator import FrameAuthenticator
 from face_auth.domain import AuthenticatedFrame, ComposedVideo, IndexedFrame
 from face_auth.domain import EnrollmentData, VideoResult
 from face_auth.logging_config import get_logger
+from face_auth.paths import NO_FACE_FRAMES_DIR
 
 logger = get_logger(__name__)
 
@@ -152,7 +152,7 @@ class VideoProcessingService:
 
         if not auth_result.face_detected:
             save_debug_frame(
-                frame.image, frame.index, frame.source_name, Path("debug/no_face_frames")
+                frame.image, frame.index, frame.source_name, NO_FACE_FRAMES_DIR
             )
 
         similarity_str = (

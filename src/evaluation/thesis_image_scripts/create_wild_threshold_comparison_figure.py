@@ -8,9 +8,9 @@ from evaluation.shared.visualization import (
     create_trust_timeline_all_videos,
     save_plotly_png,
 )
+from face_auth.paths import PROJECT_ROOT
 
 
-PROJECT_ROOT = Path(__file__).parent.parent.parent.parent
 THESIS_ROOT = PROJECT_ROOT.parent / "master-thesis"
 PAPER_ROOT = PROJECT_ROOT.parent / "paper"
 PRIMARY_RESULTS_FOLDER = "data/in_the_wild/_results_archive/V13"

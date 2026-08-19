@@ -1,26 +1,12 @@
-"""Evaluation orchestration for controlled study."""
-import json
-from pathlib import Path
-
-DEVICES = ['desktop', 'mobile']
-SCENARIOS = ['easy', 'angle', 'lighting']
-
-PROJECT_ROOT = Path(__file__).parent.parent.parent.parent
-RESULTS_FOLDER = "data/controlled_study/_results_archive/V06"
-
-RESULTS_PATH = PROJECT_ROOT / RESULTS_FOLDER / "results.csv"
-CONFIG_PATH = PROJECT_ROOT / RESULTS_FOLDER / "config.json"
-
-OUTPUT_PATH = PROJECT_ROOT / "src/evaluation/controlled_study/output"
-PAPER_IMAGES_PATH = PROJECT_ROOT / "paper/images/trust_scores"
-
-
-from evaluation.shared.data_loader import load_evaluation_data
+"""Evaluation orchestration for the controlled study."""
+from face_auth.domain import Scenario
+from face_auth.paths import PROJECT_ROOT
+from evaluation.shared.data_loader import load_run
 from evaluation.shared.metrics import (
     calculate_metrics,
     calculate_metrics_by_device,
     calculate_metrics_by_scenario,
-    calculate_metrics_by_scenario_and_device
+    calculate_metrics_by_scenario_and_device,
 )
 from evaluation.shared.reporting import (
     print_section,
@@ -28,81 +14,67 @@ from evaluation.shared.reporting import (
     print_metrics_by_scenario,
     print_metrics_by_scenario_and_device,
     print_dataset_summary,
-    print_latex_table,
-    print_latex_study_variables,
 )
-from evaluation.controlled_study.significance_tests import run_significance_tests
-from evaluation.shared.visualization import (
+from evaluation.shared.plots.timeline import (
     create_trust_timeline_all_videos,
     create_trust_timeline_by_device,
     create_trust_timeline_by_scenario,
     create_aggregated_trust_timeline_by_scenario,
-    create_summary_visualization,
-    create_combined_metrics_tables,
-    create_scenario_metrics_table,
-    save_html,
-    save_png,
-    save_plotly_png
 )
+from evaluation.shared.plots.summary import create_summary_visualization
+from evaluation.shared.plots.save import save_html, save_png
+from evaluation.controlled_study.helper.significance_tests import run_significance_tests
 
 
-def load_config(config_path: Path) -> dict:
-    """Load the configuration copy that belongs to the evaluated results."""
-    with open(config_path, "r") as file:
-        return json.load(file)
+SCENARIOS = [Scenario.EASY, Scenario.ANGLE, Scenario.LIGHTING]
+
+RUN_DIR = PROJECT_ROOT / "data/controlled_study/results/run_2026-08-19_21-41-02_7ab5"
+OUTPUT_PATH = PROJECT_ROOT / "src/evaluation/controlled_study/output"
 
 
 def main():
-    """Run controlled study evaluation."""
+    """Run the controlled study evaluation."""
     print_section("CONTROLLED STUDY EVALUATION")
-    print(f"Results: {RESULTS_PATH}")
+    print(f"Run: {RUN_DIR}")
     print(f"Output: {OUTPUT_PATH}")
 
-    config = load_config(CONFIG_PATH)
-    data = load_evaluation_data(RESULTS_PATH, parse_scenario=True)
-    print(f"Loaded {len(data.frames)} frames from {len(data.videos)} videos")
+    run = load_run(RUN_DIR)
+    sessions = run.sessions
+    config = run.config
+    print(f"\nLoaded {len(sessions)} sessions from {RUN_DIR.name}")
 
-    overall_metrics = calculate_metrics(data.frames, data.fps)
-    device_metrics = calculate_metrics_by_device(data.frames, DEVICES, data.fps)
-    scenario_metrics = calculate_metrics_by_scenario(data.frames, SCENARIOS, data.fps)
-    scenario_device_metrics = calculate_metrics_by_scenario_and_device(data.frames, SCENARIOS, DEVICES, data.fps)
+    overall_metrics = calculate_metrics(sessions)
+    device_metrics = calculate_metrics_by_device(sessions, config.devices)
+    scenario_metrics = calculate_metrics_by_scenario(sessions, SCENARIOS)
+    scenario_device_metrics = calculate_metrics_by_scenario_and_device(sessions, SCENARIOS, config.devices)
 
-    print_dataset_summary(data.frames, len(data.videos))
+    print_dataset_summary(sessions)
     print_metrics_by_device(device_metrics)
     print_metrics_by_scenario(scenario_metrics)
-    print_metrics_by_scenario_and_device(scenario_device_metrics, DEVICES)
-    print_latex_table(scenario_device_metrics, device_metrics, SCENARIOS, DEVICES)
-    print_latex_study_variables(data, CONFIG_PATH, "controlled_study")
-    run_significance_tests(data, config, SCENARIOS, DEVICES)
+    print_metrics_by_scenario_and_device(scenario_device_metrics, config.devices)
+    run_significance_tests(run, SCENARIOS, config.devices)
 
     output_files = []
 
-    fig_all = create_trust_timeline_all_videos(data, "Controlled Study", CONFIG_PATH, overall_metrics)
+    fig_all = create_trust_timeline_all_videos(sessions, config, "Controlled Study", overall_metrics)
     output_files.append(save_html(fig_all, OUTPUT_PATH, 'trust_timeline_all_videos.html'))
-    # optional
-    output_files.append(save_plotly_png(fig_all, PAPER_IMAGES_PATH, 'controlled.png', width=1200, height=560))
 
-    figs_devices = create_trust_timeline_by_device(data, DEVICES, "Controlled Study", CONFIG_PATH)
+    figs_devices = create_trust_timeline_by_device(sessions, config, config.devices, "Controlled Study")
     output_files.append(save_html(figs_devices, OUTPUT_PATH, 'trust_timeline_by_device.html'))
 
-    figs_scenarios = create_trust_timeline_by_scenario(data, SCENARIOS, "Controlled Study", CONFIG_PATH)
+    figs_scenarios = create_trust_timeline_by_scenario(sessions, config, SCENARIOS, "Controlled Study")
     output_files.append(save_html(figs_scenarios, OUTPUT_PATH, 'trust_timeline_by_scenario.html'))
 
-    fig_aggregated_scenarios = create_aggregated_trust_timeline_by_scenario(data, SCENARIOS, "Controlled Study", CONFIG_PATH)
-    output_files.append(save_html(fig_aggregated_scenarios, OUTPUT_PATH, 'trust_timeline_scenarios_aggregated.html'))
+    fig_aggregated = create_aggregated_trust_timeline_by_scenario(sessions, config, SCENARIOS, "Controlled Study")
+    output_files.append(save_html(fig_aggregated, OUTPUT_PATH, 'trust_timeline_scenarios_aggregated.html'))
 
     fig_summary = create_summary_visualization(
-        data,
+        sessions,
+        config,
         device_metrics,
-        'Controlled Study: Authentication Performance Summary'
+        'Controlled Study: Authentication Performance Summary',
     )
     output_files.append(save_png(fig_summary, OUTPUT_PATH, 'summary.png'))
-
-    fig_tables = create_combined_metrics_tables(device_metrics, scenario_device_metrics, data.frames, data.videos)
-    output_files.append(save_png(fig_tables, OUTPUT_PATH, 'metrics_tables.png'))
-
-    fig_scenario_table = create_scenario_metrics_table(scenario_metrics)
-    output_files.append(save_png(fig_scenario_table, OUTPUT_PATH, 'table_scenarios_aggregated.png'))
 
     print_section("EVALUATION COMPLETE")
     print(f"All outputs saved to: {OUTPUT_PATH}")

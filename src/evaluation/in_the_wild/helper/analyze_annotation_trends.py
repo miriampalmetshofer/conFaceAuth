@@ -12,8 +12,9 @@ import statistics
 from collections import Counter, defaultdict
 from pathlib import Path
 
+from face_auth.paths import PROJECT_ROOT
 
-PROJECT_ROOT = Path(__file__).resolve().parents[3]
+
 DEFAULT_RESULTS = PROJECT_ROOT / "data/in_the_wild/_results_archive/V10/results.csv"
 DEFAULT_ANNOTATIONS = PROJECT_ROOT / "data/in_the_wild/mobile"
 
