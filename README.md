@@ -1,318 +1,206 @@
-# conFaceAuth - Continuous Face Authentication
+# conFaceAuth — Continuous Face Authentication
 
-This repository contains a prototype for a continuous face authentication pipeline.
+Research prototype for **continuous** face authentication. Instead of a single
+unlock decision when unlocking the system, the system re-checks the user regularily and computes a
+**trust score** that rises while the enrolled user is present and decays when the
+face changes or disappears. The user is authenticated while trust stays above a
+threshold.
 
-## Overview
+This repository is the evaluation harness for a master thesis. It runs the
+authentication algorithm over recorded videos, writes per-frame results, and
+computes performance metrics (FRR, FAR, lockout times) for two studies.
 
-The system provides two main execution modes:
-1. **Live Mode (live.py)** - For quick testing and real-time authentication using your webcam
-2. **Batch Processing Mode (main.py)** - For processing multiple pre-recorded participant videos from two study pools
+## How it works
 
-## Data Organization
+The core idea is the **temporal-decay authenticator** (`core/authenticator`):
 
-The project uses two separate video pools with a shared enrollment structure:
+- Each sampled frame is embedded and compared to the enrolled user's embeddings,
+  producing a **similarity** in roughly `[0, 1]`.
+- The trust score is an exponential moving average over real time. When a face is
+  present, trust moves toward the new similarity; when no face is detected, trust
+  decays toward zero. Both rates are governed by time constants (`k_weight`,
+  `k_decay`) applied to the elapsed milliseconds between samples, so the behaviour
+  is independent of frame rate.
+
+Because the score is driven by elapsed time rather than frame counts, the same
+authenticator runs unchanged on recorded videos and on a live webcam.
+
+## Two ways to run it
+
+| Entry point | Command | Purpose |
+|---|---|---|
+| **Batch study** | `face-auth` / `python src/face_auth/apps/main.py` | Runs the algorithm over recorded study videos and writes result CSVs. This is the main path. |
+| **Live demo** | `face-auth-live` / `python src/face_auth/apps/live.py` | Real-time webcam demo with an on-screen trust bar. For a quick visual sanity check. |
+
+## The batch pipeline
+
+The batch pipeline does **not** authenticate raw study videos directly. For each
+participant it builds *composed videos* on the fly and authenticates those.
+
+A composed video is a virtual, in-memory stream stitched from three segments:
+
+```
+[ genuine user video ] → [ short black screen ] → [ imposter video ]
+```
+
+The genuine segment should keep the user authenticated; after the black gap the
+imposter segment should get **locked out** as trust decays. This single stream is
+what lets us measure both false rejects (genuine locked out) and false accepts
+(imposter stays in).
+
+Per participant × device, one job:
+
+1. **Enroll** the participant — discover their enrollment video, select frames,
+   embed them (`enrollment/`, `core/enrollment/`).
+2. **Compose** imposter videos — pair the participant's genuine videos with other
+   participants' videos via a matching strategy, then stitch genuine + black +
+   imposter (`imposter_creation/`).
+3. **Authenticate** each composed video — sample frames at `authentication_hz`
+   along the real timeline and run each through the temporal-decay authenticator
+   (`authentication/`, `core/authenticator/`).
+4. **Write** one CSV per composed video (`io_utils.py`).
+
+Jobs run in parallel across processes (`batch.py`, `run.num_workers`).
+
+## Project layout
+
+```
+src/face_auth/
+├── apps/                 # Entry points: main.py (batch), live.py (webcam demo)
+├── configs/              # Run configs (JSON) + Pydantic schema (models.py)
+├── pipeline.py           # Batch orchestrator: builds and runs all jobs
+├── batch.py              # Parallel/sequential job executor
+├── domain.py             # Shared study vocabulary + value objects
+├── io_utils.py           # Run directory + per-video CSV writer
+│
+├── enrollment/           # Study-level enrollment service
+├── imposter_creation/    # Pairs videos + stitches composed videos
+├── authentication/       # Per-frame + per-video authentication services
+├── video_parser/         # Filename parsers for each pool
+│
+└── core/                 # Reusable, study-agnostic building blocks
+    ├── embedder/         # InsightFace / FaceNet embedders + embedding cache
+    ├── detection/        # MediaPipe / MTCNN detectors (FaceNet path only)
+    ├── enrollment/       # Frame-selection backends (fixed_order / pose)
+    └── authenticator/    # Trust scoring (temporal_decay, trust_based)
+
+src/evaluation/           # Reads result CSVs, computes metrics, makes figures
+data/                     # Videos, enrollments, and results (not tracked)
+```
+
+**`core/` vs the feature packages:** `core/` holds reusable machinery that knows
+nothing about this study (embedders, detectors, the trust algorithm). The
+top-level feature packages (`enrollment/`, `imposter_creation/`,
+`authentication/`) wrap that machinery with the study's path conventions and
+domain types.
+
+Most components (embedder, detector, enrollment backend, authenticator, matching
+strategy) are chosen by a `type` field in the config and built through a factory,
+so swapping an implementation is a config change, not a code change.
+
+## Setup
+
+Requires **Python ≥ 3.11** and **ffmpeg/ffprobe** (used for video rotation
+detection). On macOS: `brew install ffmpeg`.
+
+```bash
+python3 -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+pip install -e .            # installs the face-auth / face-auth-live commands
+```
+
+Models download automatically on first run. The default config uses InsightFace
+`buffalo_sc` (~20 MB), which does its own face detection — no separate detector
+model is needed. A separate MediaPipe/MTCNN detector is only required if you
+switch the embedder to FaceNet.
+
+## Data layout
+
+Videos and results live under `data/` and are not tracked in git. The pipeline
+relies on these path conventions and filename patterns.
 
 ```
 data/
-├── enrollments/                    # Shared across all pools
-│   ├── mobile/
-│   │   └── [participant_name]/
-│   │       ├── [name]_enrollment_*.MP4         # Enrollment video
-│   │       └── [enrollment_video_name]/        # Subfolder for processed images
-│   │           └── *.jpg
-│   └── desktop/
-│       └── [participant_name]/
-│           ├── [name]_enrollment_*.mp4         # Enrollment video
-│           └── [enrollment_video_name]/        # Subfolder for processed images
-│               └── *.jpg     
-│               
-├── in_the_wild/                    # Mobile-only videos
-│   ├── videos/mobile/
-│   │   └── [name]_[timestamp].mp4
-│   └── results.csv
-│ 
-├── controlled_study/               # Mobile + desktop videos
-│   ├── videos/
-│   │   ├── mobile/
-│   │   │   └── [name]_[mode]_[timestamp].mp4
-│   │   └── desktop/
-│   │       └── [name]_[mode]_[timestamp].mp4
-│   └── results.csv
-└── annotations/                    # For evaluation
-    |__*.json
+├── enrollments/                      # Shared across both studies
+│   └── {device}/{name}/
+│       ├── {name}_enrollment_{scenario}_{rotation}_{date}_{time}.mp4
+│       └── {name}_enrollment_.../    # extracted enrollment frames (*.jpg)
+│
+├── controlled_study/                 # Mobile + desktop
+│   └── {device}/{name}/
+│       └── {name}_{scenario}_{date}_{time}.mp4      # scenario ∈ easy|angle|lighting
+│
+└── in_the_wild/                      # Mobile only
+    └── mobile/{name}/
+        ├── videos/{name}_{date}_{time}.mp4
+        └── annotations/*.json                        # participant self-labels
 ```
 
-## Quick Start Guide
-
-### Prerequisites
-- Python 3.7+
-- **ffprobe** (for automatic video rotation detection)
-  - macOS: `brew install ffmpeg` (includes ffprobe)
-  - Linux: `sudo apt-get install ffmpeg` (includes ffprobe)
-  - Windows: Download from [ffmpeg.org](https://ffmpeg.org/download.html) (includes ffprobe)
-
-### Setup
-
-1. **Create a virtual environment**:
-```bash
-python3 -m venv venv
-```
-
-2. **Activate the virtual environment**:
-```bash
-source venv/bin/activate  # On macOS/Linux
-# or
-venv\Scripts\activate  # On Windows
-```
-
-3. **Install dependencies**:
-```bash
-pip install -r requirements.txt
-```
-
-### Model Downloads
-
-#### For live.py (Live Mode)
-
-**No manual downloads required!**
-
-Live mode uses InsightFace for both face detection and embedding generation, which downloads automatically on first use (~20 MB). The enrollment video is processed using simple frame interval sampling (every Nth frame), without requiring head pose estimation or specialized enrollment backends.
-
-#### For main.py (Batch Processing Mode)
-
-**No manual downloads required for current config.**
-
-The default configuration uses InsightFace embedder, which has built-in face detection (no separate detector model needed). All required models download automatically on first use.
-
-**Optional manual downloads (only if changing default config):**
-
-**MediaPipe BlazeFace** (only needed if switching embedder to FaceNet)
-```bash
-curl -L -o src/face_auth/authentication/detection/backend/impl/blaze_face_short_range.tflite \
-  https://storage.googleapis.com/mediapipe-assets/face_detection_short_range.tflite
-```
-- Size: 224 KB
-- Only required if `"embedder.model": "facenet"` is set in config
-- Current default uses InsightFace which has integrated detection
-
-**MediaPipe FaceLandmarker** (only needed if using pose-based enrollment)
-```bash
-curl -L -o src/face_auth/authentication/enrollment/face_landmarker.task \
-  https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task
-```
-- Size: 3.6 MB
-- Only required if `"enrollment.backend": "pose"` is set in config
-- **Current default is `"fixed_order"`**, so this is NOT needed by default
-
-**Automatic downloads (no action required):**
-- **InsightFace models** (`buffalo_sc`, `buffalo_s`, `buffalo_l`) - Downloads to `~/.insightface/models/` on first use
-- **FaceNet/MTCNN models** - Only if using FaceNet embedder instead of InsightFace
-
-### Quick Testing with live.py
-
-For quick testing with real-time webcam authentication, use `live.py`. This script will:
-- Access your webcam
-- Perform real-time face authentication
-- Display authentication results with visual feedback on screen
-
-The script needs an enrollment video. This should be you recording yourself looking at the camera and turning your head up, down and sideways for about 15 seconds. Add the path to the enrollment video in the configuration file described below.
-
-#### Configuration
-
-Before running, you must configure `live_config.json` in the project root. Here's what each field means:
-
-```json
-{
-  "enrollment_video": "data/enrollments/mobile/your_name/your_enrollment_video.mp4",
-  "camera_index": 0,
-  "fps": 30,
-  "embedder": {
-    "model": "insightface",
-    "config": {
-      "model_name": "buffalo_sc",
-      "det_size": [640, 640]
-    }
-  },
-  "temporal_decay": {
-    "threshold": 0.5,
-    "similarity_percentile": 0.90,
-    "k_weight": 40000,
-    "k_decay": 30000,
-    "initial_confidence": 1.0
-  },
-  "enrollment": {
-    "frame_sampling_interval": 30
-  }
-}
-```
-
-**Configuration Fields:**
-- `enrollment_video`: Path to your enrollment video (must already exist, see batch processing for creating enrollments)
-- `camera_index`: Camera device number (0 for default webcam, 1 for external camera, etc.)
-- `fps`: Target frames per second for authentication updates
-- `embedder.model`: Embedding model to use (`"insightface"` or `"facenet"`)
-- `embedder.config.model_name`: Specific model variant (e.g., `"buffalo_sc"` for compact, `"buffalo_l"` for accuracy)
-- `temporal_decay.threshold`: Trust score threshold (0.0-1.0) - user is locked when score drops below this
-- `temporal_decay.k_weight`: Time constant weighting new observations (higher = longer memory)
-- `temporal_decay.k_decay`: Time constant for confidence decay when no face detected
-- `temporal_decay.initial_confidence`: Starting confidence score (typically 1.0)
-- `enrollment.frame_sampling_interval`: Process every Nth frame from enrollment video
-
-#### Running Live Authentication
+## Running the batch pipeline
 
 ```bash
-python src/apps/live.py
+face-auth                                    # interactive: pick a study
+face-auth src/face_auth/configs/controlled_study.json   # or pass a config
 ```
 
-Press 'q' to quit the live authentication window.
+Two configs ship in `src/face_auth/configs/`:
 
-### Batch Processing with main.py
+- `controlled_study.json` — controlled study, mobile + desktop, scenario matching
+- `in_the_wild.json` — in-the-wild study, mobile only, random imposter matching
 
-The batch processing pipeline computes frame-by-frame authentication results (trust scores and lock/unlock states) for all participant videos in a study pool. Results are saved to CSV for later evaluation.
+### Config essentials
 
-#### Configuration Files
+The config is validated by the Pydantic schema in `configs/models.py`
+(**no defaults — every field is required**). The most relevant knobs:
 
-Two configuration files are provided in `configs/`:
+| Field | Meaning |
+|---|---|
+| `pool` | `controlled_study` or `in_the_wild` (selects the filename parser) |
+| `devices` | Devices to process, e.g. `["mobile", "desktop"]` |
+| `models.embedder.type` | `insightface` or `facenet` |
+| `run.num_workers` | Parallel workers (`1` = sequential, best for debugging) |
+| `authentication.authentication_hz` | Sampling rate along the video timeline, in Hz |
+| `authentication.backend` | Trust algorithm + its params (`threshold`, `k_weight`, `k_decay`, `similarity_percentile`) |
+| `enrollment.force_reenrollment` | Rebuild enrollment frames even if cached |
+| `imposter_creation.*_seconds` | Segment lengths of each composed video |
+| `imposter_creation.matching_strategy.type` | How genuine/imposter videos are paired (`scenario`, `random_sampling`, `all`) |
 
-1. **`controlled_study.json`** - For controlled study pool (mobile + desktop videos)
-2. **`in_the_wild.json`** - For in-the-wild pool (mobile-only videos)
+### Output
 
-Example configuration structure:
-```json
-{
-  "pool": "controlled_study",
-  "devices": ["desktop", "mobile"],
-  "paths": {
-    "base_path": "data/controlled_study",
-    "enrollment_base_path": "data/enrollments",
-    "results_file": "{base_path}/results.csv"
-  },
-  "models": {
-    "detector": "mediapipe",
-    "embedder": {
-      "model": "insightface",
-      "config": {
-        "min_detection_confidence": 0.6
-      }
-    }
-  },
-  "processing": {
-    "skip_frames": 30,
-    "matching_strategy": {
-      "type": "scenario",
-      "config": {}
-    },
-    "num_workers": 4
-  },
-  "authentication": {
-    "backend": "trust_based",
-    "trust_based": {
-      "threshold": 0.65,
-      "window_size": 10,
-      "similarity_percentile": 0.90,
-      "alpha": 0.3,
-      "no_face_penalty": 0.5
-    },
-    "fps": 30
-  },
-  "enrollment": {
-    "enrollment_video_preference": {
-      "scenario": "easy",
-      "rotations": ["cw", "ccw"]
-    },
-    "backend": "fixed_order",
-    "config": {
-      "window_seconds": 2.0
-    },
-    "frames_per_direction": 5
-  },
-  "imposter_creation": {
-    "fps": 30,
-    "genuine_user_seconds": 180,
-    "black_screen_seconds": 3,
-    "impostor_seconds": 180
-  },
-  "participants": [
-    {"name": "participant1"},
-    {"name": "participant2"}
-  ]
-}
+Each run creates its own directory so runs never collide:
+
+```
+data/{study}/results/run_{timestamp}_{suffix}/
+├── config.json                       # exact config used for this run
+└── {participant}/{device}/
+    └── {genuine_stem}_vs_{imposter_stem}.csv
 ```
 
-**Key Configuration Fields:**
+Each CSV row is one sampled frame:
 
-- `pool`: Study pool identifier (`"controlled_study"` or `"in_the_wild"`)
-- `devices`: List of devices to process (`["mobile"]` or `["mobile", "desktop"]`)
-- `paths.base_path`: Directory containing study videos
-- `paths.enrollment_base_path`: Directory containing enrollment data
-- `paths.results_file`: Output CSV path (supports `{base_path}` placeholder)
-- `models.detector`: Face detector (`"mediapipe"` or `"mtcnn"`). This is only used with `"facenet"` because FaceNet needs a separate detector. It is ignored when `embedder.model` is `"insightface"` because InsightFace performs detection internally.
-- `models.embedder.model`: Embedding provider (`"insightface"` or `"facenet"`)
-- `models.embedder.config`: Model-specific configuration (e.g., detection confidence threshold)
-- `processing.skip_frames`: Process every Nth frame (30 = 1 frame per second at 30 FPS)
-- `processing.matching_strategy.type`: Video pairing strategy (`"scenario"` matches same scenarios)
-- `processing.num_workers`: Number of parallel processing workers. Set to 1 for debugging.
-- `authentication.backend`: Authentication algorithm (`"trust_based"` or `"temporal_decay"`)
-- `authentication.fps`: Video frame rate
-- `enrollment.backend`: Enrollment frame selection method (`"fixed_order"` or `"pose"`)
-  - `"fixed_order"` - Extracts frames from predetermined time positions (default, no extra model needed)
-  - `"pose"` - Uses head pose estimation to select frames (requires MediaPipe FaceLandmarker model)
-- `enrollment.config`: Backend-specific enrollment settings
-- `enrollment.frames_per_direction`: How many frames to extract per head rotation direction
-- `imposter_creation.genuine_user_seconds`: Duration of genuine user footage in composed videos
-- `imposter_creation.impostor_seconds`: Duration of imposter footage in composed videos
-- `participants`: List of participants to process
+| Column | Meaning |
+|---|---|
+| `timestamp_ms` | Position on the composed video's timeline |
+| `is_authenticated` | `trust_score >= threshold` |
+| `similarity` | Cosine similarity to enrollment (`None` if no face) |
+| `trust_score` | Current trust score |
+| `face_detected` | Whether a face was found |
+| `source_type` | Which segment the frame came from (genuine / `black_frames` / imposter) |
 
-**Note:** Individual models can be configured by changing the `models.detector` and `models.embedder.model` fields. See the "Model Sizes" section below for available options.
+## Live demo
 
-#### Running the Pipeline
-
-1. **Interactive mode** (will prompt you to choose a config):
 ```bash
-python src/apps/main.py
+face-auth-live      # uses src/face_auth/configs/live_config.json
 ```
 
-
-#### Output CSV Format
-
-The pipeline outputs a CSV file (`results.csv`) with the following columns:
-- `frame` - Frame number within the video
-- `is_authenticated` - Boolean authentication decision (`True` for authenticated, `False` for locked)
-- `similarity` - Cosine similarity to enrollment embeddings (0.0-1.0, higher = more similar)
-- `trust_score` - Computed trust/confidence score (0.0-1.0)
-- `face_detected` - Boolean indicating whether a face was detected in the frame
-- `source_type` - Video segment type (e.g., "genuine", "imposter", "black_screen")
-- `video_path` - Path to the processed video file
-- `participant` - Participant name
-- `device` - Device used for recording (mobile/desktop)
-- `scenario` - Recording scenario (controlled study only, e.g., "easy", "angle", "lighting")
+Enrolls by sampling frames evenly across `enrollment_video`, then authenticates
+every webcam frame and draws lock status, trust, and a threshold-marked trust
+bar. Press `q` to quit. Point `enrollment_video` at your own clip (~15 s, turning
+your head) and set `camera_index` for your webcam.
 
 ## Evaluation
 
-For detailed evaluation instructions, see [src/evaluation/README.md](src/evaluation/README.md).
-
-The evaluation module analyzes authentication results from `results.csv` and generates:
-- Interactive HTML timelines showing trust scores over time
-- Summary visualizations with key performance metrics
-- Detailed metrics tables broken down by device and scenario
-
-## Model Sizes
-
-**Face Detection:**
-- MTCNN: ~2.2 MB (optional, only if using FaceNet embedder)
-- MediaPipe BlazeFace: 224 KB (optional, only if using FaceNet with the MediaPipe detector)
-- InsightFace detector: included in the selected InsightFace model pack
-
-**Face Recognition (Embeddings):**
-- FaceNet: ~90 MB (Inception-ResNet, optional)
-- InsightFace buffalo_l: 166 MB (ResNet50) - w600k_r50.onnx (optional)
-- InsightFace buffalo_s: ~50 MB (MobileFaceNet, optional)
-- InsightFace buffalo_sc: ~10 MB (compressed MobileFaceNet, **default for live.py**)
-
-**Head Pose Estimation:**
-- MediaPipe FaceLandmarker: 3.6 MB (optional, only if using pose-based enrollment)
-
-**Typical Configurations:**
-- **live.py (default):** InsightFace buffalo_sc (~20 MB total) - all models download automatically
-- **main.py (default):** InsightFace buffalo_sc (~20 MB total) - no separate detector model required
-- **With FaceNet:** FaceNet + MTCNN (~92 MB total) - all models download automatically
+The evaluation package reads a completed run directory, computes metrics, and
+produces interactive Plotly timelines and summary figures. See
+[`src/evaluation/README.md`](src/evaluation/README.md) for details.
